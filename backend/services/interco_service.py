@@ -991,9 +991,42 @@ async def create_settlement(payload: Dict[str, Any], actor: str = "") -> Dict[st
     settle_id = new_id("ics")
     number = await next_doc_number(COLL_ICS, "number", "ICS-", entity_id=payer)
     settle_date = payload.get("settle_date") or _today()
-    method = (payload.get("method") or "netting").strip().lower()
+    method = (payload.get("method") or "transfer").strip().lower()
+    # F-08 (audit 2026-09-02) — netting hanya sah bila PEMBAYAR juga punya PIUTANG ke
+    # penerima (arah balik). Tanpa itu IC-AP bersaldo debit & IC-AR bersaldo kredit.
+    if method == "netting":
+        reverse_open = await db[COLL_ICT].find({
+            "seller_entity_id": payer, "buyer_entity_id": payee, "role": "seller",
+            "status": {"$in": list(OPEN_STATUSES)}}, {"_id": 0}).sort("created_at", 1).to_list(1000)
+        ar_reverse = round(sum(
+            float(d.get("grand_total") or 0) - float(d.get("settled_amount") or 0)
+            - float(d.get("returned_amount") or 0) for d in reverse_open), 2)
+        if total_applied > ar_reverse + EPS:
+            raise IntercoError(
+                f"Netting {rupiah(total_applied)} melebihi piutang balik {payer}→{payee} "
+                f"yang terbuka ({rupiah(ar_reverse)}). Pilih metode transfer/kas, atau "
+                f"batasi netting sebesar piutang balik.")
+    else:
+        reverse_open = []
     payer_snap = await _entity_snapshot(payer)
     payee_snap = await _entity_snapshot(payee)
+    # F-08 (residual) — netting MENGKONSUMSI piutang balik FIFO, supaya dua netting berturut
+    # tidak bisa melampaui piutang balik secara kumulatif & sub-ledger selaras dengan GL.
+    netted_against: List[Dict[str, Any]] = []
+    if method == "netting":
+        remaining = total_applied
+        for rd in reverse_open:
+            if remaining <= EPS:
+                break
+            outstanding = round(float(rd.get("grand_total") or 0) - float(rd.get("settled_amount") or 0)
+                                - float(rd.get("returned_amount") or 0), 2)
+            take = round(min(remaining, outstanding), 2)
+            if take <= EPS:
+                continue
+            netted_against.append({"interco_id": rd["id"], "pair_id": rd.get("pair_id"),
+                                   "number": rd.get("number"), "applied_amount": take})
+            remaining = round(remaining - take, 2)
+
     doc = {
         "id": settle_id,
         "number": number,
@@ -1007,6 +1040,7 @@ async def create_settlement(payload: Dict[str, Any], actor: str = "") -> Dict[st
         "bank_account_id": (payload.get("bank_account_id") or "").strip(),
         "notes": (payload.get("notes") or "").strip(),
         "applied": applied_rows,
+        "netted_against": netted_against,
         "total_applied": total_applied,
         "status": "posted",
         "created_at": now_iso(),
@@ -1014,10 +1048,20 @@ async def create_settlement(payload: Dict[str, Any], actor: str = "") -> Dict[st
     }
     await db[COLL_ICS].insert_one(doc)
 
-    # Update settled_amount per transaksi (kedua dokumen kembar)
+    # Update settled_amount per transaksi (kedua dokumen kembar) — termasuk piutang balik
+    # yang dikonsumsi netting (F-08).
     ts = now_iso()
-    for row in applied_rows:
-        for _id in (row["interco_id"], row["counterpart_id"]):
+    consume_rows = list(applied_rows) + [
+        {"interco_id": n["interco_id"], "counterpart_id": None, "pair_id": n["pair_id"],
+         "applied_amount": n["applied_amount"]} for n in netted_against]
+    for row in consume_rows:
+        ids = [row["interco_id"], row.get("counterpart_id")]
+        if not row.get("counterpart_id") and row.get("pair_id"):
+            ids = [d["id"] for d in await db[COLL_ICT].find(
+                {"pair_id": row["pair_id"]}, {"_id": 0, "id": 1}).to_list(4)]
+        for _id in ids:
+            if not _id:
+                continue
             cur = await db[COLL_ICT].find_one({"id": _id}, {"_id": 0, "grand_total": 1,
                                                              "settled_amount": 1,
                                                              "returned_amount": 1})
@@ -1040,11 +1084,16 @@ async def create_settlement(payload: Dict[str, Any], actor: str = "") -> Dict[st
     # Refresh saldo pasangan (payee=penjual, payer=pembeli). Cukup satu panggilan;
     # rewrite _update_account_balance sudah menulis kedua sisi (receivable + payable).
     await _update_account_balance(payee, payer)
+    if netted_against:
+        await _update_account_balance(payer, payee)   # F-08 — pasangan arah balik ikut disegarkan
 
     # US7/INV-IC-03 — sisa IC-AR/IC-AP yang dieliminasi ikut mengecil setelah
     # settlement; kalau tidak disinkronkan, konsolidasi menghapus saldo hantu.
     for row in applied_rows:
         await _sync_group_elimination(row["pair_id"])
+    for n in netted_against:
+        if n.get("pair_id"):
+            await _sync_group_elimination(n["pair_id"])
 
     # US10 — jejak dua arah: settlement MELUNASI transaksi-transaksi ini.
     try:

@@ -18,6 +18,7 @@ import { setActiveEntity } from "./services/apiClient";
 import axios, { API } from "./services/apiClient";
 import GuidedTour from "./components/GuidedTour";
 import AppViewRouter from "./AppViewRouter";
+import ErrorBoundary from "./components/ErrorBoundary";
 import PeriodUnlockBanner from "./components/PeriodUnlockBanner";
 import ScopeReadOnlyBanner from "./components/ScopeReadOnlyBanner";
 import { EntityScopeProvider } from "./context/EntityScopeContext";
@@ -412,7 +413,11 @@ function App() {
             />
           )}
 
+          {/* U-01 — key={selectedEntity}: ganti badan usaha me-remount layar (refetch) */}
+          {/* U-04 — ErrorBoundary: satu layar rusak tidak mematikan seluruh aplikasi */}
+          <ErrorBoundary resetKey={`${selectedEntity}:${activeView}`}>
           <AppViewRouter
+            key={selectedEntity}
             hubInfo={hubInfo}
             activeView={activeView}
             onNavSelect={handleNavSelect}
@@ -465,6 +470,7 @@ function App() {
             lastLabel={lastLabel}
             actions={actions}
           />
+          </ErrorBoundary>
         </main>
       </div>
 

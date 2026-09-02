@@ -43,6 +43,22 @@ async def simulate_payment(order_id: str, payload: PaymentSimulationCreate, requ
     # Fase 1B — invoice mengikuti breakdown pajak order (server-authoritative).
     grand_total = float(order.get("grand_total", order.get("total_amount", 0)) or 0)
     amount = float(payload.amount) if (payload.amount and float(payload.amount) > 0) else grand_total
+    # F-07 (audit 2026-09-02) — jalur legacy ini dulu tanpa pagar lebih-bayar & tidak
+    # menyentuh `paid_total`, sehingga Σpayments > grand_total dan dua angka "terbayar"
+    # berbeda di layar. Sekarang: tolak lebih-bayar, default = sisa outstanding.
+    prev_paid = round(sum(float(p.get("amount", 0) or 0)
+                          for p in (order.get("payments") or [])), 2)
+    outstanding = round(grand_total - prev_paid, 2)
+    if outstanding <= 0.01:
+        raise HTTPException(status_code=400,
+                            detail=f"Order {order.get('number')} sudah lunas — tidak ada outstanding.")
+    if not (payload.amount and float(payload.amount) > 0):
+        amount = outstanding
+    if amount > outstanding + 0.01:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Pembayaran melebihi outstanding order {order.get('number')} "
+                   f"(sisa {outstanding:,.0f}). Gunakan Penerimaan AR untuk kelebihan bayar.")
     invoice = {
         "id": new_id("inv"),
         "number": f"INV-{order['number'].replace('SO-', '')}-{invoice_count:02d}",
@@ -76,6 +92,7 @@ async def simulate_payment(order_id: str, payload: PaymentSimulationCreate, requ
     await db.sales_orders.update_one(
         {"id": order_id},
         {"$set": {"payment_status": pay_status, "updated_at": now_iso()},
+         "$inc": {"paid_total": amount},
          "$push": {"payments": invoice}}     # invoice masih bersih (tanpa _id)
     )
     await audit(actor["name"], "payment_simulated", "invoice", invoice["id"],

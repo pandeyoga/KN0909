@@ -224,3 +224,21 @@ tersisa action items minor).
   field "Telepon penerima" di modal buat & data detail (`logistics-receiver-phone`, `logistics-edit-receiver_phone`).
 
 
+
+## 2026-09-02 — Sesi #084: Klon ulang repo avacadasa/kn + verifikasi & perbaikan AUDIT INDEPENDEN 2026-09-02 ✅
+- Restore: `git clone` → `/app`, pip/yarn, `seed_reset.sh`, rebuild bundle statis. Gate 246 PASS.
+- Dokumen pemilik `memory/AUDIT_KN_2026-09-02_owner.md` diverifikasi butir per butir; status lengkap di
+  **`memory/AUDIT_KN_2026-09-02_STATUS.md`**.
+- DIPERBAIKI (semua VALID, terbukti runtime): F-01 (pendapatan/HPP dijurnal saat dispatch & kwitansi AR),
+  F-02 (backfill tahan periode tertutup, startup tak mati), F-03 (makloon dobel-posting + migrasi 6 JE
+  reversal, Hutang −Rp 3.481.500), F-04 (`gl_posted` dihormati), F-05/F-06 (kwitansi AR: pemilik/entitas +
+  pra-validasi & kompensasi), F-07 (simulate-payment pagar lebih-bayar + `paid_total`), F-08 (netting
+  dibatasi & mengkonsumsi piutang balik; bawaan `transfer`), E-01 (stock-breakdown scoped+proyeksi),
+  E-02 (cycle-count scoped), U-01 (remount saat ganti PT), U-02 (`/documents/{id}/print`),
+  U-04/P0-1 (tab Audit + `ErrorBoundary`), gate `INV-CFG-01` (`__migrations__` diabaikan).
+- Invarian baru di `verify_data_integrity.py`: INV-GL-DUP-01, INV-CASH-02, INV-AR-02, INV-GL-REV-01.
+- Skrip: `scripts/migrate_reverse_duplicate_backfill_je.py --report|--apply`.
+- Bukti: `backend/test_audit_2026_09_02_poc.py` (21/21), `test_reports/iteration_292.json` (17/17 + 3/3 UI).
+- DITUNDA (perlu keputusan pemilik): B-01 kebijakan pengakuan pendapatan, F-09..F-17 (retur/PPN/GR/deposit/
+  kontrabon), D-01 penomoran atomik, D-02/D-03, U-03/U-05, serta backlog P1-1..P1-3/L/G/X dari
+  `AUDIT_TEMUAN_2026-09-02.md`.

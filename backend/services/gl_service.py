@@ -691,6 +691,28 @@ async def _already_posted(source_type: str, source_id: str) -> bool:
         {"_id": 0, "id": 1}))
 
 
+async def any_posting_for(source_id: str) -> bool:
+    """F-03/F-04 — sudah ada JE non-void APA PUN source_type-nya untuk dokumen ini?
+    Menutup kelas dobel-posting lintas source_type (subcon_service vs vendor_bill)."""
+    if not source_id:
+        return False
+    return bool(await db.journal_entries.find_one(
+        {"source_id": source_id, "status": {"$ne": "void"},
+         "source_type": {"$not": re.compile(r"_reversal$")}},
+        {"_id": 0, "id": 1}))
+
+
+async def post_order_revenue_and_cogs(order_id: str) -> Dict[str, Any]:
+    """F-01 — posting pendapatan + HPP pada PERISTIWA bisnis (dispatch / kwitansi AR),
+    bukan menunggu backfill saat restart. Idempotent (source_type sales_order/sales_cogs)."""
+    fresh = await db.sales_orders.find_one({"id": order_id}, {"_id": 0})
+    if not fresh:
+        return {"revenue": None, "cogs": None}
+    rev = await post_sales_order(fresh)
+    cogs = await post_order_cogs(fresh)
+    return {"revenue": rev, "cogs": cogs}
+
+
 # ─── Gelombang 1 F-2 — basis pengakuan pendapatan ────────────────────────────
 # Pendapatan HANYA diakui saat barang terkirim (shipped+) ATAU invoice terbayar.
 # Order reserved/confirmed yang belum dikirim & belum dibayar TIDAK berjurnal.
@@ -1310,7 +1332,11 @@ async def post_vendor_bill(bill: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     bid = bill.get("id")
     if not bid or bill.get("status") not in ("posted", "paid"):
         return None
-    if await _already_posted("vendor_bill", bid):
+    # F-03 (audit 2026-09-02) — tagihan JASA makloon sudah berjurnal lewat
+    # `post_subcon_service` (Dr WIP / Cr Hutang); memposting lagi = Hutang dobel.
+    if bill.get("bill_type") == "makloon_service":
+        return None
+    if await _already_posted("vendor_bill", bid) or await any_posting_for(bid):
         return None
     grand = round(float(bill.get("grand_total", bill.get("total_amount", 0)) or 0), 2)
     if grand <= EPS:
@@ -1998,6 +2024,10 @@ async def post_cash_transaction(txn: Dict[str, Any]) -> Optional[Dict[str, Any]]
     """Mutasi kas: Dr/Cr Kas/Bank vs lawan akun berdasar ref_type / kategori."""
     if txn.get("status") == "void":
         return None
+    # F-04 (audit 2026-09-02) — kas ber-`gl_posted:true` sudah dijurnal oleh dokumen
+    # induknya (CN/nota debit/pinjaman antar-PT/aset). Jangan dijurnal ulang.
+    if txn.get("gl_posted") is True:
+        return None
     tid = txn.get("id")
     if not tid or await _already_posted("cash_transaction", tid):
         return None
@@ -2100,39 +2130,62 @@ async def post_cash_transaction(txn: Dict[str, Any]) -> Optional[Dict[str, Any]]
         created_by=txn.get("created_by", "system"), source_label=number)
 
 
-async def backfill_journals() -> Dict[str, int]:
+async def backfill_journals(entity_id: Optional[str] = None) -> Dict[str, Any]:
     """Posting otomatis (idempotent) seluruh SSOT yang belum berjurnal.
 
     Urutan: sales_orders (pendapatan) lalu cash_transactions (mutasi kas).
     Aman diulang — yang sudah posted dilewati.
+
+    F-02 (audit 2026-09-02): satu dokumen yang jatuh ke periode TERTUTUP tidak boleh
+    menghentikan loop (apalagi mematikan startup). Dokumen itu dikumpulkan ke
+    `skipped_closed` dan dilaporkan; kegagalan lain dicatat ke `errors`.
     """
+    import logging
+    log = logging.getLogger("gl.backfill")
     await seed_default_coa()
     posted_so = posted_cash = 0
     posted_cogs = 0
-    orders = await db.sales_orders.find({}, {"_id": 0}).to_list(20000)
+    skipped_closed: List[Dict[str, str]] = []
+    errors: List[Dict[str, str]] = []
+    ent_q: Dict[str, Any] = {"entity_id": entity_id} if entity_id else {}
+
+    async def _guarded(kind: str, doc_id: str, coro):
+        try:
+            return await coro
+        except ClosedPeriodError as exc:
+            skipped_closed.append({"kind": kind, "id": doc_id, "reason": str(exc)})
+        except Exception as exc:  # noqa: BLE001
+            errors.append({"kind": kind, "id": doc_id, "error": str(exc)})
+            log.warning("backfill %s %s gagal: %s", kind, doc_id, exc)
+        return None
+
+    orders = await db.sales_orders.find(ent_q, {"_id": 0}).to_list(20000)
     for o in orders:
-        if await post_sales_order(o):
+        if await _guarded("sales_order", o.get("id", ""), post_sales_order(o)):
             posted_so += 1
         # KN-076-COGS-ZERO (P2, INV-DATA): setiap order berpendapatan WAJIB punya jurnal HPP.
-        # Selaras dgn jalur runtime (routers/invoices.py) yang memanggil keduanya. Idempotent
-        # (source_type='sales_cogs'); skip aman bila cost tak diketahui / order tak eligible.
-        if await post_order_cogs(o):
+        if await _guarded("sales_cogs", o.get("id", ""), post_order_cogs(o)):
             posted_cogs += 1
+    # F-04 — kas ber-gl_posted sudah berjurnal lewat dokumen induknya.
     txns = await db.cash_transactions.find(
-        {"status": {"$ne": "void"}}, {"_id": 0}).sort("txn_date", 1).to_list(20000)
+        {**ent_q, "status": {"$ne": "void"}, "gl_posted": {"$ne": True}},
+        {"_id": 0}).sort("txn_date", 1).to_list(20000)
     for t in txns:
-        if await post_cash_transaction(t):
+        if await _guarded("cash_transaction", t.get("id", ""), post_cash_transaction(t)):
             posted_cash += 1
     # Gelombang 1 F-5 — vendor bills posted/paid yang belum berjurnal.
+    # F-03 — tagihan jasa makloon dijurnal `post_subcon_service`, bukan di sini.
     posted_bill = 0
     bills = await db.vendor_bills.find(
-        {"status": {"$in": ["posted", "paid"]}}, {"_id": 0}).to_list(20000)
+        {**ent_q, "status": {"$in": ["posted", "paid"]},
+         "bill_type": {"$ne": "makloon_service"}}, {"_id": 0}).to_list(20000)
     for b in bills:
-        if await post_vendor_bill(b):
+        if await _guarded("vendor_bill", b.get("id", ""), post_vendor_bill(b)):
             posted_bill += 1
     return {"sales_orders": posted_so, "cash_transactions": posted_cash,
             "vendor_bills": posted_bill, "sales_cogs": posted_cogs,
-            "total": posted_so + posted_cash + posted_bill + posted_cogs}
+            "total": posted_so + posted_cash + posted_bill + posted_cogs,
+            "skipped_closed": skipped_closed, "errors": errors}
 
 
 async def post_incentive_accrual(entity_id: str, period: str,

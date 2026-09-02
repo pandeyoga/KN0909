@@ -115,7 +115,7 @@ def declared_other_scopes() -> List[Tuple[str, str, Any]]:
         coll = MongoClient(url, serverSelectionTimeoutMS=3000)[dbn].system_settings
         for doc in coll.find({"scope": {"$ne": "global"}}, {"_id": 0}):
             scope = doc.get("scope")
-            if not scope or scope in {"alerts"}:  # 'alerts' = lock runtime, bukan config
+            if not scope or scope in {"alerts", "__migrations__"}:  # 'alerts' = lock runtime; '__migrations__' = penanda sekali-jalan, bukan config
                 continue
             body = {
                 k: v

@@ -1524,7 +1524,17 @@ async def run_bootstrap() -> None:
     # EPIC7-C — bagan akun baku + auto-posting jurnal (idempotent)
     from services import gl_service
     await gl_service.seed_default_coa()
-    await gl_service.backfill_journals()
+    # F-02 (audit 2026-09-02) — backfill TIDAK boleh mematikan startup (periode tertutup dsb).
+    try:
+        _bf = await gl_service.backfill_journals()
+        if _bf.get("skipped_closed") or _bf.get("errors"):
+            import logging
+            logging.getLogger("bootstrap").warning(
+                "[gl] backfill: %d dokumen dilewati (periode tertutup), %d error",
+                len(_bf.get("skipped_closed") or []), len(_bf.get("errors") or []))
+    except Exception as exc:  # noqa: BLE001
+        import logging
+        logging.getLogger("bootstrap").error("[gl] backfill_journals gagal: %s", exc)
     # Digitalisasi Formulir Sukacita — kategori pengeluaran petty cash → akun COA
     from services import cash_advance_service
     await cash_advance_service.seed_expense_categories()

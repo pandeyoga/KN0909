@@ -13,7 +13,7 @@ from services import rnd_gate
 from services import product_exclusivity as pexcl
 from services import line_scope
 from services import supplier_item_service as _sis   # MD-08 — kode ganda KN ↔ supplier
-from entity_scope import entity_ctx
+from entity_scope import entity_ctx, apply_entity_scope
 
 router = APIRouter(prefix="/api")
 
@@ -215,10 +215,17 @@ async def stock_breakdown(product_id: str, request: Request) -> Dict[str, Any]:
     balances_raw = await db.inventory_balances.find({"product_id": product_id}, {"_id": 0}).to_list(100)
     warehouses = {w["id"]: w for w in await db.warehouses.find({}, {"_id": 0}).to_list(100)}
     entities = {e["id"]: e for e in await db.business_entities.find({}, {"_id": 0}).to_list(100)}
+    # E-01 (audit 2026-09-02) — reservasi HANYA dari badan usaha yang diizinkan, dan
+    # diproyeksikan ringkas: dokumen SO utuh PT lain (pelanggan, harga, alamat) pernah
+    # bocor ke sales PT lain lewat endpoint ini.
+    ctx_sb = await entity_ctx(request)
     reservations_raw = await db.sales_orders.find(
-        {"allocations.product_id": product_id,
-         "status": {"$in": ["reserved", "waiting_approval", "approved", "confirmed"]}},
-        {"_id": 0}
+        apply_entity_scope("sales_orders", {
+            "allocations.product_id": product_id,
+            "status": {"$in": ["reserved", "waiting_approval", "approved", "confirmed"]}},
+            ctx_sb, mode="allowed"),
+        {"_id": 0, "id": 1, "number": 1, "entity_id": 1, "status": 1, "allocations": 1,
+         "customer_name": 1, "created_at": 1}
     ).to_list(100)
     rolls_raw = await db.inventory_rolls.find({"product_id": product_id}, {"_id": 0}).to_list(5000)
 

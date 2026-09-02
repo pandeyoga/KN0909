@@ -88,4 +88,14 @@ async def dispatch_task(
     await _refs.safe_link(("shipment", shipment["id"]), ("picking_task", task["id"]),
                           "fulfills", note="dari tugas pengambilan")
     await recompute_so_status(task["order_id"])
+    # F-01 (audit 2026-09-02) — pendapatan & HPP diakui SAAT barang keluar, bukan
+    # menunggu backfill saat restart. Best-effort: kegagalan GL tidak membatalkan
+    # surat jalan yang sudah terbit (dicatat ke log; backfill akan mengulanginya).
+    try:
+        from services import gl_service as _gl
+        await _gl.post_order_revenue_and_cogs(task["order_id"])
+    except Exception as exc:  # noqa: BLE001
+        import logging
+        logging.getLogger("shipment").error(
+            "GL pendapatan order %s gagal saat dispatch: %s", task["order_id"], exc)
     return safe_doc(updated), safe_doc(shipment)

@@ -4528,6 +4528,94 @@ async def layer_closing_invariants(db):
                         f"pengusul ≠ penyetuju (dual-control)")
 
 
+async def layer_gl_audit_2026_09_invariants(db):
+    """Audit independen 2026-09-02 (F-01/F-03/F-04/F-06) — pagar yang memerah bila kelasnya lahir lagi.
+      INV-GL-DUP-01 (FAIL): satu source_id tidak boleh punya 2 JE non-void non-reversal yang
+                            mengkredit akun yang sama dengan nilai yang sama (dobel-posting lintas source_type).
+      INV-CASH-02  (FAIL): kas ber-`gl_posted:true` tidak boleh punya JE `cash_transaction`.
+      INV-AR-02    (FAIL): setiap `sales_orders.payments[].receipt_id` (AR-) wajib ada di `ar_receipts` non-void.
+      INV-GL-REV-01 (FAIL): SO berstatus REVENUE (shipped/partially_shipped/done) ber-grand_total>0
+                            wajib punya JE `sales_order` non-void — pendapatan tidak menunggu restart.
+    """
+    from collections import defaultdict
+    print(f"\n{C}{B}L4-GL-AUDIT — Invarian audit 2026-09-02 (dobel-posting · kas gl_posted · kwitansi yatim · pendapatan tepat waktu){X}")
+    EPS = 0.5
+    jes = await db.journal_entries.find(
+        {"status": {"$ne": "void"}, "source_type": {"$not": {"$regex": "_reversal$"}}},
+        {"_id": 0, "number": 1, "source_id": 1, "source_type": 1, "lines": 1, "reversed": 1}).to_list(200000)
+    by_src = defaultdict(list)
+    for je in jes:
+        if je.get("source_id") and not je.get("reversed"):
+            by_src[je["source_id"]].append(je)
+    dup = []
+    for sid, rows in by_src.items():
+        if len(rows) < 2:
+            continue
+        credits = defaultdict(list)
+        for je in rows:
+            for l in je.get("lines", []):
+                c = float(l.get("credit", 0) or 0)
+                if c > EPS:
+                    credits[(l.get("account_code"), round(c, 2))].append(je.get("number"))
+        for key, nums in credits.items():
+            if len(set(nums)) > 1:
+                dup.append(f"{sid} {key[0]} {key[1]:,.0f} ← {sorted(set(nums))}")
+                break
+    if dup:
+        results["fail"] += 1
+        line("FAIL", R, f"INV-GL-DUP-01: {len(dup)} dokumen dijurnal DUA KALI (lintas source_type)", str(dup[:4]))
+    else:
+        results["pass"] += 1
+        line("PASS", G, f"INV-GL-DUP-01: {len(by_src)} source_id — tidak ada kredit akun yang sama dijurnal dua kali")
+
+    posted_cash_ids = [c["id"] for c in await db.cash_transactions.find(
+        {"gl_posted": True}, {"_id": 0, "id": 1}).to_list(50000)]
+    bad_cash = await db.journal_entries.count_documents(
+        {"source_type": "cash_transaction", "status": {"$ne": "void"},
+         "source_id": {"$in": posted_cash_ids}}) if posted_cash_ids else 0
+    if bad_cash:
+        results["fail"] += 1
+        line("FAIL", R, f"INV-CASH-02: {bad_cash} JE cash_transaction untuk kas ber-gl_posted:true (dobel kas)")
+    else:
+        results["pass"] += 1
+        line("PASS", G, f"INV-CASH-02: {len(posted_cash_ids)} kas ber-gl_posted — tak ada JE cash_transaction ganda")
+
+    receipt_ids = {r["id"] for r in await db.ar_receipts.find(
+        {"status": {"$ne": "void"}}, {"_id": 0, "id": 1}).to_list(50000)}
+    orphan = []
+    async for o in db.sales_orders.find({"payments.receipt_id": {"$exists": True}},
+                                        {"_id": 0, "number": 1, "payments": 1}):
+        for p in o.get("payments") or []:
+            rid = p.get("receipt_id")
+            if rid and str(rid).startswith("arc") and rid not in receipt_ids:
+                orphan.append(f"{o.get('number')}:{p.get('receipt_number') or rid}")
+    if orphan:
+        results["fail"] += 1
+        line("FAIL", R, f"INV-AR-02: {len(orphan)} pembayaran yatim (receipt_id tanpa kwitansi)", str(orphan[:5]))
+    else:
+        results["pass"] += 1
+        line("PASS", G, "INV-AR-02: setiap payments[].receipt_id merujuk kwitansi AR yang ada")
+
+    rev_ids = {j["source_id"] for j in await db.journal_entries.find(
+        {"source_type": "sales_order", "status": {"$ne": "void"}}, {"_id": 0, "source_id": 1}).to_list(50000)}
+    missing = []
+    n_rev = 0
+    async for o in db.sales_orders.find({"status": {"$in": ["shipped", "partially_shipped", "done"]}},
+                                        {"_id": 0, "id": 1, "number": 1, "grand_total": 1}):
+        if float(o.get("grand_total") or 0) <= EPS:
+            continue
+        n_rev += 1
+        if o["id"] not in rev_ids:
+            missing.append(o.get("number", o["id"]))
+    if missing:
+        results["fail"] += 1
+        line("FAIL", R, f"INV-GL-REV-01: {len(missing)} SO terkirim TANPA jurnal pendapatan", str(missing[:5]))
+    else:
+        results["pass"] += 1
+        line("PASS", G, f"INV-GL-REV-01: {n_rev} SO terkirim — semua berjurnal pendapatan")
+
+
+
 def _layer_registry():
     return [
         ("self",        layer0_self_check,                False, ()),
@@ -4535,6 +4623,7 @@ def _layer_registry():
         ("db",          layer2_db_invariants,             True,  ("INV-DB",)),
         ("movement",    layer_movement_ledger_invariants, True,  ("INV-MOV",)),
         ("gl",          layer_gl_invariants,              True,  ("INV-GL",)),
+        ("gl_audit",    layer_gl_audit_2026_09_invariants, True, ("INV-GL-DUP", "INV-CASH-02", "INV-AR-02", "INV-GL-REV")),
         ("domain",      layer_domain_invariants,          True,  ("INV-DOM",)),
         ("roll",        layer_roll_invariants,            True,  ("INV-ROLL",)),
         ("backorder",   layer_backorder_invariants,       True,  ("INV-BO",)),

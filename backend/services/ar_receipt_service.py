@@ -250,6 +250,7 @@ async def list_open_orders(customer_id: str) -> List[Dict[str, Any]]:
             continue
         rows.append({
             "order_id": o["id"],
+            "entity_id": o.get("entity_id", ""),
             "number": o.get("number", o["id"]),
             "grand_total": round(gt, 2),
             "paid_total": round(paid, 2),
@@ -261,20 +262,57 @@ async def list_open_orders(customer_id: str) -> List[Dict[str, Any]]:
     return rows
 
 
-async def _apply_to_order(order_id: str, amount: float, receipt_id: str,
-                          receipt_number: str, method: str, receipt_date: str,
-                          plan_line_seq: int = 0) -> Dict[str, Any]:
+async def _validate_allocation_target(order_id: str, amount: float, *,
+                                      customer_id: str, entity_id: str) -> Dict[str, Any]:
+    """F-05/F-06 — periksa order tujuan TANPA menulis: ada, milik pelanggan & badan usaha
+    kwitansi, dan tidak melebihi outstanding. Dipanggil untuk SEMUA alokasi sebelum
+    satu pun order dimutasi, supaya kegagalan alokasi ke-2 tidak meninggalkan
+    pembayaran yatim di order ke-1."""
     o = await db.sales_orders.find_one({"id": order_id}, {"_id": 0})
     if not o:
         raise HTTPException(status_code=404, detail=f"Order {order_id} tidak ditemukan")
+    if customer_id and o.get("customer_id") and o["customer_id"] != customer_id:
+        raise HTTPException(
+            status_code=400,
+            detail=(f"Order {o.get('number', order_id)} milik pelanggan lain — kwitansi hanya "
+                    f"boleh dialokasikan ke pesanan pelanggan yang sama."))
+    if entity_id and entity_id != "all" and o.get("entity_id") and o["entity_id"] != entity_id:
+        raise HTTPException(
+            status_code=403,
+            detail=(f"Order {o.get('number', order_id)} milik badan usaha lain — piutangnya "
+                    f"tidak boleh dilunasi lewat kwitansi badan usaha ini."))
     gt = order_grand_total(o)
-    prev_paid = order_paid(o)
-    outstanding = round(gt - prev_paid, 2)
+    outstanding = round(gt - order_paid(o), 2)
     if amount > outstanding + EPS:
         raise HTTPException(
             status_code=400,
             detail=f"Alokasi {rupiah(amount)} melebihi outstanding order {o.get('number')} ({rupiah(outstanding)})",
         )
+    return o
+
+
+async def _unapply_receipt(receipt_id: str, applied: List[Dict[str, Any]]) -> None:
+    """F-06 — kompensasi: cabut payments[] ber-receipt_id ini dari order yang sudah dimutasi."""
+    for a in applied:
+        await db.sales_orders.update_one(
+            {"id": a["order_id"]},
+            {"$pull": {"payments": {"receipt_id": receipt_id}},
+             "$inc": {"paid_total": -float(a.get("applied") or 0)},
+             "$set": {"updated_at": now_iso()}})
+        o = await db.sales_orders.find_one({"id": a["order_id"]}, {"_id": 0})
+        if o:
+            await db.sales_orders.update_one(
+                {"id": a["order_id"]},
+                {"$set": {"payment_status": _payment_status(order_grand_total(o), order_paid(o))}})
+
+
+async def _apply_to_order(order_id: str, amount: float, receipt_id: str,
+                          receipt_number: str, method: str, receipt_date: str,
+                          plan_line_seq: int = 0, customer_id: str = "",
+                          entity_id: str = "") -> Dict[str, Any]:
+    o = await _validate_allocation_target(order_id, amount, customer_id=customer_id,
+                                          entity_id=entity_id)
+    gt = order_grand_total(o)
     amt = round(float(amount), 2)
     payment = {
         "id": new_id("pay"),
@@ -358,23 +396,44 @@ async def create_receipt(payload: Dict[str, Any], actor: Dict[str, Any]) -> Dict
         total_alloc = round(sum(float(a.get("amount", 0) or 0) for a in explicit), 2)
         if total_alloc > total_funds + EPS:
             raise HTTPException(status_code=400, detail="Total alokasi melebihi dana (kas + deposit)")
-        for a in explicit:
-            amt = round(float(a.get("amount", 0) or 0), 2)
-            if amt <= 0:
-                continue
-            allocations.append(await _apply_to_order(
-                a["order_id"], amt, receipt_id, number, method, receipt_date,
-                plan_line_seq=int(a.get("plan_line_seq") or 0)))
+        # F-05/F-06 — validasi SEMUA target dulu (pemilik, entitas, outstanding) tanpa menulis.
+        planned = [(a["order_id"], round(float(a.get("amount", 0) or 0), 2),
+                    int(a.get("plan_line_seq") or 0)) for a in explicit
+                   if round(float(a.get("amount", 0) or 0), 2) > 0]
+        seen_amounts: Dict[str, float] = {}
+        for oid, amt, _seq in planned:
+            seen_amounts[oid] = round(seen_amounts.get(oid, 0.0) + amt, 2)
+        for oid, amt_total in seen_amounts.items():
+            await _validate_allocation_target(oid, amt_total, customer_id=customer["id"],
+                                              entity_id=entity_id)
+        for oid, amt, seq in planned:
+            try:
+                allocations.append(await _apply_to_order(
+                    oid, amt, receipt_id, number, method, receipt_date,
+                    plan_line_seq=seq, customer_id=customer["id"], entity_id=entity_id))
+            except HTTPException:
+                # F-06 — alokasi tengah gagal (mis. balapan 409): cabut yang sudah tertulis
+                # supaya tidak ada pembayaran yatim tanpa kwitansi.
+                await _unapply_receipt(receipt_id, allocations)
+                raise
     else:
         remaining = total_funds
         for oo in await list_open_orders(customer["id"]):
             if remaining <= EPS:
                 break
+            if entity_id and entity_id != "all" and oo.get("entity_id") \
+                    and oo["entity_id"] != entity_id:
+                continue
             take = min(remaining, oo["outstanding"])
             if take <= EPS:
                 continue
-            allocations.append(await _apply_to_order(
-                oo["order_id"], take, receipt_id, number, method, receipt_date))
+            try:
+                allocations.append(await _apply_to_order(
+                    oo["order_id"], take, receipt_id, number, method, receipt_date,
+                    customer_id=customer["id"], entity_id=entity_id))
+            except HTTPException:
+                await _unapply_receipt(receipt_id, allocations)
+                raise
             remaining = round(remaining - take, 2)
 
     applied_total = round(sum(a["applied"] for a in allocations), 2)
@@ -427,6 +486,18 @@ async def create_receipt(payload: Dict[str, Any], actor: Dict[str, Any]) -> Dict
     if cash_txn_id:
         doc["cash_txn_id"] = cash_txn_id
         await db.ar_receipts.update_one({"id": receipt_id}, {"$set": {"cash_txn_id": cash_txn_id}})
+
+    # F-01 (audit 2026-09-02) — order yang menjadi berpendapatan karena pembayaran ini
+    # (kebijakan `_revenue_eligible`) dijurnal SEKARANG, bukan menunggu restart.
+    for _al in allocations or []:
+        try:
+            from services import gl_service as _gl
+            await _gl.post_order_revenue_and_cogs(_al["order_id"])
+        except Exception as exc:  # noqa: BLE001
+            import logging
+            logging.getLogger("ar_receipt").error(
+                "GL pendapatan order %s gagal setelah kwitansi %s: %s",
+                _al.get("order_id"), number, exc)
 
     # P2-5 — sesuaikan saldo deposit customer.
     await _adjust_deposit(customer["id"], deposit_delta)

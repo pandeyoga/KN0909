@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from db import db
 from dependencies import require_permission, audit
 from core_utils import new_id, now_iso, safe_doc, DEFAULT_ENTITY_ID
-from entity_scope import entity_ctx
+from entity_scope import entity_ctx, resolve_list_scope, assert_active_entity_access
 from services import warehouse_scope_service as whscope
 from services.roll_service import resolve_stock_owner, apply_cycle_count_adjustment
 
@@ -48,6 +48,7 @@ async def create_session(payload: CycleCountSessionCreate, request: Request) -> 
     from datetime import datetime, timezone
     session = {
         "id": new_id("cc"),
+        "entity_id": ctx.active_entity_id,   # E-02 — sesi opname milik badan usaha konteks
         "warehouse_id": payload.warehouse_id,
         "warehouse_name": warehouse["name"],
         "warehouse_city": warehouse.get("city", ""),
@@ -67,7 +68,10 @@ async def create_session(payload: CycleCountSessionCreate, request: Request) -> 
 @router.get("/cycle-count/sessions")
 async def list_sessions(request: Request) -> List[Dict[str, Any]]:
     await require_permission(request, "inventory", "cycle_count")
-    sessions = await db.cycle_count_sessions.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    ctx = await entity_ctx(request)
+    # E-02 (audit 2026-09-02) — koleksi SCOPED; dulu `find({})` menampilkan sesi PT lain.
+    q = resolve_list_scope("cycle_count_sessions", {}, ctx)
+    sessions = await db.cycle_count_sessions.find(q, {"_id": 0}).sort("created_at", -1).to_list(100)
     return [safe_doc(s) for s in sessions if s]
 
 
@@ -77,6 +81,7 @@ async def get_session(session_id: str, request: Request) -> Dict[str, Any]:
     session = safe_doc(await db.cycle_count_sessions.find_one({"id": session_id}, {"_id": 0}))
     if not session:
         raise HTTPException(status_code=404, detail="Session tidak ditemukan")
+    assert_active_entity_access(session, "cycle_count_sessions", await entity_ctx(request))  # E-02
     return session
 
 

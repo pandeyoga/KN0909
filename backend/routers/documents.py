@@ -248,6 +248,17 @@ async def generate_document(payload: DocumentGenerate, request: Request) -> Dict
     return safe_doc(doc)
 
 
+@router.get("/documents/{doc_id}/print", response_class=HTMLResponse)
+async def print_generated_document(doc_id: str, request: Request) -> HTMLResponse:
+    """U-02 (audit 2026-09-02) — tautan "Buka tampilan cetak" dulu menunjuk rute yang tidak ada."""
+    await require_permission(request, "document", "view")
+    doc = await db.generated_documents.find_one({"id": doc_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Dokumen tidak ditemukan")
+    await _assert_printable_entity(request, doc.get("source_id", ""))
+    return HTMLResponse(content=doc.get("html") or "<p>Dokumen kosong.</p>")
+
+
 @router.get("/documents/preview/{order_id}")
 async def preview_document(order_id: str, request: Request, document_type: str = "surat_jalan") -> HTMLResponse:
     # INV-AUTH-01 (KN-076-AUTH-DOC-PREVIEW P0): dokumen bisnis WAJIB login + izin view.

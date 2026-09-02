@@ -1,0 +1,43 @@
+{
+  "summary": "Iteration 292 — verification of AUDIT_KN_2026-09-02 fixes. Backend: 17/17 pytest assertions pass across F-01, F-02, F-03, F-04, F-05, F-06, F-07, F-08, E-01, E-02, U-02 (new files /app/backend/tests/test_iter292_audit_fixes.py and test_iter292_f01_dispatch_gl.py, run against public REACT_APP_BACKEND_URL). F-01 verified as MUTATING live flow on so_006 (verify -> confirm -> outbound tasks -> scan-pick -> dispatch): journal_entries with source_type 'sales_order' (je KSC/JE-00090, Dr 1-1200 9,213,000) and 'sales_cogs' existed IMMEDIATELY after dispatch with status posted, and GET /api/gl/journal?source=sales_order returned so_006 — no backend restart, no /api/gl/sync. Frontend (prebuilt static bundle, public URL): P0-1/U-04 audit tab renders 118 audit rows with sidebar intact and no ErrorBoundary fallback; U-01 entity switch KSC -> CV Kanda Suka remounts the view (hub tab resets, Kanda-only data loaded, no crash); F-08 settlement modal default method is 'Transfer bank'. DB was restored with scripts/seed_reset.sh after the mutating tests, so data is clean.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/interco/settlements (method=netting)", "issue": "Netting guard only compares the requested amount to the CURRENT open reverse receivable; it never consumes/settles the reverse-direction documents. Two sequential nettings can each individually pass while cumulatively exceeding the reverse AR, re-introducing the F-08 imbalance. Also note the seed's real reverse open AR ent_ksc->ent_kanda is 4,153,398 (IC-00001 1,742,700 + IC-00002 1,887,888 + IC-00004 522,810), not the 522,810 quoted in the audit/POC — so netting KANDA/IC-00006 (remaining 3,240,000) is legitimately ACCEPTED. The guard was proven by the reverse-direction case (payer ent_kanda netting 4,153,398 > reverse open 3,240,000 -> 400 'melebihi piutang balik', nothing persisted)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Settlement Antar-PT modal (interco-settlement)", "issues": ["Stale copy after F-08: subtitle still reads 'Netting: satu dokumen menutup banyak transaksi. Untuk transfer nyata, ubah metode.' while the default method is now Transfer bank — wording should be flipped. Same stale statement in the file header docstring of IntercoSettlementModal.jsx ('Metode netting (bawaan)')."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter292_audit_fixes.py",
+    "/app/backend/tests/test_iter292_f01_dispatch_gl.py",
+    "/app/test_reports/pytest/iter292.xml",
+    "/app/test_reports/pytest/iter292_f01.xml"
+  ],
+  "action_items": [
+    "OPTIONAL (F-08 residual): make netting consume the reverse-direction receivable (increment settled_amount on the reverse open ICTs, or track a netted_amount) so repeated nettings cannot cumulatively exceed the reverse open AR.",
+    "COPY: update IntercoSettlementModal.jsx subtitle + docstring — netting is no longer the default method (requires a frontend rebuild)."
+  ],
+  "critical_code_review_comments": [
+    "gl_service.backfill_journals()/POST /api/gl/sync returns the full key set and vendor_bills==0 on a synced DB; no source_id carries both an active vendor_bill and subcon_service JE (F-02/F-03/F-04 verified at data level).",
+    "interco_service.create_settlement(): netting guard reads reverse open AR but never mutates it — non-idempotent protection (see minor backend issue).",
+    "ar_receipt_service pre-validation is effective: both the cross-customer (400) and cross-entity (403) rejections left so_006/so_008 payments[] untouched — no orphan payment/compensation leak observed.",
+    "GET /api/gl/journal responses contain no Mongo _id keys (checked explicitly)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter292_audit_fixes.py",
+    "/app/backend/tests/test_iter292_f01_dispatch_gl.py"
+  ],
+  "success_rate": {"backend": "100% (17/17)", "frontend": "100% (3/3 flows: audit tab, entity switch, settlement default)"},
+  "seed_data_creation": "No new seed data. Mutations made during testing (so_006 shipped + JEs, 3 interco settlements, 1 generated invoice document) were removed by re-running `bash /app/scripts/seed_reset.sh` at the end — DB CHECK / STATIC CHECK / GATE F0-C all LULUS.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin@kainnusantara.id / demo12345 (ent_ksc + ent_kanda), sales3@kainnusantara.id / demo12345 (home ent_kanda)",
+  "context_for_next_testing_agent": "Both new pytest files are re-runnable: test_iter292_f01_dispatch_gl.py detects an already-shipped so_006 and then only asserts the JEs (so it still guards F-01 after a re-run); the interco tests are data-driven (they compute reverse open AR from Mongo instead of hardcoding the audit's 522rb figure). Run with `cd /app/backend && python -m pytest tests/test_iter292_*.py -n0`. Nav path for the interco settlement modal: nav-group-toggle-pembelian -> nav-accounts-payable -> hub-tab-interco-transactions -> interco-open-settle-btn -> interco-settle-method. Entity switcher testids: entity-switcher -> entity-option-ent_kanda.",
+  "rca_of_the_issue": "Only one expectation from the review request failed, and it was a test-expectation/data issue, not a product defect: the request assumed the open reverse receivable ent_ksc->ent_kanda is ~522k, so netting KANDA/IC-00006 should be rejected. In the current (and freshly reset) seed the open reverse AR is 4,153,398 while IC-00006's remaining is 3,240,000, so the F-08 guard correctly allows it. The test was rewritten to derive amounts from Mongo and exercise the guard in the direction where the amount really does exceed the reverse AR (payer ent_kanda), which returns 400 with the 'melebihi piutang balik' message and persists nothing."
+}

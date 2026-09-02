@@ -60,7 +60,7 @@ class IntercoSettlementCreate(BaseModel):
     payee_entity_id: str             # PT yang menerima
     transactions: List[IntercoSettlementBillPick] = Field(default_factory=list)
     settle_date: str = ""            # default: hari ini
-    method: str = "netting"          # netting | transfer | cash
+    method: str = "transfer"         # transfer (default, F-08) | cash | netting (hanya sebesar piutang balik)
     bank_account_id: str = ""
     notes: str = ""
 

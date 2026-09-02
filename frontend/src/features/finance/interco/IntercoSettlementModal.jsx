@@ -2,8 +2,9 @@
  * FASE G-6 — Wizard **SETTLEMENT / NETTING** (US6).
  *
  * Pola kontrabon G-7: satu dokumen menutup banyak transaksi. Pilih PT pembayar
- * & penerima, lalu centang transaksi terbuka yang mau dilunasi. Metode `netting`
- * (bawaan) tidak menggerakkan kas — hanya saling hapus IC-AR/IC-AP.
+ * & penerima, lalu centang transaksi terbuka yang mau dilunasi. Metode bawaan
+ * `transfer` (F-08, audit 2026-09-02); `netting` hanya saling hapus IC-AR/IC-AP dan
+ * server menolaknya bila melebihi piutang balik yang terbuka.
  */
 import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
@@ -22,7 +23,7 @@ export default function IntercoSettlementModal({
 }) {
   const [payer, setPayer] = useState(presetPayerEntityId);
   const [payee, setPayee] = useState(presetPayeeEntityId);
-  const [method, setMethod] = useState("netting");
+  const [method, setMethod] = useState("transfer");
   const [selected, setSelected] = useState({});   // {id: appliedAmount}
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
@@ -88,8 +89,8 @@ export default function IntercoSettlementModal({
           <div>
             <h2 className="text-lg font-semibold text-[#1D1D1F]">Settlement Antar-PT</h2>
             <p className="text-xs text-[#6E6E73] mt-0.5">
-              Netting: satu dokumen menutup banyak transaksi tanpa uang. Untuk transfer
-              nyata, ubah metode.
+              Satu dokumen menutup banyak transaksi. Bawaan: transfer bank. Pilih
+              netting hanya bila PT pembayar juga punya piutang balik ke penerima.
             </p>
           </div>
           <button onClick={onClose} data-testid="interco-settle-close" className="p-1.5 hover:bg-[#F2F2F5] rounded-lg">
