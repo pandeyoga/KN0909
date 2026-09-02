@@ -1,0 +1,44 @@
+{
+  "summary": "FB-02 Modul Logistik (pengiriman/Surat Jalan) + komentar ilustrasi AI galeri desain diuji end-to-end. Backend: 29 pytest cases (meta/summary/unassigned/list, create + auto-destination, semua gerbang tahapan prepared→loaded→in_transit→delivered→completed, jalur failed→prepared, foto muat/POD, byte foto, RBAC driver/sales, journey SO-0003, komentar ilustrasi) — SEMUA LULUS. Frontend: alur admin lengkap (buat pengiriman armada sendiri → gerbang FOTO MUAT → unggah → Dimuat → Dalam perjalanan → posisi → POD+penerima → Terkirim → Selesai) lulus; driver mendarat di Logistik tanpa tombol buat, sidebar hanya Profil Saya + Logistik, bisa unggah/ubah tahapan; komentar ilustrasi berfungsi untuk admin & designer (designer tanpa tombol generate); Perjalanan Pesanan SO-0003 menampilkan blok journey-logistics KSC/LG-00002 Terkirim + posisi terakhir + 'Diterima Bu Ani'. Tidak ada bug fungsional ditemukan.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/document-templates, /api/uoms", "issue": "Peran sempit (driver & designer) mendapat 4x HTTP 403 saat bootstrap aplikasi (fetch global tidak digerbangi izin) — muncul sebagai console error di browser. Fungsional tidak terganggu, tapi berisik dan menyulitkan deteksi error nyata."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "AiIllustrationPanel · pratinjau ilustrasi", "issues": ["Banner biru di atas gambar pratinjau (label 'AI DEMO ... mode: mockup') memakai teks sangat kecil & gelap di atas latar biru pekat — kontras/legibilitas rendah pada 1920px"]},
+      {"screen": "Logistik · sidebar untuk peran sales/sales_admin", "issues": ["sales memiliki izin backend logistics.view (GET /api/logistics/deliveries → 200) tetapi TIDAK ada entri sidebar nav-logistics, jadi layar Logistik tidak terjangkau lewat UI; pelacakan hanya lewat Perjalanan Pesanan. Konfirmasi apakah ini memang keputusan pemilik (kalau ya, abaikan)"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_fb02_logistics.py",
+    "/app/backend/tests/fb02_seed_shipments.py",
+    "/app/test_reports/pytest/fb02_results.xml"
+  ],
+  "action_items": [
+    "Opsional: gerbangi/lewati fetch bootstrap /api/document-templates & /api/uoms untuk peran yang tidak berizin agar tidak memunculkan 403 di console (driver, designer)",
+    "Opsional: naikkan kontras/ukuran teks banner mode AI pada pratinjau ilustrasi",
+    "Putuskan apakah sales/sales_admin perlu entri sidebar Logistik (izin view sudah ada di backend)"
+  ],
+  "critical_code_review_comments": [
+    "logistics_service.transition() menulis status ke shipments (logistics_status) TANPA transaksi bersama update delivery — kalau update kedua gagal, status Surat Jalan bisa menyimpang; pertimbangkan urutan/rekonsiliasi (bukan blocker di demo).",
+    "create_delivery tidak memvalidasi format `eta` (YYYY-MM-DD) — string bebas diterima dan dipakai perbandingan 'late' pada summary(); nilai aneh membuat hitungan terlambat tak terduga.",
+    "delete_photo mengizinkan penghapusan foto muat saat status masih loaded/in_transit sehingga bukti syarat 'Dimuat' bisa hilang setelah transisi (status tidak dibalik). Perilaku ini konsisten dengan spesifikasi, tapi layak dipertimbangkan.",
+    "Nomor pengiriman dari next_doc_number tidak punya unique index; pembuatan bersamaan bisa menghasilkan nomor kembar (pola lama di repo ini)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_fb02_logistics.py",
+    "/app/backend/tests/fb02_seed_shipments.py"
+  ],
+  "success_rate": {"backend": "100% (29/29)", "frontend": "100% (semua skenario yang diminta lulus)"},
+  "seed_data_creation": "Disisipkan 3 Surat Jalan uji (created_by=TEST_FB02, SJ-TEST01/02) karena KSC hanya punya 1 Surat Jalan belum diangkut. Sesudah uji: KSC/LG-00003 dihapus dan shp_f86afc3384bb (SJ-00001) DIPULIHKAN ke keadaan belum diangkut, jadi keadaan demo asli utuh. Sisa data uji yang DIBIARKAN: pengiriman KSC/LG-00004 (completed), KSC/LG-00005 (prepared, jalur gagal→dijadwalkan ulang), KSC/LG-00006 (completed) — semuanya memakai Surat Jalan TEST_FB02. Komentar ber-awalan TEST_ pada dsgn_cf2ccad1866f sudah dibersihkan (komentar demo asli tetap 1).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "semua akun password demo12345 (admin@, driver@, sales@, designer@kainnusantara.id); header X-Entity-Id: ent_ksc untuk tulis",
+  "context_for_next_testing_agent": "Jalankan `python tests/fb02_seed_shipments.py 2` dulu bila perlu Surat Jalan belum diangkut — fixture `created` di test_fb02_logistics.py akan SKIP (dan menular ke seluruh kelas) tanpa itu. Frontend adalah bundel statis: navigasi lewat data-testid nav-* (Desainer = nav-designer-hub, galeri = hub-tab-cs-design-gallery, Pesanan = expand nav-group-penjualan lalu nav-sales-orders, Perjalanan Pesanan = order-pane-journey). Layar Logistik memuat asinkron: TUNGGU [data-testid=logistics-summary], jangan asserting langsung setelah logistics-view. Setiap pemanggilan browser tool memakai sesi baru (harus login ulang).",
+  "rca_of_the_issue": "Tidak ada cacat fungsional. 403 bootstrap berasal dari fetch master global (document-templates, uoms) yang dipanggil untuk semua peran tanpa memeriksa izin modul; peran sempit (driver/designer) ditolak dengan benar oleh backend sehingga hanya menimbulkan console error."
+}

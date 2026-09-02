@@ -1,0 +1,33 @@
+{
+  "summary": "Frontend verification of 3 reported UI/functional bug fixes (+1 backend smoke) on the static build at the public URL, admin@kainnusantara.id / entity KSC, viewport 1920x1080. (1) ORDERS RIGHT PANEL — FIXED: pane pills order-pane-detail & order-pane-journey render side-by-side (same y=381.75, equal flex widths ~157px); vertical gap between order-pane-switch and so-compact-panel = 8.0px (no large stretch gap); 'Lihat detail & aksi' (so-open-full-detail) opens so-detail-popup with full OrderDetailPanel (timeline, Tanda Tangan, Minta Repeat/Restock, alur dokumen) and closes via so-detail-popup-close; order-pane-journey renders 'Perjalanan Pesanan' 9-stage panel. TABLE TIDY — FIXED: header and row grid-template-columns are byte-identical ('378.812px 270.594px 86px 100px 56px 270.578px'), Total column right-aligned, no overlap, 20 rows rendered inside min-w-720px + horizontal scroll wrapper. (2) GHOST CSS CLASSES — FIXED: Retur & Barang Sisa (returns-table) now uses styled .data-table (thead th padding 9px 12px, uppercase, 1px bottom border, tbody td padding 9px 12px, 11 columns / 11 cells per row -> perfectly aligned Umur/Dibuat/Nota Kredit); return-stats cards, return-status-filter (10 pills; filter-draft -> 2->0 rows + return-empty state, reset -> 2 rows), return-type-filter (filter-type-retur works) all functional; 'Detail' opens SRET-00003 detail with no console error and 'Kembali ke Daftar Return' returns to the styled list. Pesanan Khusus (OD): stats cards, status tabs (status-tab-draft -> 1 row, back to all -> 3), styled 9-column data-table (th bg #FAFBFC, padding 9px 12px), 'Detail' opens SORD-260830-0001 with no crash, back works. Regression: Kebijakan Retur screen renders normally (its own markup, no .data-table) — no layout damage from the new CSS. (3) PRODUK & HARGA — FIXED: no empty 360px left column (first record row starts x=305 right after sidebar, width 1530); toggle-admin-create-form-button sits ABOVE the Records list; clicking admin-record-products-* opens interactive-detail-drawer with real facts (HARGA JUAL 'Rp 185.000 / yard', HPP Rp 122.100, LINI · GRADE 'Lini printing · Grade A', SPESIFIKASI 'woven · 120 gsm · lebar 1.15', STATUS 'active · tahap finished'); the generic 'dapat diupdate' copy is gone; data-testid detail-drawer-navigate-button count = 0 (no redirect to Pengaturan); detail-drawer-close-button closes it; 'Ubah' opens the prefilled edit form modal (drawer count 0). ZERO console errors across all three flows. BACKEND SMOKE: GET /api/special-orders -> 200 (3 items, keys items/count/by_status/approval_threshold); GET /api/sales-returns?page=1 -> 200 (2 items, paginated envelope).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Produk (Master) — 'Ubah' edit modal", "issues": ["Modal header still reads 'Buat Data Master — Isian untuk tab yang sedang dibuka' even when EDITING an existing product (fields prefilled BTK-MEGA-001). Misleading title; suggest 'Ubah Data Master' when an id is loaded.", "Most inputs in that modal have no visible labels (only placeholder-as-value), so an editor cannot tell what 'Premium' / 'Mega Mendung' / 'Cirebon Craft' fields mean."]},
+      {"screen": "Detail Retur (SRET-00003) — tabel 'Item yang diretur'", "issues": ["HARGA / NILAI columns are so narrow that currency wraps ('Rp' on one line, '175.000' on the next). Cosmetic only; the surrounding table styling is correct."]},
+      {"screen": "Produk (Master)", "issues": ["Minor deviation from the stated fix: 'Tampilkan Formulir Buat' is a 193px pill (not content-width) — position is correct (above Records), width is not full-content as described. Cosmetic, not a defect."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Optional/cosmetic: change master-data modal title to 'Ubah ...' when editing an existing record and add visible field labels.",
+    "Optional/cosmetic: widen HARGA/NILAI columns in the sales-return detail item table to avoid currency wrapping."
+  ],
+  "critical_code_review_comments": [
+    "OrdersView right column uses `grid gap-2 content-start` — correct fix; header and row share the SAME grid-template string, so any future column change must be edited in both places (lines 263 and 288). Consider extracting the template to a constant to prevent them drifting apart again.",
+    "components.css 'KELAS HANTU GELOMBANG 2' block defines .data-table thead th with position:sticky; top:0 — fine inside .table-wrap, but screens that render .data-table without an overflow wrapper will get a sticky header relative to the page scroll. Verified OK on returns/special-orders.",
+    "DetailDrawer now renders detail-drawer-navigate-button only when detail.target exists — audit-log rows still pass target:'admin' with cta 'Tetap di Audit' (AdminView.jsx:347), which is the same confusing copy the user complained about for products. Worth reviewing that CTA label too."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (2/2 smoke endpoints 200)", "frontend": "100% (all 3 bug fixes + regression check verified, 0 console errors)"},
+  "seed_data_creation": "None. Read-only verification; no records created or mutated.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Frontend is a STATIC build (node static_server.js) — run `bash /app/scripts/rebuild_frontend.sh` after any FE edit. Login -> scope-pick-ent_ksc -> nav-group-toggle-penjualan -> nav-sales-orders; hub tabs use hub-tab-{view} (returns, special-orders, return-policies, internal-requests). Products page: nav-products-pricing (hub tab md-products is default). Drawer facts are rendered with CSS text-transform:uppercase, so innerText comparisons must be case-insensitive ('HARGA JUAL' not 'Harga Jual') — do not report that as a missing field. Orders panel default pane is 'detail' (so-compact-panel). Backend auth: POST /api/auth/login returns key 'token' (not access_token); send Authorization: Bearer <token> + X-Entity-Id: ent_ksc.",
+  "rca_of_the_issue": "No defects remaining for the three reported bugs. Root causes were as described by the dev agent: (a) grid align-content:stretch on the orders right column stretching children apart, now content-start; (b) .data-table/.table-wrap/.view-container/.empty-state/.feature-badge etc. referenced by SalesReturns/SpecialOrders but never defined in CSS -> unstyled tables, now defined in src/styles/components.css; (c) product row onShowDetail passed generic body + target:'admin' so DetailDrawer rendered a navigate button that jumped to Pengaturan, now real product facts and no target."
+}

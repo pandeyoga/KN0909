@@ -1,0 +1,46 @@
+{
+  "summary": "ITERASI 277 — verifikasi 3 perbaikan KRITIS (T1 gerbang confirm SO, T2 alur PIN untuk sales_admin, T3 isolasi entitas detail/PDF inspeksi) + regresi ringan. Backend: 15 test case pytest baru (/app/backend/tests/test_iter277_gates_pin_isolation.py) => 15/15 LULUS setelah reset seed. Frontend: Playwright — login salesadmin@ → pilih ent_ksc → Meja Admin Sales → klik Konfirmasi pada SO-0005 (Belum diverifikasi) → BILAH GALAT muncul menyebut 'Verifikasi kelengkapan dulu … Meja Admin Sales' dan tombol 'Verifikasi sekarang' terlihat; klik tombol tsb membuka dialog Verifikasi SO-0005 (daftar periksa: alamat, syarat bayar, isi pesanan, PPN, NPWP, batas kredit). Semua temuan iterasi 275 (A4/F) & 276 (DD2) berhasil diverifikasi TELAH DIPERBAIKI.",
+  "audit_findings": {
+    "T1_config": "SESUAI — GET /api/config/effective?q=sales_admin.require_verification_before_confirm sebagai admin@ → items[0].value = True (source_layer 'code_default').",
+    "T1a": "SESUAI — POST /api/sales-orders/so_005/confirm oleh salesadmin@ (approved, belum diverifikasi) → 409 dengan detail: 'Verifikasi kelengkapan dulu (alamat · syarat bayar · isi pesanan) sebelum pesanan ini dikonfirmasi — buka Meja Admin Sales → antrean “Perlu diverifikasi”.' (memuat 'Verifikasi' + 'Meja Admin Sales').",
+    "T1b": "SESUAI — SO-0007 (waiting_approval) di-verify 200 dulu, lalu POST /confirm → 409 detail: 'Pesanan SO-0007 belum disetujui manajer (status: waiting_approval). Ajukan/tunggu persetujuan nilai & kredit dulu — konfirmasi hanya untuk pesanan berstatus Disetujui.' Urutan gerbang verifikasi→ACC manajer→konfirmasi terkonfirmasi.",
+    "T1c": "SESUAI — Alur bahagia SO-0005: POST /verify {note:''} 200 → POST /confirm 200 → GET detail status='confirmed'.",
+    "T1d_UI": "SESUAI — bilah galat muncul TEPAT seperti spec setelah klik Konfirmasi pada baris 'Belum diverifikasi'; tombol 'Verifikasi sekarang' hadir dan membuka verify-dialog (checklist lengkap: alamat, syarat bayar, isi pesanan, PPN, NPWP, batas kredit).",
+    "T2a": "SESUAI — GET /api/internal-requests/meta sebagai salesadmin@ (ent_ksc) → can_decide=true, can_pick_source=true, open_statuses=['submitted'].",
+    "T2b": "SESUAI — GET /internal-requests → items=[KSC/PIN-00002 (converted), KSC/PIN-00001 (submitted)]; GET /{PIN-00001} 200; GET /{PIN-00001}/sources 200 dengan candidates memuat ent_kanda.",
+    "T2c": "SESUAI — POST /convert {source_entity_id:'ent_kanda', submit_now:true, notes:'TEST_T2'} → 200; body.interco.pair_id ada; GET detail PIN → status='converted' + interco_pair_id terisi.",
+    "T2d": "SESUAI — sales@: meta.can_decide=false; GET /internal-requests hanya miliknya; GET /{PIN-00001}/sources → 403 'Rincian stok badan usaha lain bukan wewenang peran Anda...'",
+    "T3a": "SESUAI — manager@ (multi-entitas): X-Entity-Id ent_kanda GET /inspections memuat KANDA/INS-*; scope ent_ksc → detail & /pdf 404 ('Data tidak ditemukan untuk entitas ini'); scope ent_kanda → 200; scope 'all' → 200.",
+    "T3b": "SESUAI — warehouse@ (1 entitas KSC) GET /inspections/{kanda_id} → 404. Manager@ (ent_ksc) GET /inspections/{ksc_id} → 200.",
+    "REGRESI": "SESUAI — GET /api/sales-admin/desk sebagai salesadmin → 200 dengan 8 antrean (kunci: perlu_ditindak, siap_dikonfirmasi, menunggu_manajer, siap_cetak_dokumen, perlu_dipenuhi, jatuh_tempo, retur, permintaan_internal). GET /api/home/manager sebagai manager → 200."
+  },
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter277_gates_pin_isolation.py",
+    "/app/test_reports/pytest/iter277_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "T1: konsumer 'services/so_verify_service.py:assert_ready_to_confirm' & 'routers/sales_orders_extra.py:confirm_order' kini konsisten dengan flag 'sales_admin.require_verification_before_confirm' default TRUE — dokumen training dan kode selaras.",
+    "T2: routers/internal_requests.py CROSS_ENTITY_ROLES/DECIDER_ROLES sudah memuat 'sales_admin'; namun disarankan menambahkan test regresi untuk memastikan filter list & isi antrean Meja Admin Sales tetap konsisten (dua sumber kebenaran — work_desk_service vs internal_requests).",
+    "T3: isolasi X-Entity-Id kini juga diterapkan di detail & PDF inspeksi (assert_active_entity_access). Perlu memastikan pola yang sama diperluas ke modul lain yang memakai 'daftar entitas milik akun' (audit tambahan direkomendasikan)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter277_gates_pin_isolation.py"
+  ],
+  "success_rate": {"backend": "100% (15/15)", "frontend": "100% (T1d alur GALAT + tombol Verifikasi sekarang + dialog)"},
+  "test_credentials": "semua @kainnusantara.id / demo12345 (dari /app/memory/test_credentials.md)",
+  "seed_data_creation": "Sesi ini MENGONSUMSI SO-0005 (verified + confirmed) dan PIN-00001 (converted → interco pair icp_*). WAJIB reset seed sebelum retest lain: cd /app && python seed_realistic.py (main agent sudah diminta melakukan ini).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Berkas test WAJIB dijalankan dengan '-n 0' karena berurutan/berbagi state (fixture pin1_id disematkan di modul pytest). Sebelum menjalankan ulang: cd /app && python seed_realistic.py — jika tidak, T1a/T1c gagal karena SO-0005 sudah 'confirmed'. Catatan lapangan: (1) /api/internal-requests items memakai field 'number' (mis. 'KSC/PIN-00001'), BUKAN 'ref_id'. (2) /api/config/effective?q=... mengembalikan {items:[{key,value,source_layer,...}], groups:[...]}. (3) Detail inspeksi 404 (bukan 403) untuk scope tidak cocok — pola yang dipakai assert_active_entity_access.",
+  "rca_of_the_issue": "Semua 3 temuan sudah diperbaiki oleh main agent: T1 aktifkan default TRUE untuk 'sales_admin.require_verification_before_confirm' + urutan gerbang di confirm_order (verifikasi → persetujuan manajer → konfirmasi) menghasilkan 409 dengan pesan menuntun; UI membaca kata 'verifikasi' pada detail galat untuk memunculkan tombol 'Verifikasi sekarang'. T2 tambahkan 'sales_admin' ke CROSS_ENTITY_ROLES/DECIDER_ROLES di routers/internal_requests.py — meta.can_decide/can_pick_source jadi true, list/detail/sources/convert semua 200 untuk sales_admin. T3 memakai assert_active_entity_access baru di entity_scope.py yang dipakai routers/inspections.py::_guarded (detail & PDF) sehingga scope X-Entity-Id efektif membatasi akses lintas-entitas bahkan untuk akun multi-entitas."
+}

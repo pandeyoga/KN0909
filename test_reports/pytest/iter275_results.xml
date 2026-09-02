@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="8" skipped="4" tests="50" time="16.514" timestamp="2026-08-31T02:24:53.977117+00:00" hostname="agent-env-784df595-dcab-438a-962b-1403da513c08"><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestOrientasi" name="test_desk_sales_admin_8_antrean" time="5.426" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestOrientasi" name="test_desk_finance_5_antrean" time="0.109" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestOrientasi" name="test_home_boards_per_role" time="0.456" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestOrientasi" name="test_sales_admin_desk_forbidden_for_sales" time="0.134" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestSemuaEntitas" name="test_read_all_ok" time="0.240" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestSemuaEntitas" name="test_write_all_rejected_with_guidance" time="0.116" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurA" name="test_a0_sales_portfolio_visibility" time="0.138"><failure message="AssertionError: DEVIASI: sales@ tidak melihat Butik Bali Indah; hanya ['cust_toko_kain']&#10;assert 'cust_butik_bali' in {'cust_toko_kain'}">self = &lt;test_iter275_g1_admin_sales_audit.TestAlurA object at 0xf81a85eb7b50&gt;
+T = {'admin': 'RBL13E1dfF7y3prJAILrlhhRWuB9uy7Lci0VEhZ6_V4', 'finance': 'd0XEbNbFWOEVYj26fpSSgV61IPNfn6UAuNiHh7rx5eM', 'manager': 'ZRAGFQpIxXzgY3b432zbfRP2dfUzn-TnlXS7EkKfVmI', 'sales': 'g1AoL7Ua8UgdNwzlWlOny8paW7E8UjFkZiJVEo7BtaU', ...}
+
+    def test_a0_sales_portfolio_visibility(self, T):
+        """Dokumen menyuruh sales@ memesan untuk Butik Bali Indah."""
+        r = requests.get(f"{BASE}/api/customers?limit=100", headers=H(T["sales"]), timeout=30)
+        names = {c["id"] for c in r.json()}
+        STATE["sales_customers"] = sorted(names)
+&gt;       assert CUST_OK in names, ("DEVIASI: sales@ tidak melihat Butik Bali Indah; "
+                                 f"hanya {sorted(names)}")
+E       AssertionError: DEVIASI: sales@ tidak melihat Butik Bali Indah; hanya ['cust_toko_kain']
+E       assert 'cust_butik_bali' in {'cust_toko_kain'}
+
+tests/test_iter275_g1_admin_sales_audit.py:146: AssertionError</failure></testcase><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurA" name="test_a1_create_so_reserved" time="0.177" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurA" name="test_a1_appears_in_perlu_verifikasi" time="0.158" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurA" name="test_a4_confirm_before_verify_rejected" time="0.546"><failure message="AssertionError: 200 {&quot;id&quot;:&quot;so_6aeeb14dba91&quot;,&quot;number&quot;:&quot;KSC/SO-00031&quot;,&quot;status&quot;:&quot;confirmed&quot;,&quot;entity_id&quot;:&quot;ent_ksc&quot;,&quot;customer_id&quot;:&quot;cust_butik_bali&quot;,&quot;customer_name&quot;:&quot;Butik Bali Indah&quot;,&quot;customer_city&quot;:&quot;Denpasar&quot;,&quot;shipping_address&quot;:{&quot;id&quot;:&quot;addr_002&quot;,&quot;label&quot;:&quot;Butik Seminyak&quot;,&quot;rec&#10;assert 200 == 409&#10; +  where 200 = &lt;Response [200]&gt;.status_code">self = &lt;test_iter275_g1_admin_sales_audit.TestAlurA object at 0xf81a85ebf7d0&gt;
+T = {'admin': 'RBL13E1dfF7y3prJAILrlhhRWuB9uy7Lci0VEhZ6_V4', 'finance': 'd0XEbNbFWOEVYj26fpSSgV61IPNfn6UAuNiHh7rx5eM', 'manager': 'ZRAGFQpIxXzgY3b432zbfRP2dfUzn-TnlXS7EkKfVmI', 'sales': 'g1AoL7Ua8UgdNwzlWlOny8paW7E8UjFkZiJVEo7BtaU', ...}
+
+    def test_a4_confirm_before_verify_rejected(self, T):
+        c = _create_so(T["sales2"], CUST_OK, "prod_lurik_classic", 3)
+        assert c.status_code in (200, 201), c.text[:200]
+        STATE["so_a4"] = c.json()["id"]
+        STATE["so_a4_number"] = c.json()["number"]
+        r = requests.post(f"{BASE}/api/sales-orders/{STATE['so_a4']}/confirm",
+                          headers=H(T["salesadmin"]), timeout=60)
+        STATE["a4"] = (r.status_code, _detail(r)[:200])
+&gt;       assert r.status_code == 409, f"{r.status_code} {r.text[:250]}"
+E       AssertionError: 200 {"id":"so_6aeeb14dba91","number":"KSC/SO-00031","status":"confirmed","entity_id":"ent_ksc","customer_id":"cust_butik_bali","customer_name":"Butik Bali Indah","customer_city":"Denpasar","shipping_address":{"id":"addr_002","label":"Butik Seminyak","rec
+E       assert 200 == 409
+E        +  where 200 = &lt;Response [200]&gt;.status_code
+
+tests/test_iter275_g1_admin_sales_audit.py:172: AssertionError</failure></testcase><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurA" name="test_a1_verification_checklist" time="0.116" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurA" name="test_a1_verify_ok" time="0.105" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurA" name="test_a1_normal_customer_should_be_credit_clean" time="0.111"><failure message="AssertionError: DEVIASI: pelanggan 'normal' Butik Bali Indah tetap memicu persetujuan kredit: ['Proyeksi AR Rp 203.217.650 melebihi limit Rp 30.000.000']&#10;assert not [{'amount': 1265400.0, 'decided_at': None, 'decided_by': None, 'decided_by_id': None, ...}]">self = &lt;test_iter275_g1_admin_sales_audit.TestAlurA object at 0xf81a85ebd910&gt;
+T = {'admin': 'RBL13E1dfF7y3prJAILrlhhRWuB9uy7Lci0VEhZ6_V4', 'finance': 'd0XEbNbFWOEVYj26fpSSgV61IPNfn6UAuNiHh7rx5eM', 'manager': 'ZRAGFQpIxXzgY3b432zbfRP2dfUzn-TnlXS7EkKfVmI', 'sales': 'g1AoL7Ua8UgdNwzlWlOny8paW7E8UjFkZiJVEo7BtaU', ...}
+
+    def test_a1_normal_customer_should_be_credit_clean(self, T):
+        """Dokumen: Butik Bali Indah = pelanggan NORMAL (bukan kasus kredit)."""
+        so = requests.get(f"{BASE}/api/sales-orders/{STATE['so_a']}",
+                          headers=H(T["salesadmin"]), timeout=30).json()
+        kredit = [p for p in (so.get("pending_approvals") or [])
+                  if p.get("type") == "kredit" and p.get("status") == "pending"]
+        STATE["a1_credit_pending"] = [p.get("reason") for p in kredit]
+&gt;       assert not kredit, ("DEVIASI: pelanggan 'normal' Butik Bali Indah tetap memicu "
+                            f"persetujuan kredit: {STATE['a1_credit_pending']}")
+E       AssertionError: DEVIASI: pelanggan 'normal' Butik Bali Indah tetap memicu persetujuan kredit: ['Proyeksi AR Rp 203.217.650 melebihi limit Rp 30.000.000']
+E       assert not [{'amount': 1265400.0, 'decided_at': None, 'decided_by': None, 'decided_by_id': None, ...}]
+
+tests/test_iter275_g1_admin_sales_audit.py:198: AssertionError</failure></testcase><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurA" name="test_a1_submit_and_manager_approve" time="1.260" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurA" name="test_a1_salesadmin_confirm_creates_picking" time="0.295" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurA" name="test_a1_warehouse_pick_and_dispatch" time="0.567" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurA" name="test_a1_status_shipped_then_delivered" time="0.258" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurA" name="test_a1_journey_has_stages" time="0.138" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurA" name="test_a6_min_cut_rule" time="0.251"><skipped type="pytest.skip" message="TIDAK-DAPAT-DIUJI: tak ada produk ber-minimum potong; field min pada detail: {}">/app/backend/tests/test_iter275_g1_admin_sales_audit.py:291: TIDAK-DAPAT-DIUJI: tak ada produk ber-minimum potong; field min pada detail: {}</skipped></testcase><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurB" name="test_b1_backorder_created" time="0.269" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurB" name="test_b2_queue_perlu_dipenuhi" time="0.136" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurB" name="test_b3_three_options_with_reasons" time="0.133" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurB" name="test_b_reorder_creates_pr" time="0.153" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurB" name="test_b_pr_visible_in_manager_queue" time="0.130" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurB" name="test_b6_reopen_shows_existing_decision" time="0.125" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurB" name="test_b6_redecide_allowed" time="0.616"><failure message="AssertionError: DEVIASI: keputusan ulang DITOLAK di semua jalur: {'reorder': (400, 'Produk ini sudah punya permintaan repeat/restock terbuka (PR-00014). Selesaikan/batalkan PR itu dulu agar tidak dobel.'), 'wait': (400, 'Tidak ada barang masuk terjadwal untuk baris ini — menahan berarti pesanan menggantung. Pilih ambil dari PT lain atau reorder ke supplier.'), 'interco': (400, 'Pilih badan usaha sumber dulu — daftar kandidat beserta stok &amp; kesiapan harga internalnya ada di panel pemenuhan.')}&#10;assert False&#10; +  where False = any(&lt;generator object TestAlurB.test_b6_redecide_allowed.&lt;locals&gt;.&lt;genexpr&gt; at 0xf81a85e717d0&gt;)">self = &lt;test_iter275_g1_admin_sales_audit.TestAlurB object at 0xf81a85eac590&gt;
+T = {'admin': 'RBL13E1dfF7y3prJAILrlhhRWuB9uy7Lci0VEhZ6_V4', 'finance': 'd0XEbNbFWOEVYj26fpSSgV61IPNfn6UAuNiHh7rx5eM', 'manager': 'ZRAGFQpIxXzgY3b432zbfRP2dfUzn-TnlXS7EkKfVmI', 'sales': 'g1AoL7Ua8UgdNwzlWlOny8paW7E8UjFkZiJVEo7BtaU', ...}
+
+    def test_b6_redecide_allowed(self, T):
+        """B6 — memutuskan ulang harus DIPERBOLEHKAN."""
+        g = requests.get(f"{BASE}/api/sales-admin/orders/{STATE['so_b']}/fulfillment",
+                         headers=H(T["salesadmin"]), timeout=90).json()
+        avail = [m for m, o in (g.get("options") or {}).items() if o.get("available")]
+        STATE["b6_available_modes"] = avail
+        tried = {}
+        for mode in ("reorder", "wait", "interco"):
+            r = requests.post(
+                f"{BASE}/api/sales-admin/orders/{STATE['so_b']}/fulfillment-decision",
+                json={"mode": mode, "note": "TEST_iter275 keputusan ulang"},
+                headers=H(T["salesadmin"]), timeout=90)
+            tried[mode] = (r.status_code, _detail(r)[:140])
+            if r.status_code == 200:
+                break
+        STATE["b6_redecide"] = tried
+&gt;       assert any(v[0] == 200 for v in tried.values()), \
+            f"DEVIASI: keputusan ulang DITOLAK di semua jalur: {tried}"
+E       AssertionError: DEVIASI: keputusan ulang DITOLAK di semua jalur: {'reorder': (400, 'Produk ini sudah punya permintaan repeat/restock terbuka (PR-00014). Selesaikan/batalkan PR itu dulu agar tidak dobel.'), 'wait': (400, 'Tidak ada barang masuk terjadwal untuk baris ini — menahan berarti pesanan menggantung. Pilih ambil dari PT lain atau reorder ke supplier.'), 'interco': (400, 'Pilih badan usaha sumber dulu — daftar kandidat beserta stok &amp; kesiapan harga internalnya ada di panel pemenuhan.')}
+E       assert False
+E        +  where False = any(&lt;generator object TestAlurB.test_b6_redecide_allowed.&lt;locals&gt;.&lt;genexpr&gt; at 0xf81a85e717d0&gt;)
+
+tests/test_iter275_g1_admin_sales_audit.py:395: AssertionError</failure></testcase><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurB" name="test_b6_history_trail_kept" time="0.119"><failure message="AssertionError: jejak keputusan lama tidak terekspos API (n=0, kunci=['order_id', 'order_number', 'customer_name', 'entity_id', 'order_preview', 'shortages', 'decision', 'options'])&#10;assert 0 &gt;= 2&#10; +  where 0 = len([])">self = &lt;test_iter275_g1_admin_sales_audit.TestAlurB object at 0xf81a85ead210&gt;
+T = {'admin': 'RBL13E1dfF7y3prJAILrlhhRWuB9uy7Lci0VEhZ6_V4', 'finance': 'd0XEbNbFWOEVYj26fpSSgV61IPNfn6UAuNiHh7rx5eM', 'manager': 'ZRAGFQpIxXzgY3b432zbfRP2dfUzn-TnlXS7EkKfVmI', 'sales': 'g1AoL7Ua8UgdNwzlWlOny8paW7E8UjFkZiJVEo7BtaU', ...}
+
+    def test_b6_history_trail_kept(self, T):
+        g = requests.get(f"{BASE}/api/sales-admin/orders/{STATE['so_b']}/fulfillment",
+                         headers=H(T["salesadmin"]), timeout=90).json()
+        hist = g.get("decisions") or g.get("decision_history") or []
+        STATE["b6_history_len"] = len(hist)
+&gt;       assert len(hist) &gt;= 2, \
+            f"jejak keputusan lama tidak terekspos API (n={len(hist)}, kunci={list(g.keys())})"
+E       AssertionError: jejak keputusan lama tidak terekspos API (n=0, kunci=['order_id', 'order_number', 'customer_name', 'entity_id', 'order_preview', 'shortages', 'decision', 'options'])
+E       assert 0 &gt;= 2
+E        +  where 0 = len([])
+
+tests/test_iter275_g1_admin_sales_audit.py:403: AssertionError</failure></testcase><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurC" name="test_c4_blocked_customer_goes_to_approval" time="0.212" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurC" name="test_c4_status_waiting_approval" time="0.113" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurC" name="test_c5_verification_still_possible" time="0.265" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurC" name="test_c1_request_special_price" time="0.132" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurC" name="test_c6_approve_value_blocked_while_pending" time="0.250" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurC" name="test_c1_manager_sees_price_approval_queue" time="0.219" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurC" name="test_c1_manager_approves_price" time="0.157" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurC" name="test_c_salesadmin_cannot_decide_approval" time="0.110" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurE" name="test_e_demo_returns_exist" time="0.101" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurE" name="test_e_queue_retur_in_desk" time="0.119" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurE" name="test_e_salesadmin_cannot_approve_return" time="0.438" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurE" name="test_e_manager_approves_return" time="0.258" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurE" name="test_e_reject_requires_reason" time="0.000"><skipped type="pytest.skip" message="TIDAK-DAPAT-DIUJI: tak ada retur lain untuk uji alasan wajib">/app/backend/tests/test_iter275_g1_admin_sales_audit.py:528: TIDAK-DAPAT-DIUJI: tak ada retur lain untuk uji alasan wajib</skipped></testcase><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurF" name="test_f_pin_list_and_queue" time="0.708"><failure message="AssertionError: DEVIASI: daftar Permintaan Internal KOSONG untuk Admin Sales walau antrean meja berisi [('pin_f067d2ddeedd', 'KSC/PIN-00001')]&#10;assert []">self = &lt;test_iter275_g1_admin_sales_audit.TestAlurF object at 0xf81a85ea3950&gt;
+T = {'admin': 'RBL13E1dfF7y3prJAILrlhhRWuB9uy7Lci0VEhZ6_V4', 'finance': 'd0XEbNbFWOEVYj26fpSSgV61IPNfn6UAuNiHh7rx5eM', 'manager': 'ZRAGFQpIxXzgY3b432zbfRP2dfUzn-TnlXS7EkKfVmI', 'sales': 'g1AoL7Ua8UgdNwzlWlOny8paW7E8UjFkZiJVEo7BtaU', ...}
+
+    def test_f_pin_list_and_queue(self, T):
+        r = requests.get(f"{BASE}/api/internal-requests?limit=100", headers=H(T["salesadmin"]),
+                         timeout=60)
+        assert r.status_code == 200, r.text[:250]
+        items = r.json().get("items", r.json() if isinstance(r.json(), list) else [])
+        dk = requests.get(f"{BASE}/api/sales-admin/desk", headers=H(T["salesadmin"]),
+                          timeout=90).json()
+        q = next(x for x in dk["queues"] if x["id"] == "permintaan_internal")
+        STATE["pin_queue_rows"] = [(row["ref_id"], row["number"]) for row in q["rows"]]
+        STATE["pins_visible_to_salesadmin"] = [(x["id"], x.get("status")) for x in items]
+        meta = requests.get(f"{BASE}/api/internal-requests/meta",
+                            headers=H(T["salesadmin"]), timeout=30).json()
+        STATE["pin_meta_salesadmin"] = {k: meta.get(k)
+                                        for k in ("can_decide", "can_pick_source")}
+&gt;       assert items, ("DEVIASI: daftar Permintaan Internal KOSONG untuk Admin Sales "
+                       f"walau antrean meja berisi {STATE['pin_queue_rows']}")
+E       AssertionError: DEVIASI: daftar Permintaan Internal KOSONG untuk Admin Sales walau antrean meja berisi [('pin_f067d2ddeedd', 'KSC/PIN-00001')]
+E       assert []
+
+tests/test_iter275_g1_admin_sales_audit.py:550: AssertionError</failure></testcase><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurF" name="test_f_sources_for_open_pin" time="0.125"><failure message="AssertionError: 403 {&quot;detail&quot;:&quot;Rincian stok badan usaha lain bukan wewenang peran Anda. Ajukan permintaannya saja — admin/manajer yang memilih badan usaha sumber.&quot;}&#10;assert 403 == 200&#10; +  where 403 = &lt;Response [403]&gt;.status_code">self = &lt;test_iter275_g1_admin_sales_audit.TestAlurF object at 0xf81a85ea0990&gt;
+T = {'admin': 'RBL13E1dfF7y3prJAILrlhhRWuB9uy7Lci0VEhZ6_V4', 'finance': 'd0XEbNbFWOEVYj26fpSSgV61IPNfn6UAuNiHh7rx5eM', 'manager': 'ZRAGFQpIxXzgY3b432zbfRP2dfUzn-TnlXS7EkKfVmI', 'sales': 'g1AoL7Ua8UgdNwzlWlOny8paW7E8UjFkZiJVEo7BtaU', ...}
+
+    def test_f_sources_for_open_pin(self, T):
+        open_pins = [(rid, num, "submitted") for rid, num in STATE.get("pin_queue_rows", [])]
+        if not open_pins:
+            pytest.skip("TIDAK-DAPAT-DIUJI: antrean PIN kosong")
+        STATE["pin_id"] = open_pins[0][0]
+        r = requests.get(f"{BASE}/api/internal-requests/{STATE['pin_id']}/sources",
+                         headers=H(T["salesadmin"]), timeout=60)
+&gt;       assert r.status_code == 200, f"{r.status_code} {r.text[:250]}"
+E       AssertionError: 403 {"detail":"Rincian stok badan usaha lain bukan wewenang peran Anda. Ajukan permintaannya saja — admin/manajer yang memilih badan usaha sumber."}
+E       assert 403 == 200
+E        +  where 403 = &lt;Response [403]&gt;.status_code
+
+tests/test_iter275_g1_admin_sales_audit.py:560: AssertionError</failure></testcase><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurF" name="test_f_sales_cannot_see_sources" time="0.143" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurF" name="test_f_convert_to_interco" time="0.125"><failure message="AssertionError: 400 {&quot;detail&quot;:&quot;Pilih badan usaha sumber dulu — lihat daftar kandidat beserta stok &amp; kesiapan harga internalnya pada panel di sebelah.&quot;}&#10;assert 400 == 200&#10; +  where 400 = &lt;Response [400]&gt;.status_code">self = &lt;test_iter275_g1_admin_sales_audit.TestAlurF object at 0xf81a85ea0910&gt;
+T = {'admin': 'RBL13E1dfF7y3prJAILrlhhRWuB9uy7Lci0VEhZ6_V4', 'finance': 'd0XEbNbFWOEVYj26fpSSgV61IPNfn6UAuNiHh7rx5eM', 'manager': 'ZRAGFQpIxXzgY3b432zbfRP2dfUzn-TnlXS7EkKfVmI', 'sales': 'g1AoL7Ua8UgdNwzlWlOny8paW7E8UjFkZiJVEo7BtaU', ...}
+
+    def test_f_convert_to_interco(self, T):
+        if not STATE.get("pin_id"):
+            pytest.skip("TIDAK-DAPAT-DIUJI: tak ada PIN terbuka")
+        src = (STATE["pin_sources"][0][0] if STATE.get("pin_sources") else "")
+        r = requests.post(f"{BASE}/api/internal-requests/{STATE['pin_id']}/convert",
+                          json={"source_entity_id": src, "submit_now": True,
+                                "notes": "TEST_iter275"},
+                          headers=H(T["salesadmin"]), timeout=90)
+        STATE["f_convert"] = (r.status_code, _detail(r)[:250])
+&gt;       assert r.status_code == 200, f"{r.status_code} {r.text[:300]}"
+E       AssertionError: 400 {"detail":"Pilih badan usaha sumber dulu — lihat daftar kandidat beserta stok &amp; kesiapan harga internalnya pada panel di sebelah."}
+E       assert 400 == 200
+E        +  where 400 = &lt;Response [400]&gt;.status_code
+
+tests/test_iter275_g1_admin_sales_audit.py:582: AssertionError</failure></testcase><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestAlurF" name="test_f_pricing_uses_internal_contract" time="0.000"><skipped type="pytest.skip" message="TIDAK-DAPAT-DIUJI: konversi PIN gagal">/app/backend/tests/test_iter275_g1_admin_sales_audit.py:589: TIDAK-DAPAT-DIUJI: konversi PIN gagal</skipped></testcase><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestBatasWewenang" name="test_no_tax_invoice_issue" time="0.102" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestBatasWewenang" name="test_no_ar_receipt" time="0.115" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestBatasWewenang" name="test_no_warehouse_action" time="0.132" /><testcase classname="tests.test_iter275_g1_admin_sales_audit.TestBatasWewenang" name="test_no_qc_release" time="0.116"><skipped type="pytest.skip" message="TIDAK-DAPAT-DIUJI: daftar QC 404/kosong">/app/backend/tests/test_iter275_g1_admin_sales_audit.py:629: TIDAK-DAPAT-DIUJI: daftar QC 404/kosong</skipped></testcase><testcase classname="tests.test_iter275_g1_admin_sales_audit" name="test_zz_dump_state" time="0.000" /></testsuite></testsuites>

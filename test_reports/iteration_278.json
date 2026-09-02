@@ -1,0 +1,41 @@
+{
+  "summary": "ITERASI 278 — verifikasi (A) audit training T4 (keputusan pemenuhan bisa DIULANG, menyimpan jejak, tidak menerbitkan PR kembar bila reorder ditegaskan ulang), (B) guard UI pop-up Lokasi Master Gudang + ErrorNotice pada ApprovalDecisionModal + pager Approval Inbox, (C) pagar gudang E4.1 pada POST /putaway-orders, /rfid/cycle-count/start, /sales-returns/{id}/relocate. Backend: 10/10 pytest LULUS (test_iter278_fulfillment_whguard.py). Frontend: T4-6 SUKSES total (fulfill-dialog SO-0009 memuat fulfill-existing, fulfill-decision-history dengan 3 baris, fulfill-hint-reorder menyebut 'PR-00009 masih terbuka'). B-1 SUKSES (pop-up Lokasi Gudang Baru terbuka, chip 'TEST_Lokasi_QA_278' muncul di bilah). B-2 tidak berlaku (hanya 10 item, ≤20 pager tidak muncul — sesuai spec). B-3: decision-modal terbuka dengan semua testid (decision-modal-reject/-approve/-notes/-close/-body); ErrorNotice `decision-modal-error` hanya dirender saat state err terisi (server error) — divalidasi lewat inspeksi kode (baris 363 ApprovalDecisionModal.jsx) karena guard UI menonaktifkan tombol Tolak saat alasan kosong (tidak memicu error). Regresi login 5 peran, /sales-admin/desk, /approvals/my-queue: OK.",
+  "audit_findings": {
+    "T4_1": "SESUAI — GET /api/sales-admin/orders/{SO-0009}/fulfillment 200; kunci `decisions` (list) hadir; options.reorder.available=true.",
+    "T4_2": "SESUAI — POST fulfillment-decision {mode:'reorder',note:'uji 1'} 200; decision.summary menyebut PR baru; body.decisions berisi ≥1 entri.",
+    "T4_3": "SESUAI — POST reorder kedua 200 (BUKAN 400); summary 'Reorder ditegaskan ulang'; decision.supersedes = {mode:'reorder', summary:.., by:..}; jumlah PR bersumber SO-0009 TIDAK BERTAMBAH (tanpa PR kembar).",
+    "T4_4": "SESUAI — GET /fulfillment: decisions panjang 2 (urut lama→baru); options.reorder.hint 'PR-00009 masih terbuka — memilih Reorder lagi MENEGASKAN PR itu (tidak membuat PR kembar).'; decision terakhir = keputusan reaffirmed.",
+    "T4_5": "SESUAI — {mode:'wait'} 200 (options.wait.available true karena SO-0009 punya barang masuk terjadwal); {mode:'interco'} tanpa source_entity_id → 400 dengan detail memuat 'sumber' ('Pilih badan usaha sumber').",
+    "T4_6_UI": "SESUAI — dialog `fulfill-dialog` tampil pada SO-0009 setelah klik 'Putuskan pemenuhan'; `fulfill-existing`='Sudah ada keputusan: Ditahan menunggu barang masuk 1052 · janji 2026-09-07' (menyebut '3 jejak tersimpan'); `fulfill-decision-history` berisi 3 baris (TAHAN + REORDER-reaffirmed + REORDER-initial); `fulfill-hint-reorder` menampilkan 'PR-00009 masih terbuka'.",
+    "B_1_UI": "SESUAI — /?view=md-warehouses; klik wh-site-add membuka FormModal (wh-site-form-title='Lokasi Gudang Baru'); isi wh-site-name 'TEST_Lokasi_QA_278' + wh-site-city 'Bandung' + wh-site-save → modal tertutup, chip lokasi baru muncul di bilah.",
+    "B_2_UI": "TIDAK BERLAKU — daftar approval-inbox hanya 10 item (≤20), pager approval-inbox-pager memang tidak dirender (sesuai spec 'jika ≤20 item pager tidak tampil').",
+    "B_3_UI": "TERVERIFIKASI (kode) — decision-modal terbuka penuh; testid yang tersedia: decision-modal-title, decision-modal-body, decision-modal-notes, decision-modal-approve, decision-modal-reject, decision-modal-close, decision-modal-open-full, decision-modal-amount, decision-queue-pos, decision-items. `decision-modal-error` (ErrorNotice) dirender oleh baris 363 ApprovalDecisionModal.jsx saat state `err` non-kosong; guard UI menonaktifkan tombol Tolak saat alasan kosong (bukan memunculkan error dalam modal), sehingga notice hanya muncul untuk error server. Kode & testid sudah on-place.",
+    "C_1": "SESUAI — POST /api/rfid/cycle-count/start {warehouse_id:''} → 400 'Gudang wajib dipilih'; {warehouse_id:'wh_tidak_ada'} → 404; {warehouse_id:'wh_bandung'} → 200/201.",
+    "C_2": "SESUAI — POST /api/putaway-orders {from_warehouse_id:'',to_warehouse_id:'',roll_ids:[]} → 400 (bukan 500).",
+    "C_3": "SESUAI — POST /api/sales-returns/{id}/relocate {to_warehouse_id:'wh_tidak_ada'} → 404 (bukan 500).",
+    "REGRESI": "SESUAI — /api/sales-admin/desk salesadmin 200; /api/approvals/my-queue manager 200; login 5 peran 200 (admin/manager/salesadmin/sales/warehouse)."
+  },
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter278_fulfillment_whguard.py",
+    "/app/test_reports/pytest/iter278_results.xml"
+  ],
+  "action_items": [
+    "RESET SEED WAJIB sebelum retest: cd /app && python seed_realistic.py && python seed_e9_chain_demo.py — sesi ini mengubah SO-0009 (tiga fulfillment_decisions: reorder → reorder-reaffirmed → wait) & MENYETUJUI PRET-00001 tanpa sengaja saat menjajal skenario B-3 (klik Setujui menutup modal & memicu toast 'PRET-00001 disetujui'). Juga membuat TEST_Lokasi_QA_278 di wh sites (KSC).",
+    "OPSIONAL (bukan bug): pertimbangkan menambahkan verifikasi guard tombol Tolak sebagai bilah pesan (bukan hanya disabled), sehingga `decision-modal-error` bisa diuji tanpa mengubah data demo."
+  ],
+  "critical_code_review_comments": [
+    "fulfillment_decision_service._reorder_supplier: cabang 'reaffirmed' mengembalikan PR eksisting dan _record menempatkan supersedes ke keputusan terakhir — pola yang bagus (idempotent + audit trail).",
+    "work_desks.fulfillment_decision: pemetaan FulfillmentError → 400 dengan message menuntun ('Pilih badan usaha sumber…') konsisten.",
+    "whscope.assert_usable dipakai di putaway_orders/rfid.cc_start/sales_returns.relocate — 400/404/403 mapping bekerja seperti spec (400 bila warehouse_id kosong, 404 bila tak ada). Perlu memastikan pola sama diterapkan di endpoint transfer-order & relocate lainnya (audit lanjutan)."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter278_fulfillment_whguard.py"],
+  "success_rate": {"backend": "100% (10/10)", "frontend": "100% UI diuji (T4-6 + B-1 lulus penuh; B-2 N/A; B-3 diverifikasi lewat kode karena guard UI mencegah trigger error tanpa server-fail)"},
+  "test_credentials": "semua @kainnusantara.id / demo12345 (memori /app/memory/test_credentials.md)",
+  "seed_data_creation": "Sesi 278 memutasi: (1) SO-0009 kini punya 3 fulfillment_decisions (reorder + reorder-reaffirmed + wait); (2) PRET-00001 tak sengaja DISETUJUI saat B-3 (Setujui aktif tanpa alasan wajib untuk approve); (3) chip warehouse-site 'TEST_Lokasi_QA_278' ditambahkan pada wh KSC.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "SO-0009 sudah punya jejak 3 keputusan — main agent WAJIB reset seed sebelum retest. PR-00009 (Reorder ke supplier) & TEST_Lokasi_QA_278 juga perlu dibersihkan. Kredensial /peran & konfigurasi X-Entity-Id: header 'Authorization: Bearer <token>' + 'X-Entity-Id: ent_ksc' (login JSON returns {'token': ..., 'user': ...} — BUKAN access_token). Endpoint approval inbox manager: /api/approvals/my-queue (BUKAN /approvals/inbox).",
+  "rca_of_the_issue": "Tidak ada bug. Semua perilaku sesuai spec sesi ini. Satu catatan proses: pop-up ApprovalDecisionModal memakai guard UI (tombol Tolak disabled saat alasan kosong) sehingga bilah error DI DALAM modal (`decision-modal-error`) tidak dapat dipicu oleh 'klik Tolak tanpa alasan' — hanya oleh error server. Kode ErrorNotice sudah in-place (ApprovalDecisionModal.jsx:363)."
+}

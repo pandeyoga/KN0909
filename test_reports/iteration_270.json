@@ -1,0 +1,39 @@
+{
+  "summary": "Regression re-verification on FRESH container/DB for (1) allocation.roll_pick_sales toggle and (2) manual reallocate 'Ganti Roll'. Backend: existing suite tests/test_roll_pick_and_reallocate.py = 8 passed, 1 skipped (no other-entity roll for that product). Added NEW suite tests/test_iter270_reallocate_extra.py covering the 4 gaps requested = 4/4 passed (keep-old-roll+add-new with no duplication and real DB roll-status assertions, partial reallocate -> backorder_qty/backorders[]/has_backorder + dropped rolls released, confirmed SO -> 409, other-entity roll -> 400 'entitas lain'). Frontend (desktop 1920x1080): with roll_pick_sales=FALSE, sales@ quickview has NO quickview-mode-toggle / quickview-mode-roll and 'Tambah ke Keranjang' adds directly (no RollReconcileSheet, cart badge=1); after resetting to TRUE the toggle reappears (positive control, proving FE reads effective config). salesadmin@ on reserved SO KSC/SO-00019: order-item-realloc-prod_batik_mega visible -> so-realloc-modal opens with current roll RL-00015-1 PRE-CHECKED ('dipakai sekarang', total 19,01/19,01) + FEFO available list; unchecked old + selected RL-00004-3, so-realloc-submit enabled -> 200, modal closed, panel refreshed showing 'Dialokasikan MANUAL oleh Rina Kusumawati (1 roll) — menggantikan pilihan sistem'; API verified old roll RL-00015-1 status=available, RL-00004-3 status=reserved reserved_ref.id=so_f72333bc98dd, item.reserved_qty=19.01, backorder 0. sales@ sees NO Ganti Roll button on reserved SO-0006. CLEANUP DONE: allocation.roll_pick_sales reset to default TRUE (verified registry default=true + FE positive control).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/inventory/rolls/{roll_id}", "issue": "No single-roll detail endpoint (404 Not Found). Consequence: the pre-existing regression suite's DB-level roll-status assertions were silently skipped (guarded by 'if status_code == 200'). New suite uses GET /api/inventory/rolls?product_id=... list instead. Consider adding the detail route or keeping list-based verification."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Ganti Roll on SEEDED demo SOs (SO-0006 / SO-0007)", "issue": "Seed data (seed_realistic) writes SO.allocations without rolls[] detail, so ReallocateRollsModal shows 'Roll saat ini' section absent and total 0/40 with 'Kurang 40 — backorder' warning even though the SO is 'reserved'. Not a code bug (API-created SOs carry rolls[] and behave correctly), but demo screens can mislead: either make the seed reserve real rolls or show an explicit hint when the allocation has no roll-level detail.", "affected_selectors": ["so-realloc-modal", "so-realloc-total"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_roll_pick_and_reallocate.py",
+    "/app/backend/tests/test_iter270_reallocate_extra.py",
+    "/app/test_reports/pytest/roll_pick_reallocate_iter270.xml",
+    "/app/test_reports/pytest/iter270_reallocate_extra.xml"
+  ],
+  "action_items": [
+    "Optional: make seed_realistic reserve real rolls for reserved demo SOs (so_006/so_007) so 'Ganti Roll' modal shows current rolls on demo data",
+    "Optional: add GET /api/inventory/rolls/{id} detail endpoint (currently 404) for easier verification/tests"
+  ],
+  "critical_code_review_comments": [
+    "reallocate_line_rolls order of operations is safe: reserve new rolls first, then release dropped ones with compound filter {status:'reserved', reserved_ref.id: order_id} — idempotent and no window with unreserved line.",
+    "reservation movements are recorded only for newly reserved rolls (kept rolls not double counted) — verified by the keep-old-roll test (no duplicate roll entries in allocations).",
+    "Server-side guard for roll_pick_sales lives in POST /api/sales-orders (defense in depth beyond FE hiding) — verified 400 for sales and 200 for sales_admin with toggle=false."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter270_reallocate_extra.py"],
+  "success_rate": {"backend": "100% (12/12 executed, 1 env-skipped)", "frontend": "100% (5/5 flows verified incl. positive control)"},
+  "seed_data_creation": "Test SOs created on ent_ksc by pytest runs (customers Butik Bali Indah/Fashion Bandung Kencana/Tekstil Medan Jaya): ~12 qty/roll-mode SOs (KSC/SO-00012..KSC/SO-00023 range); one was confirmed on purpose for the 409 test. FE test mutated allocation of KSC/SO-00019 (so_f72333bc98dd): now reserved on roll RL-00004-3 (Gudang Jakarta Utara) with MANUAL explanation; RL-00015-1 released to available. Config allocation.roll_pick_sales restored to default TRUE.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin@/salesadmin@/sales@kainnusantara.id — demo12345",
+  "context_for_next_testing_agent": "Config PUT contract {items:[{key,value,scope_type,scope_id,reason}]}; reset via POST /api/config/values/reset {key,scope_type,scope_id,reason}. Registry GET /api/config/registry?q=... returns {groups:[...], entries:[...]} (entry has 'default', no effective value field). SO list/detail number field is 'number' (e.g. KSC/SO-00019), NOT order_number. GET /api/inventory/rolls/{id} = 404; use /api/inventory/rolls?product_id=..&limit=. Seeded SOs so_006/so_007 have allocations with EMPTY rolls[]; API-created qty SOs have real rolls. UI: sidebar group PENJUALAN starts collapsed for sales -> click nav-group-toggle-penjualan then nav-sales-orders; order detail opens as side panel, click 'Lihat detail & aksi' for full modal where order-item-realloc-{product_id} lives; quickview add button testid is quickview-add-button (not add-to-cart). pytest.ini forces -n loadscope; use '-n 0' to disable xdist for order-dependent suites.",
+  "rca_of_the_issue": "No defect found in the feature under test on the fresh environment. The only misleading observation (modal showing 0/target on demo SO-0006) traces to seed data writing SO.allocations without roll-level detail, so ReallocateRollsModal (which derives current rolls from order.allocations[].rolls) has nothing to pre-check."
+}

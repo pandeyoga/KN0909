@@ -1,0 +1,42 @@
+{
+  "summary": "Iterasi 280 — verifikasi T7 (SPK makloon hasil kurang tertahan di status 'Sebagian' sampai klaim diputus), T8 (klaim selisih makloon masuk /api/approvals/my-queue manajer), dan bug 'stok tidak berkurang' pada issue bahan makloon. BE-1..BE-6 dijalankan sebagai skenario terarah (45 assertion, semua PASS) lewat URL publik; regresi pytest iter280 + iter279 = 22 passed; POC FASE D makloon = PASS 69 FAIL 0. UI-1 (admin: issue bahan dengan hint stok per gudang + receive kurang → banner completion hold) dan UI-2 (manajer: kartu stage 'Klaim Selisih Makloon' + setujui klaim langkah 1) keduanya lulus. Tidak ditemukan bug fungsional.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Persetujuan Saya (my-approvals) — judul halaman",
+        "issues": [
+          "navMeta.js title masih 'Persetujuan Saya · Matriks Divisi (ACC Desain · Sample · PO Custom · PR)' — stage baru 'Klaim Selisih Makloon' belum disebut di judul, padahal kartunya kini 5. Kosmetik/keterbacaan saja."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/iter280_scenario.py",
+    "/app/backend/tests/test_iter280_makloon_partial_queue.py",
+    "/app/test_reports/pytest/iter280_results.xml"
+  ],
+  "action_items": [
+    "Opsional (kosmetik): perbarui judul navMeta 'my-approvals' agar memuat 'Klaim Makloon' setelah stage kelima ditambahkan."
+  ],
+  "critical_code_review_comments": [
+    "`_source_stock_rows` hanya mengembalikan gudang yang PUNYA baris saldo (di data demo hanya wh_surabaya), sedangkan IssueModal merender semua gudang dari master dengan 'tersedia 0' — perilaku ini benar dan menuntun, tetapi bila jumlah gudang tumbuh besar daftar opsi bisa panjang; pertimbangkan mengurutkan opsi berdasarkan stok menurun.",
+    "completion_hold dihitung ulang di `_recompute_status_and_costing` dan dipanggil dari makloon_claim_service._save — sudah idempoten (approve langkah 2 → steps [1]; approve langkah 1 → completed, hold hilang). Tidak ada temuan.",
+    "MakloonOrdersView menampilkan detail lewat tombol 'Detail' (baris `mko-row-*` tidak clickable). Bukan bug, tetapi baris tanpa aksi klik agak tidak intuitif; catat untuk agen uji berikutnya."
+  ],
+  "updated_files": [
+    "/app/backend/tests/iter280_scenario.py (baru — skenario BE-1..BE-6 terarah)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "Tidak ada data uji permanen. Data demo di-reseed (python seed_realistic.py + seed_e9_chain_demo.py) sebelum skenario BE, sebelum pytest regresi, sebelum UI, dan SETELAH selesai — MKO-00003 kembali ke keadaan awal (partially_received, langkah 2 pending).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin@kainnusantara.id / manager@kainnusantara.id · demo12345 · X-Entity-Id ent_ksc",
+  "context_for_next_testing_agent": "Navigasi yang BENAR (bukan yang tertulis di request): Order Makloon = sidebar nav-group-pembelian → nav-purchase-orders → hub-tab-makloon-orders (BUKAN nav-makloon-orders). Persetujuan Saya = nav-approval-inbox → hub-tab-my-approvals (BUKAN nav-my-approvals). Baris SPK dibuka lewat tombol 'Detail' di dalam mko-row-{id}, klik baris tidak membuka detail. Testid tombol langkah: issue-step-{seq} / receive-step-{seq} / record-service-step-{seq} (BUKAN mko-step-issue-*). Angka di UI berformat Indonesia ('52,89'), jadi assert dengan koma. Modal keputusan my-approvals: my-approvals-approve-{id} → my-approvals-modal → my-approvals-note → my-approvals-modal-submit; toast di my-approvals-msg. Skrip skenario dapat dipakai ulang: `cd /app/backend/tests && python iter280_scenario.py` (perlu reseed dulu karena mengonsumsi MKO-00003).",
+  "rca_of_the_issue": "Laporan user 'material issue makloon tidak mengurangi stok' TIDAK TEREPRODUKSI pada build sekarang: POST /issue {step_seq:2, wh_surabaya} membuat available_qty prod_grey_katun@wh_surabaya turun 52.89→2.00 (-50.89), subcon_qty 0→50.89, ATP turun 52.89→2.00, dan /api/products/{id}/stock-breakdown menampilkan bucket subcon 50.89. Setelah receive, subcon 50.89→0 (bahan terkonsumsi) dan stok produk output naik 78.03→116.71 (+38.68). Dugaan penyebab keluhan asli: issue sebelumnya ditolak 409 karena gudang terpilih tidak punya stok — pesan lama tidak menjelaskan, sehingga tampak 'stok tidak berkurang'. Pesan 409 baru ('...hanya tersedia 0 yard, butuh 50.89 yard untuk langkah 2. Gudang lain yang punya stok: Gudang Surabaya Rungkut 52.89 yard') + hint stok di IssueModal menutup celah itu."
+}

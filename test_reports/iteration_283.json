@@ -1,0 +1,32 @@
+{
+  "summary": "Iterasi 283 — verifikasi AS-02 (qty PR fleksibel), AS-03 (lepas roll sebagian), MD-06 (riwayat labdip + navigasi), lencana artwork. Backend: iter283_as02_as03_scenario.py = 21/21 PASS (jalan sendiri); pytest test_iter281_demo_wave12 + test_iter280_makloon_partial_queue + test_iter279_po_line_lock via `-p no:randomly -n 0` = 12 passed / 15 skipped, tidak ada FAIL. MD-06 endpoint: GET /api/rnd/labdip-history?color_id=col_kn_wht_01 (admin, X-Entity-Id ent_ksc) → 200 dengan items (3) & summary (samples/rounds/acc/revisi/tolak/open/best_score/suppliers); tanpa parameter → 400 'Sebutkan warna atau barang'; sales@ → 200 (izin rnd.view). UI (salesadmin@, ent_ksc): AS-03 flow — SO baru KSC/SO-00015 → Penjualan › Sales Orders › klik baris → 'Lihat detail & aksi' → tombol `order-item-realloc-prod_batik_mega` dan `order-item-release-prod_batik_mega` keduanya tampil; modal `release-rolls-modal` merender 2 checkbox `release-roll-*` (RL-00004 20.91 yd, RL-00004-1-1 17.12 yd); `release-rolls-confirm` DISABLED saat: (a) tidak ada roll dicentang, (b) alasan <5 huruf; ENABLED saat roll dipilih & alasan valid. Setelah confirm → modal tertutup, status pill TETAP 'Dipesan' (Reserved timeline current), 'Backorder 20,91' muncul di baris item, `order-release-log` menampilkan `order-release-rel_144489c8e410`: 'Batik Mega Mendung Premium · 20,91 yard · RL-00004 · Rina Kusumawati · 2026-09-02 14:39 · Alasan: pelanggan tunda pengiriman uji UI'. UI (admin@): AS-02 manual PR — Pembelian › Pengadaan (Sourcing) › tab `hub-tab-purchase-requisitions` › `pr-open-pr_a6d12cc53c97` (PR-00003 draft, Endek Bali Rangrang) → `pr-detail-qty-edit-0` membuka `pr-line-qty-modal`; `pr-line-qty-order` menampilkan 'KEBUTUHAN PESANAN (SO): — (bukan dari SO)'; qty 400→450 + alasan 5+ huruf → tersimpan, badan halaman memuat '450'; `pr-line-qty-confirm` DISABLED saat qty sama (450 vs 450) dan alasan pendek ('abc'); revert 450→400 sukses. MD-06 UI: Penjualan › Produk & Harga › `hub-tab-color-library` › `color-history-col_kn_wht_01` (KN-WHT-01 Putih Susu) → modal `labdip-history-modal` dengan `labdip-history-summary` (2 permintaan · 3 putaran · 2 ACC · 1 revisi · 0 tolak · skor terbaik 92) dan 3 baris `labdip-history-row-*` + 3 kolom `labdip-history-due-*` (Cirebon Craft rnd 1 ACC 92, NTT Weaving Co rnd 1 Revisi 68, NTT Weaving Co rnd 2 ACC 84); klik baris rnd_8e4065232b10 → Hub R&D tab Permintaan Sample terbuka, `sample-detail-panel` muncul, `round-row-rnd_8e4065232b10` punya `data-highlight='true'`; `sample-labdip-history-button` membuka modal riwayat yang sama. Lencana artwork: Desainer › `hub-tab-cs-design-gallery` menampilkan tepat 2 badge (Tenun Ikat Sumba + Batik Parang Klasik) DAN Parang-01/Parang-02 (yang punya artwork) TIDAK menampilkan badge. Semua data uji dibersihkan (SO cancel, PR revert).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "DesignGalleryView.jsx:163", "issue": "Testid `gallery-no-artwork-${g.id}` memakai id internal (dsgn_c80912dbc910 / dsgn_4bd02bf7c7e9) — review meminta code kartu (`gallery-no-artwork-DSG-TENUN-01` / `-DSG-BATIK-01`). Lencana muncul benar secara visual (Belum ada artwork) & hanya di kartu tanpa berkas, jadi ini deviasi testid, bukan kegagalan fitur.", "selector": "[data-testid^=\"gallery-no-artwork-\"]", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/iter283_as02_as03_scenario.py",
+    "/app/backend/tests/test_iter281_demo_wave12.py",
+    "/app/test_reports/pytest/iter283_results.xml"
+  ],
+  "action_items": [
+    "Opsional: ubah `gallery-no-artwork-${g.id}` menjadi `gallery-no-artwork-${g.code || g.id}` di DesignGalleryView.jsx agar testid stabil (code demo `DSG-TENUN-01`/`DSG-BATIK-01`) — memudahkan uji regresi yang menyebut design code."
+  ],
+  "critical_code_review_comments": [
+    "ReleaseRollsModal & OrderDetailPanel: kontrak testid taat pola (`release-rolls-modal`, `release-roll-{roll_id}`, `release-rolls-reason`, `release-rolls-confirm`, `order-release-log`, `order-release-{id}`). Bagus.",
+    "PrLineQtyModal validasi disabled berlapis (qty sama, alasan <5, qty <= order_qty untuk PR so_repeat) sudah bekerja di UI live — logika sinkron dengan backend PATCH.",
+    "LabdipHistoryModal + SampleDetailPanel.focusRoundId + SampleRoundList data-highlight adalah alur yang tersambung dengan baik; navigasi lintas layar (Pustaka Warna → Hub R&D) memakai state 'focus.roundId' dan mengembalikan atribut data-highlight='true' pada round yang benar."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "admin@ / salesadmin@ / sales@ kainnusantara.id · demo12345 · X-Entity-Id ent_ksc",
+  "seed_data_creation": "SO uji KSC/SO-00015 (so_cd64f60e44dd, prod_batik_mega, ~38 yd) dibuat lewat POST /sales-orders sebagai sales@ dan dibatalkan setelah uji. PR-00003 (pr_a6d12cc53c97) qty dikembalikan 450→400. Tidak ada residu.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Semua 4 fitur demo (AS-02/AS-03/MD-06/lencana artwork) berjalan sesuai spesifikasi. Satu-satunya temuan minor adalah nilai testid `gallery-no-artwork-*` memakai id internal (dsgn_xxx), bukan design code — tidak mempengaruhi fungsi. Pola nav: KNSelect option testid = `{testId}-option-{value}`; setelah trigger dropdown Radix di dalam modal, tekan Escape sebelum tutup modal. SO seed lama (SO-0005..0008) tidak punya allocations[].rolls sehingga tombol Lepas Roll TIDAK muncul — selalu buat SO baru untuk uji AS-03.",
+  "rca_of_the_issue": "Tidak ada bug fungsional. Deviasi testid: DesignGalleryView.jsx baris 163 memakai `g.id` (id UUID) sebagai suffix. Reviewer/main agent memakai design code (`DSG-TENUN-01`) di deskripsi. Fix satu baris: `gallery-no-artwork-${g.code || g.id}`."
+}

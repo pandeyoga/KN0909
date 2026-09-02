@@ -1,0 +1,99 @@
+{
+  "summary": "GELOMBANG 2 AUDIT (alur MD: D, G, H, I, J, K, L + Pusat Persetujuan + data demo bab 33). Backend: 50 test case pytest baru (/app/backend/tests/test_iter276_g2_md_audit.py) => 47 lulus, 3 gagal (=3 deviasi). Frontend: Playwright audit Papan PO per Lini (tab lini, chip tahap + popup, gembok Inspect, kolom Nama Sales, pagar lini printing), papan DSR, layar SPK Inspeksi (manajer vs gudang). TIDAK ADA kode aplikasi yang diubah. Seed di-reset (python seed_realistic.py) sebelum jalankan final.",
+  "audit_findings": {
+    "G1": "SESUAI — /api/purchase-requisitions/reorder-suggestions memuat 4-7 barang stok<=ROP + suggested_qty (mis. PFP-KTN-001 avail 24.5 vs ROP 300 -> usul 800).",
+    "G2": "SESUAI dgn catatan — PR dari saran berhasil (PR-00009). CATATAN: saran memuat produk R&D (RND-KTN-150) yang DITOLAK saat dibuat PR ('spesifikasi disetujui tetapi BELUM dirilis ke produksi'); saran sebaiknya menandai/menyaring produk itu. Juga: saran tidak membawa gudang, padahal PR+realize-po menuntut warehouse_id.",
+    "G3": "SESUAI — PR di-ACC manajer lalu realize-po melahirkan KSC/PO-00016. CATATAN kontrol: pembuat PR tidak boleh menyetujui PR-nya sendiri (403 pemisahan tugas) — dokumen training tidak menyebut hal ini; MD yang membuat PR harus minta approver lain.",
+    "G4": "SESUAI — PO hasil realisasi langsung tampil di Papan PO (API + layar).",
+    "G5": "SESUAI — sales ditolak 403 saat membuat PR (purchase_requisition.create).",
+    "G6": "SESUAI — amandemen PO menuntut `reason` (422 tanpa alasan, 200 dengan alasan).",
+    "G7": "DEVIASI — dokumen: revisi pada BARIS yang barangnya sudah diterima harus DITOLAK. Kenyataan: revisi baris ber-received_qty DITERIMA (200) selama qty baru >= qty diterima; hanya qty < diterima yang ditolak ('Qty SGK-PLB-001 (10) tak boleh < qty diterima (40)'). Pesan menuntun ADA hanya pada kasus kedua.",
+    "H1": "SESUAI (UI) — klik chip Celup membuka po-stage-modal (status sekarang + siapa/kapan), pilih 'Selesai' + catatan -> tersimpan; tooltip chip jadi 'Selesai — Dewi Rahayu · 31 Agu 2026, 02.48 · catatan'.",
+    "H2": "SESUAI — 3 rantai demo menampilkan nama sales runutan (Ayu Permatasari / Bima Saputra / Ayu Permatasari); 7-9 PO rutin menampilkan '—'.",
+    "H3": "SESUAI — chip Inspect disabled + 🔒 + tooltip; PATCH stage inspect dijawab 409 dgn kalimat menuntun.",
+    "H4": "SESUAI — tab Knit kosong (0 baris + pesan kosong).",
+    "H5": "DEVIASI (UI) — papan manager.printing@ MENYUSUT benar (5 PO, hanya tab 'Semua lini' + 'Printing'), dan menandai tahap PO woven dijawab 403 ber-kalimat 'PO KSC/PO-00015 berada di lini [woven] ... akses Anda hanya lini printing'. TETAPI lencana 'akses lini terbatas' TIDAK tampil: API mengirim line_restricted=['printing'] (array) sedangkan layar (po-board-line-restricted) tampaknya menunggu boolean.",
+    "H6": "SESUAI — tab: Semua lini · Woven (Tenun) · Knit (Rajut) · Printing (ikut master; 'Semua' ditambahkan layar, API mengirim 3 lini urut master).",
+    "I1": "SESUAI dgn catatan — spec draft -> ajukan (review) -> ACC (approved, membentuk produk). CATATAN: pemisahan tugas menolak pengaju meng-ACC dokumennya sendiri (403); dokumen training perlu menyebut 2 orang. Field wajib: target.fabric_type + gramasi.",
+    "I2": "SESUAI — tutup/setor round tanpa lampiran ditolak 400 'Tidak bisa menutup round tanpa LAMPIRAN bukti ... Unggah dulu minimal 1 berkas'. Unggahan hanya menerima JPG/PNG/WEBP/GIF/PDF.",
+    "I3": "SESUAI — permintaan sample dibuat (KSC/SMP-000xx, status draft, jenis labdip/handfeel/proofing dari master).",
+    "I4": "SESUAI — kirim tanpa supplier ditolak 400 'Pilih minimal satu supplier tujuan permintaan sample.'; dengan supplier -> status 'sent'.",
+    "I5": "SESUAI — setor round (hasil ukur WAJIB sesuai master jenis: delta_e + tahan cuci + tahan gosok) -> nilai 'acc' -> putuskan pemenang (reason_code WAJIB dari daftar) -> status 'decided'.",
+    "I7": "SESUAI — catat pengiriman sebelum 'Sample Jadi' ditolak 400 ('Tandai **Sample Jadi** lebih dulu'). `to` wajib.",
+    "J1": "SESUAI — pada seed bersih: KSC/DSR-00001 submitted & tak ditugaskan, 00002 in_progress, 00003 delivered (Menunggu keputusan), 00004 approved.",
+    "J2": "SESUAI — sumber 'Dari pesanan pelanggan' tanpa so_id ditolak 400 'wajib menyebut pesanannya'.",
+    "J3": "SESUAI — DSR baru tanpa desainer berhenti di status submitted (kolom 'Menunggu Penugasan' di papan).",
+    "J4": "SESUAI — minta revisi tanpa alasan ditolak 400 ('Tulis alasannya — desainer perlu tahu apa yang harus diubah'); ACC DSR-00003 -> approved dan pindah kolom Disetujui (ACC).",
+    "J5": "SESUAI — manajer melihat 4 DSR demo (5 setelah dokumen uji); designer@ hanya 3 (DSR-00001 tak terlihat karena belum ditugaskan).",
+    "J6": "SESUAI — designer ditolak 403 saat meng-ACC (design_request.decide).",
+    "K1": "SESUAI — KSC/INS-00001 status 'Sedang diperiksa' dgn 1 baris DITAHAN (color_result=beda_shade, alasan 'Warna beda dari sample yang di-ACC').",
+    "K2": "SESUAI — meta.can_release_hold: gudang=false, manajer=true; layar gudang menampilkan lencana DITAHAN tanpa tombol lepas tahanan (0 tombol); API gudang -> 403 inspection.decide.",
+    "K3": "SESUAI — alasan 'jelek' (5 huruf) ditolak 400 'minimal 15 huruf'; alasan panjang -> 200 (tahanan dilepas). Ambang 15 juga dipaparkan meta.policy.min_reason_length.",
+    "K4": "SESUAI — keputusan dokumen 'tolak' dgn alasan pendek ditolak 400 (minimal 15 huruf, kalimat menuntun).",
+    "K5": "SESUAI — buka kembali KSC/INS-00002 (selesai) dgn alasan pendek ditolak 400 (minimal 15 huruf).",
+    "K6": "SESUAI — gudang: 403 inspection.create di API dan TIDAK ada tombol buat SPK di layar; manajer punya tombol.",
+    "K7": "SESUAI — daftar dokumen ref menandai 'sudah ada SPK KSC/INS-00002 (sudah diputuskan)' pada SRET-00001; label ini yang menjadi rambu 'Sudah ada SPK'.",
+    "L1": "SESUAI — 5 order makloon demo (completed x3, partially_received 1, in_process 1).",
+    "L2": "SESUAI (data) — ada 1 order berstatus 'Sebagian' di demo.",
+    "L3": "SESUAI — /makloon-orders/estimate memberi perkiraan hasil (metode GSM, susut 3% dari kontrak KSC/SCT-00009) + tarif (Rp4.200/yard × 193,997) tanpa menyimpan.",
+    "L4": "SESUAI sebagian — buat order (butuh output_product_id + gudang sumber ber-stok) -> keluarkan bahan -> status 'in_process' (WIP di vendor) -> terima hasil 200. Klaim selisih otomatis terbuka dgn hitungan ('Hasil kurang 58.76% ... Kekurangan 11.4 yard ≈ Rp856.362').",
+    "L4b": "DEVIASI — dokumen: hasil KURANG => status 'Sebagian'. Kenyataan: menerima 1,5 dari perkiraan ~3,9 yard membuat status order langsung 'completed' (status hanya melihat tahap yang sudah diterima, bukan kuantitas). Status 'partially_received' hanya muncul pada order multi-tahap.",
+    "L5": "SESUAI dgn catatan — klaim (potong_bon + alasan) masuk daftar /makloon-orders/claims status pending_approval, tampil di /api/approvals/backlog dgn kunci 'makloon_claim', dan diputuskan (approve) 200. CATATAN: /api/approvals/my-queue TIDAK memuat klaim makloon (hanya purchase_requisition, rnd_spec, rnd_sample) — antrean 'Persetujuan Saya' bisa membuat manajer melewatkan klaim. Potongan > sisa tagihan ditolak dgn kalimat jelas.",
+    "D1": "SESUAI — 3 OD demo (draft, pending_approval, in_production) + ambang persetujuan Rp10.000.000 dipaparkan.",
+    "D2": "SESUAI — sales@ membuat OD Rp24 juta dgn submit_for_approval -> status pending_approval (masuk antrean manajer). CATATAN: OD di BAWAH ambang (mis. Rp6 juta) tetap berhenti di 'draft' tanpa antrean — dokumen tidak menjelaskan langkah lanjutannya.",
+    "D3": "SESUAI — tolak OD tanpa alasan ditolak 422 (reason min_length=1).",
+    "D4": "SESUAI dgn catatan — manajer menyetujui OD -> approval_status 'approved', status dokumen menjadi 'confirmed' (dokumen menyebut 'Disetujui'; beda penamaan saja).",
+    "D5": "SESUAI — create-sku menghasilkan produk MTO-260831-000x; create-pr tersedia (400/409 bila tidak relevan).",
+    "D6": "SESUAI — sales ditolak 403 (order.approve).",
+    "PP1": "SESUAI sebagian — /api/approvals/backlog memuat 20 jenis termasuk sales_order, purchase_order, price, purchase_requisition, makloon_claim, inspection_hold, rnd_spec/sample, so_verify. Jumlah 4 tab layar Pusat Persetujuan tidak diuji ulang (sudah gelombang 1). Deviasi: my-queue jauh lebih sempit dari backlog (lihat L5).",
+    "DATA-DEMO": "DD1 SESUAI dgn catatan — galeri desain berisi 4 karya (1 disahkan + 1 menunggu + 2 draf); dokumen menyebut '2 artwork'. DD2 DEVIASI — daftar inspeksi terisolasi (KSC hanya melihat KSC/INS-00001..2), TETAPI GET /api/inspections/{id} dan /pdf untuk KANDA/INS-00001 dijawab 200 saat badan usaha aktif = KSC untuk akun multi-entitas (manager@ allowed_entity_ids=[ksc,kanda]); akun 1-entitas (warehouse@) benar 404. DD3 SESUAI — ENK-BALI-001 hanya terlihat sales pemiliknya (sales@ ya, sales2@ tidak). DD4 SESUAI — 3 rantai SO→PR→PO lengkap dgn nama sales."
+  },
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "GET /api/inspections/{id} · /api/inspections/{id}/pdf", "issue": "Badan usaha aktif (X-Entity-Id) diabaikan pada detail & PDF untuk akun multi-entitas: dokumen KANDA/INS-00001 terbuka saat scope KSC, padahal daftar sudah terisolasi", "priority": "HIGH"},
+      {"endpoint": "POST /api/purchase-orders/{id}/amend", "issue": "G7: revisi baris yang barangnya SUDAH diterima diterima (200) selama qty >= qty diterima; dokumen menuntut penolakan pada baris yang sudah diterima", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "POST /api/makloon-orders/{id}/receive", "issue": "L4b: hasil kurang dari estimasi tetap menutup order (status 'completed'), bukan 'partially_received' seperti dokumen"},
+      {"endpoint": "GET /api/approvals/my-queue", "issue": "Tidak memuat klaim makloon (dan jenis lain yang ada di /approvals/backlog seperti sales_order, price, inspection_hold)"},
+      {"endpoint": "GET /api/purchase-requisitions/reorder-suggestions", "issue": "Memuat produk R&D yang pasti ditolak saat dibuat PR (belum dirilis ke produksi) dan tidak menyertakan warehouse_id yang diwajibkan PR/realize-po"}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "PoBoardView (Papan PO per Lini)", "issue": "Lencana 'akses lini terbatas' tidak muncul untuk manager.printing@; API mengirim line_restricted sebagai ARRAY (['printing']) sedangkan layar tampak menunggu boolean", "selector": "[data-testid=\"po-board-line-restricted\"]", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Papan PO per Lini", "issues": ["Chip tahap hanya berubah warna; status ('Selesai/Sedang dikerjakan') plus siapa & kapan hanya terbaca lewat tooltip — sulit dilihat pada tangkapan layar/audit"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter276_g2_md_audit.py",
+    "/app/test_reports/pytest/iter276_results.xml"
+  ],
+  "action_items": [
+    "DD2 (HIGH): terapkan assert_entity_access pada GET /api/inspections/{id} dan /pdf sehingga akun multi-entitas tetap dibatasi badan usaha aktif.",
+    "G7 (HIGH): tentukan sikap — tolak revisi pada baris yang sudah diterima (pesan menuntun) ATAU perbarui dokumen training menjadi 'qty tidak boleh turun di bawah yang sudah diterima'.",
+    "L4b: samakan arti status makloon dengan dokumen ('Sebagian' saat hasil < estimasi) atau ubah dokumen.",
+    "H5 (UI): perbaiki pembacaan line_restricted (array) agar lencana 'akses lini terbatas' tampil.",
+    "PP: tambahkan makloon_claim (dan jenis lain dari backlog) ke /api/approvals/my-queue.",
+    "Dokumen training: sebutkan pemisahan tugas (pengaju != penyetuju) pada PR dan Spesifikasi R&D; sebutkan OD di bawah ambang tetap 'draft'; galeri demo berisi 4 karya, bukan 2."
+  ],
+  "critical_code_review_comments": [
+    "routers/inspections.py: _guarded/get_inspection hanya memeriksa hak entitas milik akun, bukan badan usaha AKTIF — pola berbeda dari po_board.patch_po_stage yang memakai assert_entity_access.",
+    "services/purchase_order amend: validasi hanya membandingkan qty vs received_qty; tidak ada gerbang 'baris terkunci setelah penerimaan'.",
+    "Papan PO: kontrak API line_restricted (array) vs pemakaian layar (boolean) — samakan tipenya atau kirim dua field terpisah."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter276_g2_md_audit.py",
+    "/app/backend/tests/probe276.py"
+  ],
+  "success_rate": {"backend": "94% (47/50 case; 3 gagal = 3 deviasi audit)", "frontend": "90% (11/12 kasus layar sesuai; lencana pagar lini tidak tampil)"},
+  "seed_data_creation": "Seed di-reset dengan `python seed_realistic.py` (2x selama sesi). Dokumen uji yang dibuat (semua ber-catatan TEST_iter276): PR-00009/PR-00010/PR-00012, PO KSC/PO-00016 + amandemen pada KSC/PO-00016 & PO approved, KSC/SPEC-00003, KSC/SMP-00029/30 (+round, lampiran PNG, keputusan pemenang), KSC/DSR-00005/00006, ACC pada KSC/DSR-00003, tahanan KSC/INS-00001 DILEPAS (200 yard) + tahap 'Celup' PO KSC/PO-00015 diubah, order makloon MKO-00006/00007 + klaim disetujui, OD baru (Rp24 juta) disetujui + SKU MTO-260831-0007..0009. Jalankan `python seed_realistic.py` lalu `python seed_e9_chain_demo.py` untuk memulihkan.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "semua akun @kainnusantara.id / demo12345 (dari /app/memory/test_credentials.md)",
+  "context_for_next_testing_agent": "Jalankan: cd /app/backend && python -m pytest tests/test_iter276_g2_md_audit.py -p no:randomly -n 0 -q -s (WAJIB -n 0; berkas berbagi STATE berurutan). Berkas ini MENGUBAH data: reset seed dulu (cd /app && python seed_realistic.py) agar K1-K3 (tahanan INS-00001), J1/J4 (DSR-00003 delivered), D1/D4 (OD pending) dapat diuji; tanpa reset test itu SKIP. Catatan teknis yang menghemat waktu: (1) GET /api/purchase-orders mengembalikan LIST (bukan {items}); field terima = received_qty; status PO diterima sebagian = 'receiving'. (2) Papan PO: /api/purchase-orders/board -> {items, lines, line_restricted(ARRAY), derived_stages}; PATCH /purchase-orders/{id}/stage {stage_code,status,note}. (3) R&D: spec butuh target.fabric_type+gramasi; color_target pakai kunci code/name; lampiran round hanya JPG/PNG/WEBP/GIF/PDF; submit round butuh measurements sesuai sample_types[].measurement_fields; decide butuh reason_code dari /api/rnd/meta.reasons[].value; pengaju TIDAK boleh menyetujui dokumennya sendiri (403) -> buat dgn admin@, setujui dgn manager@. (4) Makloon: create butuh steps[].output_product_id + from_warehouse_id ber-stok (wh_surabaya punya stok prod_pfp_katun); klaim dibuka otomatis saat hasil < toleransi. (5) Inspeksi: kind = po_receipt|makloon_output|return_customer|return_supplier|replacement; penanda 'sudah ada SPK' ada di dalam label. (6) UI testid: po-board-tab-{code}, po-board-row-{id}, po-board-stage-{id}-{stage}, po-stage-status(+ -option-done)/po-stage-note/po-stage-submit, dsr-col-count-{status}, ins-row-{id}/ins-detail-{id}/ins-line-hold-{lineId}/ins-line-release-{lineId}. Nav: nav-purchase-orders + hub-tab-po-board; nav-designer-hub + hub-tab-design-requests; nav-wms-operations + hub-tab-inspections.",
+  "rca_of_the_issue": "DD2: routers/inspections.py memakai penjaga berbasis daftar entitas yang boleh diakses AKUN, bukan assert_entity_access terhadap badan usaha aktif (X-Entity-Id) seperti po_board; akibatnya daftar tersaring sedangkan detail & PDF terbuka lintas PT untuk akun multi-entitas (manager@). G7: gerbang amandemen hanya memeriksa qty_baru >= received_qty, tanpa aturan 'baris yang sudah diterima terkunci'. L4b: status order makloon dihitung dari status TAHAP (received/completed), bukan dari perbandingan kuantitas hasil vs estimasi."
+}

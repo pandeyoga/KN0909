@@ -1,0 +1,31 @@
+{
+  "summary": "Iterasi 279 (T5 — baris PO ber-penerimaan TERKUNCI dari revisi) diuji penuh backend + UI. Berkas pytest /app/backend/tests/test_iter279_po_line_lock.py diperluas dari 5 → 16 tes (T5-1..T5-7 + invariansi versi + regresi login 7 peran): SEMUA PASS. Penolakan 400 tepat dengan kata kunci 'terkunci'+'diterima' (qty naik), 'harga', 'diskon', 'satuan'; qty < diterima tetap 400; hapus baris diterima → 400 'tidak bisa dihapus'; setelah semua penolakan versi PO TIDAK naik (tidak ada mutasi parsial). Positif: baris diterima utuh + 1 baris produk baru → 200 dan version+1 dengan received_qty baris terkunci tidak berubah; amend tanpa items (hanya reason+notes) → 200 dan version+1. Regresi test_iter276_g2_md_audit.py::TestAlurG::test_G7 dan seluruh test_iter278_fulfillment_whguard.py (10 tes) PASS. UI (bundle statis, admin@ → scope-pick-ent_ksc → nav-group-pembelian → nav-purchase-orders → po-card-po_004 → amend-po-button): modal po-amend-modal tampil, po-amend-receipt-note memuat 'baris yang barangnya sudah diterima terkunci dari revisi', baris 0 (SGK-PLB-001, diterima 40 + ikon gembok) punya qty/unit/price/disc disabled dan tombol remove disabled, baris 1 (diterima '—') tetap editable; modal tertutup via po-amend-cancel. Data demo sudah dipulihkan (seed_realistic.py + seed_e9_chain_demo.py) setelah tes positif.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "POAmendModal — Perkiraan Pengiriman", "issues": ["input type=date diberi nilai ISO penuh (po.expected_delivery_date = '2026-08-31T09:04:53.113903+00:00') sehingga tampil KOSONG (mm/dd/yyyy) dan browser mencetak warning 'does not conform to the required format yyyy-MM-dd'. Data tidak hilang (nilai dikirim ulang apa adanya), tetapi pengguna melihat tanggal kirim seolah belum diisi. Saran: useState(String(po.expected_delivery_date||'').slice(0,10))", "Memakai date picker bawaan browser, bukan komponen kalender shadcn (konsisten dengan layar lain — bukan regresi sesi ini)"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter279_po_line_lock.py",
+    "/app/backend/tests/test_iter276_g2_md_audit.py",
+    "/app/backend/tests/test_iter278_fulfillment_whguard.py"
+  ],
+  "action_items": [
+    "OPSIONAL (kosmetik): potong expected_delivery_date ke 10 huruf pertama untuk input po-amend-eta agar tanggal kirim tidak tampil kosong dan warning konsol hilang."
+  ],
+  "critical_code_review_comments": [
+    "_assert_received_line_locked mengabaikan perubahan harga bila payload mengirim price<=0 (baris `if new_price > 0`), lalu _build_items memaksa harga lama. Aman secara data (harga lama menang) tetapi klien yang mengirim price:0 pada baris terkunci mendapat 200 tanpa peringatan — pertimbangkan menolak eksplisit atau mendokumentasikannya.",
+    "diff_po_items tidak mencatat perubahan discount_percent baris (hanya qty/harga/satuan), jadi riwayat versi tidak menampilkan revisi diskon baris yang TIDAK terkunci."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter279_po_line_lock.py"],
+  "success_rate": {"backend": "100% (16/16 iter279 + 11/11 regresi)", "frontend": "100% (semua verifikasi T5-8 lulus)"},
+  "seed_data_creation": "Tidak ada data baru permanen. Amend positif menaikkan versi PO-00004/po_004 dan menambah 1 baris produk; data demo dipulihkan dengan `python seed_realistic.py && python seed_e9_chain_demo.py` setelah pengujian.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin@kainnusantara.id / demo12345 (X-Entity-Id: ent_ksc); semua peran lain memakai demo12345 — login 7 peran diuji dan OK",
+  "context_for_next_testing_agent": "PO uji ber-penerimaan di KSC: po_004 (PO-00004, status receiving, baris SGK-PLB-001 qty 75 diterima 40, baris JMP-PLB-001 tanpa penerimaan). test_iter279_po_line_lock.py kini SATU kelas TestT5LineLockNegatif (tes positif ikut di dalamnya, urut) supaya xdist --dist loadscope tidak menjalankan negatif & positif secara paralel — jangan pisah kelasnya lagi. Jalankan seed ulang setelah menjalankan tes positif T5-7. Frontend adalah bundle statis (build/static/js memuat teks 'terkunci dari revisi'); rebuild via bash /app/scripts/rebuild_frontend.sh bila POAmendModal diubah.",
+  "rca_of_the_issue": "Tidak ada cacat fungsional ditemukan pada T5. Satu-satunya temuan (input tanggal amend tampil kosong) berakar pada expected_delivery_date disimpan sebagai timestamp ISO penuh sementara <input type=date> hanya menerima yyyy-MM-dd."
+}

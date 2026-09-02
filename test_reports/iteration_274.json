@@ -1,0 +1,18 @@
+{
+  "summary": "Regresi ringan sesi ini (backend + frontend). Backend: 9/9 pytest hijau (login admin/manager, GET /api/approval-rules, PATCH validasi merged_max 400 + PATCH sah persist + restore nilai semula, 404/400 edge, GET /api/settings/effective section 'ui'{show_coming_soon,coming_soon_collapsed}=true & 'role_home', GET /api/price-approvals manager dengan 2 pending, count data demo makloon_orders=5 & products=20 utuh). Guardrail scripts/guardrails/verify_approval_queues.py PASS 233/0 (3 pintu RFID verify terdaftar sebagai DOOR_EXEMPT). Frontend (bundle statis, tanpa yarn start): Bug #7 TERBUKTI FIX — badge oranye rgb(255,149,0) berisi '2' dengan center_delta vertikal 0.00px di dalam pill 'Menunggu'; klik tab memfilter ke tepat 2 kartu berstatus Menunggu. Sales mendarat di 'Performa Saya', sidebar bersih dari vendor bill/HPP/PO dan tanpa grup 'Segera Hadir'. Admin mendarat di 'Control Tower' dengan grup SEGERA HADIR ter-collapse (hanya toggle, tanpa anak menu). Manager home menampilkan KPI 'BARANG DITAHAN QC = 2'. Nol error console pada seluruh alur. Tidak ada residu data uji.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/test_iter274_regresi_ringan.py"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "approval_rules.py update_approval_rule: refactor merged_min/merged_max readable dan benar — 'max_amount' in updates dipakai agar pengiriman eksplisit null (tanpa batas) tidak tertimpa nilai lama; perilaku identik dengan versi sebelumnya (diverifikasi 400 pada min>max existing, 200 + persist pada PATCH sah, max_amount tidak berubah)."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter274_regresi_ringan.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "Tidak ada. PATCH approval rule diuji lalu dikembalikan ke nilai semula (diverifikasi via GET).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": false,
+  "test_credentials": "admin@/manager@/sales@kainnusantara.id — demo12345",
+  "context_for_next_testing_agent": "Catatan praktis: setelah login sesi kadang langsung memakai ent_ksc sehingga scope-pick-ent_ksc tidak muncul (bukan bug) — bungkus klik entitas dalam try/except. KPI manajer 'Barang Ditahan QC' dirender UPPERCASE via CSS, jangan cek substring case-sensitive pada innerText. Kartu price-approvals tidak punya data-testid per kartu; hitung anak <section> terakhir di dalam price-approvals-view. File uji regresi baru: /app/backend/tests/test_iter274_regresi_ringan.py.",
+  "rca_of_the_issue": "Tidak ada isu ditemukan pada regresi ini."
+}

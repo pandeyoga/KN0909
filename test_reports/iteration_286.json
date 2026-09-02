@@ -1,0 +1,20 @@
+{
+  "summary": "FB-01 (AI Galeri Desain — Gemini Nano Banana Pro, MODE DEMO) tested end-to-end. Backend: 13/13 pytest cases pass (status endpoint, mockup happy path incl. PNG serving + design doc reflection + version/status unchanged, validation matrix, submit gate ignoring ai_illustration, integrations gemini section + enable/disable + set/clear key, RBAC designer 200 / sales 403). Frontend: admin login -> entity KSC -> Desainer hub -> Galeri Desain: AI badge on DSG-PARANG-01, manage modal shows AI block with 'MODE DEMO', generate produced 'Ilustrasi DEMO dibuat (API key Gemini belum diisi).' + new thumbnail + 1024x768 preview image, deletion worked, Artwork (1) count unaffected. Integrations panel (Pengaturan & Master -> Master Data & Audit -> Integrasi AI) shows gemini-integration-panel below Anthropic panel; toggle+save shows gemini-msg and status flips to 'Ilustrasi AI dinonaktifkan.' then restored. No functional defects found. All settings/state restored (gemini enabled=true, no key); no test-created designs left behind.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/test_fb01_ai_illustration.py", "/app/test_reports/pytest/fb01_results.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "FB-01 tests mutate GLOBAL integration settings (gemini enabled/api_key). Under pytest-xdist parallel default in pytest.ini these tests interfere with each other (a dummy key set by TestIntegrations made TestIllustrateMockup hit the real Gemini API and fail 400 API_KEY_INVALID). Run this file with -n 0 (documented in report); consider a serial marker or a settings lock if more such tests are added.",
+    "gemini_image_service._demo_render uses default PIL bitmap font, so the demo caption is tiny/low-legibility at 1024x768 — cosmetic only, acceptable for demo mode.",
+    "Review request said the Gemini panel lives under nav-settings-hub -> 'tab Integrasi'; actual path is hub-tab-admin (Master Data & Audit) -> admin-tab-integrations-button. Worth correcting in docs/handoff notes."
+  ],
+  "updated_files": ["/app/backend/tests/test_fb01_ai_illustration.py"],
+  "success_rate": {"backend": "100% (13/13)", "frontend": "100% (all FB-01 flows)"},
+  "seed_data_creation": "Temporary design 'TEST_Uji AI FB01' created for the submit-gate test and deleted; all AI illustration files created during tests deleted. The 2 pre-existing ai_illustration files on DSG-PARANG-01 (from main agent's manual verification) were left untouched.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": false,
+  "test_credentials": "admin@/designer@/sales@kainnusantara.id, password demo12345",
+  "context_for_next_testing_agent": "Run FB-01 suite serially: cd /app/backend && pytest tests/test_fb01_ai_illustration.py -p no:randomly -n 0. It restores integrations state (gemini enabled, key cleared) via module fixture. Frontend: nav-designer-hub -> hub-tab-cs-design-gallery -> gallery-manage-dsgn_cf2ccad1866f-button for the AI block; Gemini admin panel at nav-settings-hub -> hub-tab-admin -> admin-tab-integrations-button.",
+  "rca_of_the_issue": "Only failure observed was test-harness cross-talk from parallel execution against shared global integration settings, not an application bug; resolved by serial execution."
+}

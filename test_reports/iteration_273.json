@@ -1,0 +1,36 @@
+{
+  "summary": "ITER-273 verification. BACKEND: 12/12 pytest PASS (/app/backend/tests/test_iter273_approval_rules.py) — GET /api/approval-rules returns 9 seed rules in pure engine schema {doc_type,entity_id,min_amount,max_amount,required_role,sort,active,is_percent}, sorted by (doc_type,sort), no _id, no legacy parallel fields (threshold_*/is_active/name); POST validation 400 for bad doc_type / bad required_role / max<=min, 422 for negative min; discount forces is_percent=true; PATCH partial {active} works and does not clobber other fields; PATCH unknown id 404; PATCH {} 400; DELETE = soft delete (active=false). ENGINE PROOF: created sales_order rule (entity_id=ent_ksc, 1000–2000, required_role=admin) → GET /api/settings/evaluate-approval?doc_type=sales_order&amount=1500 returned requires_approval=true, required_role='admin', rule_id = the new rule; after DELETE the preview reverted to the seed baseline — UI and engine now read the SAME collection/schema. FRONTEND (static bundle, no FE code changed): Pengaturan → Aturan Persetujuan renders all 9 rules FULLY populated (doc-type badges, 'Semua entitas', ranges 'Rp 0 s/d < Rp 50.000.000', '≥ Rp 200.000.000', '0% s/d < 10%', roles Manager/Admin/'Tanpa persetujuan (otomatis)', urutan, Status Active) — 0 blank rows, 0 false Inactive; toggle-rule-{id} Active→Inactive→Active OK; create via create-rule-btn/rule-form-modal (PR, 777.000–888.000, Admin, urutan 9) produced correct row with formatted range; delete-rule-{id} + askConfirm (approval-rule-delete-confirm-confirm) → row became Inactive (soft delete). KOSMETIK-1 Blanket modal: unit control measured exactly 130px, headers PRODUK/QTY KONTRAK/HARGA SEPAKAT/UNIT present, unit options readable ('yard (satuan dasar)', 'Meter (m)', …). KOSMETIK-2 PO create (mode-finished-goods): mini column labels PRODUK/QTY/SATUAN/ROLL/HARGA/DISC%/GRADE* present; selecting BTK-MEGA-001 auto-filled Grade='A — Mutu terbaik' and price from master. KOSMETIK-3 COA: every coa-group-* has labelled <thead>; th count == td count in BOTH modes (Template Global 4/4, KSC 5/5 with 'Dipakai Entitas'). SMOKE: PO list numbers not wrapped, Kontrabon full-width without detail panel, Papan PO numbers are real buttons and clicking KSC/PO-00015 opened the document (navigates to PO view with detail panel). All test data cleaned; seed rules all Active (verified 9 docs, 0 inactive).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/approval-rules", "issue": "entity_id comes ONLY from the body and defaults to 'all'; the active-entity header (X-Entity-Id) is ignored and the UI form never sends entity_id — so per-entity rules can never be created from the screen and the 'Cakupan' column is permanently 'Semua entitas'. Engine already prefers entity-scoped rules, so this capability is unreachable via UI (by design? worth confirming)."},
+      {"endpoint": "PATCH /api/approval-rules/{id}", "issue": "entity_id can be changed to any value without assert_entity_access() — an admin scoped to one entity could re-point a rule to another entity."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Pengaturan → Aturan Persetujuan → rule-form-modal", "issues": ["CSS class .form-row-3col does not exist in styles/components.css (only .form-row-2col does) — Nilai Minimal / Nilai Maksimal / Urutan Evaluasi render stacked full-width instead of 3 columns, so help texts sit flush against the next label and the modal looks unbalanced. Fix = add .form-row-3col grid rule (or reuse form-row-2col).", "Escape key does not close FormModal/blanket-create-modal (only the X / overlay click do) — minor keyboard-UX gap."]},
+      {"screen": "Pesanan Pembelian → create-po-button → Tambah Item", "issues": ["SATUAN and GRADE selects are narrow: values truncate to 'yard (sa…' / 'A — Mutu te…'. Labels are correct, only value legibility suffers (low priority)."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter273_approval_rules.py", "/app/test_reports/pytest/iter273.xml"],
+  "action_items": [
+    "Add missing .form-row-3col grid CSS (approval rule modal fields currently stack full-width)",
+    "Decide/expose entity scope on rule creation (POST ignores X-Entity-Id; UI cannot create per-entity rules)",
+    "Validate entity access when PATCH changes entity_id"
+  ],
+  "critical_code_review_comments": [
+    "routers/approval_rules.py PATCH merged_max expression is hard to read; a small helper (effective min/max after merge) would be clearer and less bug-prone.",
+    "GET /approval-rules/{id}: assert_entity_access is evaluated before the 404 check; harmless today (guarded by `rule and`) but the None-check should come first."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter273_approval_rules.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "Temporary rules created and then hard-removed from approval_rules (description prefix TEST_ / min_amount 777000). Final DB state verified: 9 seed rules, all active=true.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin@kainnusantara.id / demo12345, scope ent_ksc",
+  "context_for_next_testing_agent": "Approval-rules stack (router+service+UI) is fully collapsed to the engine schema and verified end-to-end, including UI→engine proof via GET /api/settings/evaluate-approval (NOTE: the endpoint is /settings/evaluate-approval, NOT /settings/approval-preview). Nav path: nav-settings-hub → hub-tab-approval-rules. COA path: nav-group-keuangan → nav-ledger → hub-tab-chart-of-accounts, then coa-scope-global / coa-scope-ent_ksc. PO hub tab ids: hub-tab-purchasing / hub-tab-po-board / hub-tab-blanket-po. Only open item is cosmetic: missing .form-row-3col CSS.",
+  "rca_of_the_issue": "Previous HIGH bug (blank Aturan Persetujuan screen) root cause was a parallel schema (name/entity_type/threshold_*) written by the router but never read by config_service.evaluate_approval. This session's rewrite removed the parallel schema; tests confirm a single schema is now written by the router and read by the engine (rule_id returned by evaluate-approval matches the rule created from the UI contract)."
+}

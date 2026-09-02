@@ -1,0 +1,25 @@
+{
+  "summary": "Iterasi 282 — verifikasi perbaikan iter281 (gelombang 1+2 catatan demo). Backend: 21 passed / 6 skipped di pytest regresi (test_iter281_demo_wave12 + test_iter280_makloon_partial_queue + test_iter279_po_line_lock) via `-p no:randomly -n 0`; POC `test_core_sampling_poc.py` = 66 PASS / 0 FAIL. Seed artwork DSG-PARANG-01 sekarang 3523 byte (naturalWidth 480, sebelumnya 67 byte / 1px), DSG-PARANG-02 = 3676 byte. GET /api/design-gallery/{id}/files/{fid} → 200 image/png > 3000 byte. GET /api/color-library: KN-BLU-01 factory_name='Indigo 19-3921 (Pabrik Cirebon)', KN-BLU-02='Navy Blazer 19-3923', KN-BRN-01='Sogan Tua (Solo Weave)', KN-RED-01='Maroon 19-1655', KN-GRN-03='Teal Green 18-5128'. MD-05 seed KPI desainer hijau: md_samples demo_batch='rnd_kpi_v1' berjumlah TEPAT 4 (Proofing Rayon Motif Kawung Klasik + 3 Labdip). Sample 'Proofing Rayon Motif Kawung Klasik' dibuat Bagas Nugroho dengan 2 round berstatus 'assessed'. UI (admin@, X-Entity-Id ent_ksc): MD-03 DESAIN sekarang PASS — R&D › Spesifikasi › form baru › KNSelect `spec-design` (5 opsi, jalur Radix Select) merender 4 thumb `spec-design-thumb-{id}` DENGAN <img>, naturalWidth=480 untuk PARANG-01 & PARANG-02; pilih PARANG-01 → `spec-design-preview` <img> naturalWidth=480 naturalHeight=360 (src /api/design-gallery/.../files/...). MD-03 WARNA PASS — KNSelect `spec-color` (31 opsi, jalur combobox) menampilkan swatch (mis. rgb(26,26,26), rgb(38,65,94)). MD-07 UI PASS — Penjualan › Produk & Harga › tab Pustaka Warna: 7 kartu memuat `color-factory-name-{id}` 'pabrik: …' dengan `color: rgb(107,107,115)` (=#6B6B73) & `font-size: 10.5px`; pencarian 'Indigo 19-3921' menemukan KN-BLU-01, 'Sogan Tua' menemukan KN-BRN-01.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter281_demo_wave12.py",
+    "/app/backend/tests/test_iter280_makloon_partial_queue.py",
+    "/app/backend/tests/test_iter279_po_line_lock.py",
+    "/app/backend/test_core_sampling_poc.py",
+    "/app/test_reports/pytest/iter282_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "KNSelect (frontend/src/components/KNSelect.jsx:209) sekarang menghormati `opt.render || opt.label` di jalur Radix Select — kontrak dua jalur sudah selaras. Saran lanjutan: tambahkan uji unit kecil yang memaksa jumlah opsi <SEARCH_THRESHOLD dengan `opt.render` agar regresi tidak kembali.",
+    "Trigger Radix masih `<SelectValue placeholder>` (baris 203) tanpa render kustom untuk selected — cukup untuk MD-03 (thumbnail di dalam DAFTAR opsi), tapi bila kelak diperlukan pratinjau di dalam trigger, kontrak opt.render pada trigger perlu ditambah."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "admin@ / salesadmin@ / sales@ kainnusantara.id · demo12345 · X-Entity-Id ent_ksc",
+  "seed_data_creation": "Tidak ada data uji baru dibuat sesi ini — hanya verifikasi seed yang sudah ada (artwork_parang.png diperbaharui sebelum sesi ini oleh main agent).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Semua temuan iter281 (MD-03 design thumbs, artwork 1px, kontras teks pabrik) sudah tertutup. Perbaikan MD-03 letaknya di KNSelect.jsx baris 209 (opt.render fallback ke opt.label). Bundle build tanggal 2026-09-02 13:35 lebih baru dari sumber (13:23) — sudah rebuilt. Tips: setelah membuka KNSelect di dalam modal, tekan Escape sebelum menutup modal agar overlay dropdown Radix tidak menahan pointer (spec-form-modal terlihat menahan klik nav). Pencarian di ColorLibraryView memfilter juga berdasarkan factory_name (`name.includes` ATAU `factory_name.includes`, cek ColorLibraryView.jsx baris ~55).",
+  "rca_of_the_issue": "Tidak ada isu baru. RCA MD-03 iter281: KNSelect punya dua jalur render (KNCombobox saat opsi ≥ SEARCH_THRESHOLD=6, Radix Select saat <6); jalur Radix dulu hanya merender `{opt.label}` sehingga elemen `spec-design-thumb-{id}` (dibawa `opt.render`) hilang bila artwork demo <6. Fix: SelectItem sekarang merender `{opt.render || opt.label}`. Sudah diverifikasi di UI live: 4 thumb muncul dengan gambar 480x360."
+}

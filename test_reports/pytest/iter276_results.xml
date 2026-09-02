@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="50" time="15.557" timestamp="2026-08-31T02:44:04.655846+00:00" hostname="agent-env-784df595-dcab-438a-962b-1403da513c08"><testcase classname="tests.test_iter276_g2_md_audit.TestAlurG" name="test_G1_saran_reorder_menghitung_stok_menipis" time="2.826" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurG" name="test_G2_buat_pr_dari_saran" time="0.338" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurG" name="test_G3_setujui_pr_lalu_realisasikan_jadi_po" time="0.347" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurG" name="test_G4_po_baru_tampil_di_papan" time="0.106" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurG" name="test_G5_pr_tidak_bisa_disetujui_oleh_sales" time="0.098" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurG" name="test_G6_amandemen_po_disetujui_menuntut_alasan" time="0.395" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurG" name="test_G7_revisi_baris_yang_sudah_diterima_ditolak" time="0.378"><failure message="AssertionError: revisi baris yang sudah diterima DITERIMA (deviasi)&#10;assert 200 in (400, 409, 422)&#10; +  where 200 = &lt;Response [200]&gt;.status_code">self = &lt;test_iter276_g2_md_audit.TestAlurG object at 0xffa1d5951c10&gt;
+T = {'admin': 'zvFwDtnEBMAfg7xIxe2kFk-sMsDVKgySM89bcdxI6kU', 'designer': '6XzTYSW4cDibXj3brBP8ZQSxbOVrVX--2mZ7_XKtoAo', 'manager': 'n8Jxr4rhPGTcM0dhmhxlFJj0kaNKMA9gCpGT6ok9MuY', 'mgrprint': 'osVzA359rsgegqJfDVqqUTq4KfXLAFZMqrISswa7r0g', ...}
+
+    def test_G7_revisi_baris_yang_sudah_diterima_ditolak(self, T):
+        pos = GET(T["manager"], "/api/purchase-orders?limit=200").json()
+        rows = pos.get("items", pos) if isinstance(pos, dict) else pos
+        partial = [p for p in rows if p.get("status") in ("partially_received", "received", "receiving")]
+        if not partial:
+            pytest.skip("TIDAK-DAPAT-DIUJI: tak ada PO diterima sebagian di data demo")
+        po = GET(T["manager"], f"/api/purchase-orders/{partial[0]['id']}").json()
+        items = po.get("items", [])
+        recv = [i for i in items if float(i.get("received_qty") or
+                                          i.get("received_quantity") or 0) &gt; 0]
+        print(f"G7 PO {po.get('po_number')} status={po.get('status')} baris diterima={len(recv)} "
+              f"dari {len(items)}")
+        if not recv:
+            pytest.skip("TIDAK-DAPAT-DIUJI: PO tanpa baris ber-received_quantity")
+        new_items = []
+        for i in items:
+            new_items.append({"product_id": i["product_id"],
+                              "quantity": float(i.get("quantity") or 0) / 2 or 1,
+                              "unit_price": float(i.get("unit_price") or 0),
+                              "unit": i.get("unit", "")})
+        r = POST(T["manager"], f"/api/purchase-orders/{po['id']}/amend",
+                 {"reason": "TEST_iter276 coba turunkan qty baris yang sudah diterima",
+                  "items": new_items})
+        print(f"G7 revisi baris diterima -&gt; {r.status_code} {D(r)}")
+&gt;       assert r.status_code in (400, 409, 422), "revisi baris yang sudah diterima DITERIMA (deviasi)"
+E       AssertionError: revisi baris yang sudah diterima DITERIMA (deviasi)
+E       assert 200 in (400, 409, 422)
+E        +  where 200 = &lt;Response [200]&gt;.status_code
+
+tests/test_iter276_g2_md_audit.py:217: AssertionError</failure></testcase><testcase classname="tests.test_iter276_g2_md_audit.TestAlurH" name="test_H6_urutan_tab_lini_ikut_master" time="0.109" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurH" name="test_H2_nama_sales_runutan_vs_po_rutin" time="0.111" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurH" name="test_H3_chip_inspect_terkunci_dan_patch_ditolak" time="0.233" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurH" name="test_H1_tandai_tahap_celup_tercatat_siapa_kapan" time="0.375" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurH" name="test_H4_tab_knit_kosong" time="0.110" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurH" name="test_H5_pagar_lini_printing" time="0.341" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurI" name="test_I1_spesifikasi_draf_ajukan_setujui" time="0.514" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurI" name="test_I3_buat_permintaan_sample" time="0.170" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurI" name="test_I4_kirim_tanpa_supplier_ditolak" time="0.115" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurI" name="test_I4b_kirim_dengan_supplier" time="0.246" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurI" name="test_I2_tutup_round_tanpa_lampiran_ditolak" time="0.243" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurI" name="test_I5_nilai_acc_dan_putuskan_pemenang" time="0.844" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurI" name="test_I7_catat_pengiriman_sebelum_jadi_ditolak" time="0.127" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurJ" name="test_J1_empat_dsr_demo" time="0.101" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurJ" name="test_J5_designer_hanya_melihat_tiga" time="0.122" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurJ" name="test_J2_sumber_dari_so_menuntut_nomor_so" time="0.127" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurJ" name="test_J3_dsr_tanpa_desainer_berhenti_di_menunggu_penugasan" time="0.145" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurJ" name="test_J4_minta_revisi_menuntut_alasan_lalu_acc" time="0.361" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurJ" name="test_J6_designer_tidak_boleh_acc" time="0.105" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurK" name="test_K1_ins00001_punya_baris_ditahan" time="0.112" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurK" name="test_K2_gudang_tanpa_tombol_lepas_tahanan" time="0.376" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurK" name="test_K3_lepas_tahanan_menuntut_alasan_min15" time="0.289" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurK" name="test_K4_keputusan_tolak_menuntut_alasan_min15" time="0.134" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurK" name="test_K5_buka_kembali_dokumen_selesai_menuntut_alasan_min15" time="0.203" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurK" name="test_K6_gudang_tidak_boleh_membuat_spk_inspeksi" time="0.139" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurK" name="test_K7_sudah_ada_spk_pada_pilihan_dokumen" time="0.730" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurL" name="test_L1_lima_order_demo" time="0.138" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurL" name="test_L2_ada_order_diterima_sebagian" time="0.141" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurL" name="test_L3_estimasi_sebelum_simpan" time="0.109" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurL" name="test_L4_buat_keluarkan_terima_sebagian_lalu_klaim" time="0.902" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurL" name="test_L4b_status_sebagian_setelah_terima_kurang" time="0.000"><failure message="AssertionError: dokumen menjanjikan status 'Sebagian' saat hasil kurang, tetapi status=completed (status hanya melihat tahap yang sudah diterima, bukan kuantitas)&#10;assert 'completed' == 'partially_received'&#10;  &#10;  - partially_received&#10;  + completed">self = &lt;test_iter276_g2_md_audit.TestAlurL object at 0xffa1d591dad0&gt;
+T = {'admin': 'zvFwDtnEBMAfg7xIxe2kFk-sMsDVKgySM89bcdxI6kU', 'designer': '6XzTYSW4cDibXj3brBP8ZQSxbOVrVX--2mZ7_XKtoAo', 'manager': 'n8Jxr4rhPGTcM0dhmhxlFJj0kaNKMA9gCpGT6ok9MuY', 'mgrprint': 'osVzA359rsgegqJfDVqqUTq4KfXLAFZMqrISswa7r0g', ...}
+
+    def test_L4b_status_sebagian_setelah_terima_kurang(self, T):
+        st = STATE.get("l4_status_after_partial")
+        print(f"L4b status order setelah terima 8 dari ~19.4 = {st}")
+&gt;       assert st == "partially_received", (
+            f"dokumen menjanjikan status 'Sebagian' saat hasil kurang, tetapi status={st} "
+            "(status hanya melihat tahap yang sudah diterima, bukan kuantitas)")
+E       AssertionError: dokumen menjanjikan status 'Sebagian' saat hasil kurang, tetapi status=completed (status hanya melihat tahap yang sudah diterima, bukan kuantitas)
+E       assert 'completed' == 'partially_received'
+E         
+E         - partially_received
+E         + completed
+
+tests/test_iter276_g2_md_audit.py:642: AssertionError</failure></testcase><testcase classname="tests.test_iter276_g2_md_audit.TestAlurL" name="test_L5_klaim_muncul_di_antrean_dan_diputuskan" time="0.604" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurD" name="test_D1_tiga_od_demo" time="0.126" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurD" name="test_D2_sales_membuat_od" time="0.247" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurD" name="test_D3_tolak_od_menuntut_alasan" time="0.119" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurD" name="test_D4_manajer_setujui_od" time="0.127" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurD" name="test_D5_lanjut_pr_dan_sku" time="0.247" /><testcase classname="tests.test_iter276_g2_md_audit.TestAlurD" name="test_D6_sales_tidak_boleh_setujui_od" time="0.154" /><testcase classname="tests.test_iter276_g2_md_audit.TestPusatPersetujuanDanDataDemo" name="test_PP1_antrean_manajer_memuat_beragam_jenis" time="0.228" /><testcase classname="tests.test_iter276_g2_md_audit.TestPusatPersetujuanDanDataDemo" name="test_DD1_galeri_desain_1_disahkan_1_menunggu" time="0.119" /><testcase classname="tests.test_iter276_g2_md_audit.TestPusatPersetujuanDanDataDemo" name="test_DD2_isolasi_inspeksi_kanda_dari_ksc" time="0.548"><failure message="AssertionError: GET detail mengabaikan badan usaha aktif (X-Entity-Id) untuk akun multi-entitas — daftar terisolasi tetapi detail/PDF tetap terbuka&#10;assert 200 in (403, 404)&#10; +  where 200 = &lt;Response [200]&gt;.status_code">self = &lt;test_iter276_g2_md_audit.TestPusatPersetujuanDanDataDemo object at 0xffa1d591c210&gt;
+T = {'admin': 'zvFwDtnEBMAfg7xIxe2kFk-sMsDVKgySM89bcdxI6kU', 'designer': '6XzTYSW4cDibXj3brBP8ZQSxbOVrVX--2mZ7_XKtoAo', 'manager': 'n8Jxr4rhPGTcM0dhmhxlFJj0kaNKMA9gCpGT6ok9MuY', 'mgrprint': 'osVzA359rsgegqJfDVqqUTq4KfXLAFZMqrISswa7r0g', ...}
+
+    def test_DD2_isolasi_inspeksi_kanda_dari_ksc(self, T):
+        d = GET(T["manager"], "/api/inspections").json()
+        nums = [i["number"] for i in d["items"]]
+        print(f"DD2 inspeksi terlihat dari KSC: {nums}")
+        assert all(not n.startswith("KANDA/") for n in nums), "dokumen KANDA terlihat dari KSC"
+        kanda = GET(T["admin"], "/api/inspections", entity="ent_kanda")
+        knums = [i["number"] for i in kanda.json()["items"]] if kanda.status_code == 200 else []
+        print(f"DD2 inspeksi entitas KANDA ({kanda.status_code}): {knums}")
+        if knums:
+            kid = kanda.json()["items"][0]["id"]
+            rm = GET(T["manager"], f"/api/inspections/{kid}")
+            rw = GET(T["warehouse"], f"/api/inspections/{kid}")
+            print(f"DD2 buka dokumen KANDA saat scope KSC: manager(2 entitas)={rm.status_code} "
+                  f"gudang(1 entitas)={rw.status_code}")
+            assert rw.status_code in (403, 404), "akun 1-entitas bisa membaca dokumen PT lain"
+&gt;           assert rm.status_code in (403, 404), (
+                "GET detail mengabaikan badan usaha aktif (X-Entity-Id) untuk akun "
+                "multi-entitas — daftar terisolasi tetapi detail/PDF tetap terbuka")
+E           AssertionError: GET detail mengabaikan badan usaha aktif (X-Entity-Id) untuk akun multi-entitas — daftar terisolasi tetapi detail/PDF tetap terbuka
+E           assert 200 in (403, 404)
+E            +  where 200 = &lt;Response [200]&gt;.status_code
+
+tests/test_iter276_g2_md_audit.py:783: AssertionError</failure></testcase><testcase classname="tests.test_iter276_g2_md_audit.TestPusatPersetujuanDanDataDemo" name="test_DD3_produk_eksklusif_hanya_pemiliknya" time="0.385" /><testcase classname="tests.test_iter276_g2_md_audit.TestPusatPersetujuanDanDataDemo" name="test_DD4_tiga_rantai_so_pr_po" time="0.161" /></testsuite></testsuites>

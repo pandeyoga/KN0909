@@ -1,0 +1,22 @@
+{
+  "summary": "Tested allocation.roll_pick_sales toggle + manual reallocate feature (POST /sales-orders/{id}/items/{pid}/reallocate). Backend: 8/8 executed pytest tests passed (1 skipped: no product with multi-entity available rolls). Frontend: verified quickview-mode-toggle hidden for sales when toggle=false; Ganti Roll button visible+working for salesadmin on reserved SO (opens so-realloc-modal with current+FEFO rolls, submit button rendered); Ganti Roll hidden for sales role. Cleanup performed: allocation.roll_pick_sales reset to default TRUE.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_roll_pick_and_reallocate.py",
+    "/app/test_reports/pytest/roll_pick_reallocate.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "sales_orders_extra.reallocate_line_rolls uses inventory_rolls.find_one_and_update via update_one for release with a compound filter — good idempotency guard on {status:'reserved', reserved_ref.id: order_id}.",
+    "roll_pick_sales guard is server-side at POST /api/sales-orders (line 269) — correct defense in depth vs FE-only hiding.",
+    "Allocation swap correctly rebuilds balance per (warehouse, owner) segment and records reservation movements only for newly reserved rolls (avoids double-counting kept ones)."
+  ],
+  "updated_files": ["/app/backend/tests/test_roll_pick_and_reallocate.py"],
+  "success_rate": {"backend": "100% (8/8 executed, 1 env-skipped)", "frontend": "100% (3/3 flows verified)"},
+  "test_credentials": "admin@/salesadmin@/sales@kainnusantara.id — demo12345",
+  "seed_data_creation": "Created 4 test SOs on ent_ksc during pytest run: qty-mode SOs + 1 admin roll-mode SO + 1 qty-mode SO used for reallocate. Cleanup left them in draft/reserved states (no cancel; safe).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Config PUT contract is {items:[{key,value,scope_type,scope_id,reason}]}, NOT scope. Registry GET returns {entries:[...]}. Allocation.rolls[] carries roll_id per allocation group; SO.allocations[].roll_id direct field does NOT exist. inventory/rolls/available endpoint supports product_id+entity_id filters. Test file /app/backend/tests/test_roll_pick_and_reallocate.py is reusable regression suite."
+}

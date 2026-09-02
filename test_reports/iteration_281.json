@@ -1,0 +1,57 @@
+{
+  "summary": "Iterasi 281 — uji gelombang 1+2 catatan demo (AS-01, MD-03, MD-04, MD-05, MD-07, PB-02). Backend: pytest regresi 27 passed (test_iter281_demo_wave12 5, test_iter280_makloon 6, test_iter279_po_line_lock 16) + skenario terarah AS-01 (15 assertion PASS) lewat URL publik: aturan ambang sales_order kini 1 baris 0..null tanpa peran, sales@ membuat SO Rp 78,9 jt → approval_required=false & pending_approvals kosong, salesadmin@ verify → confirm = 200 status 'confirmed' TANPA manajer; kontrol negatif SO Rp 74,37 jt untuk pelanggan limit Rp 40 jt tetap memunculkan pending 'kredit' (required_role manager). UI: MD-04 (spec-price-input hilang) PASS, MD-03 warna PASS (swatch di 29 opsi + spec-color-preview bg rgb(26,26,26)), MD-03 DESAIN GAGAL (thumbnail tidak muncul di opsi — lihat bug), MD-05 UI PASS (round-meas-none 'Jenis ini tidak meminta hasil ukur…'), MD-07 UI PASS (kartu 'pabrik: PabrikBiruUI' + pencarian nama pabrik), PB-02 UI PASS (seksi bank, chip 'impor — isi SWIFT', galat SWIFT, ringkasan daftar 'HSBC · 12345678 · SWIFT HSBCHKHHHKH · USD'). Data demo di-reseed di akhir (bersih).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "KNSelect (jalur Radix Select) → SpecFormModal 'Desain / pattern'",
+        "issue": "MD-03 pratinjau desain TIDAK tampil di daftar opsi: KNSelect hanya menghormati `opt.render` pada jalur KNCombobox (options >= SEARCH_THRESHOLD 6). Untuk daftar pendek (data demo hanya 4 artwork + 1 opsi kosong = 5 opsi) komponen jatuh ke jalur Radix Select yang merender `{opt.label}` saja (KNSelect.jsx:209) dan `<SelectValue placeholder>` di trigger (baris 203) — sehingga `spec-design-thumb-{id}` TIDAK ADA di DOM (terverifikasi: innerHTML opsi hanya teks 'DSG-PARANG-01 · …'). Warna lolos hanya karena 29 opsi → jalur combobox. Perbaikan: pakai `{opt.render || opt.label}` di SelectItem dan render `selected.render` di trigger (atau paksa `searchable` untuk select yang memakai render), lalu rebuild bundle.",
+        "selector": "[data-testid^=\"spec-design-thumb-\"]",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "R&D › Spesifikasi › form baru — spec-design-preview",
+        "issues": [
+          "Thumbnail artwork DSG-PARANG-01 tampil kosong/putih: berkas seed `artwork_parang.png` hanya 67 byte (PNG 1×1 px, naturalWidth=1). Endpoint /api/design-gallery/{id}/files/{fid} sehat (200 image/png). Saran: seed placeholder yang terlihat (DSG-PARANG-02 sudah 3,6 KB) agar pratinjau MD-03 meyakinkan saat demo."
+        ]
+      },
+      {
+        "screen": "Pustaka Warna — kartu warna",
+        "issues": [
+          "Teks 'pabrik: {factory_name}' memakai #9A9BA3 pada 9,5px — kontras rendah & sangat kecil; naikkan ke ~#6B6B73/10,5px agar nama versi pabrik terbaca saat demo."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter281_demo_wave12.py",
+    "/app/backend/tests/iter281_as01_scenario.py",
+    "/app/test_reports/pytest/iter281_results.xml"
+  ],
+  "action_items": [
+    "PRIORITAS: perbaiki KNSelect jalur Radix agar menghormati `opt.render` (SelectItem + trigger), lalu `bash /app/scripts/rebuild_frontend.sh` — tanpa ini MD-03 (thumbnail desain) tidak terlihat pada data demo (<6 opsi).",
+    "Opsional: ganti berkas seed artwork_parang.png (1×1 px) dengan gambar placeholder yang terlihat.",
+    "Opsional (kosmetik): naikkan kontras/ukuran teks 'pabrik: …' di kartu Pustaka Warna."
+  ],
+  "critical_code_review_comments": [
+    "KNSelect.jsx punya DUA jalur render (combobox vs Radix) tetapi kontrak prop-nya tidak sama: `opt.render` hanya didukung jalur combobox. Setiap fitur baru yang memakai `render` akan gagal senyap begitu jumlah opsi < 6. Sebaiknya kontrak disamakan di satu tempat (atau tambahkan uji unit kecil untuk kedua jalur).",
+    "Konfirmasi AS-01 sudah aman terhadap gerbang lain: sales_orders_extra.confirm masih memeriksa verifikasi administratif (E8.13) dan `all_approved` — jadi SO dengan pending 'kredit' tetap 409, hanya jalur 'nilai' yang ditiadakan. Perilaku ini terbukti pada kontrol negatif.",
+    "Skenario uji SO tidak idempoten: menjalankan iter281_as01_scenario.py dua kali menghabiskan kredit 'Tekstil Medan Jaya' (150 jt) sehingga jalan kedua gagal menyusun baris ≥ 60 jt. Perlu reseed sebelum tiap jalan (sudah dicatat di skripnya)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/iter281_as01_scenario.py (baru — skenario AS-01 end-to-end + kontrol negatif kredit)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "86% (6 dari 7 titik uji UI; MD-03 desain gagal)"},
+  "seed_data_creation": "Sementara saja: warna QA-UI1/QA-<tag>, supplier 'Supplier UI QA' & 'Supplier Impor Uji <tag>', SO Rp 78,9 jt (confirmed) + SO Rp 74,37 jt (pending kredit). SEMUA sudah dibersihkan dengan reseed akhir (python seed_realistic.py && python seed_e9_chain_demo.py) — diverifikasi: warna QA 0, supplier QA 0, SO kembali 9 dokumen seed.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin@ / salesadmin@ / sales@ kainnusantara.id · demo12345 · X-Entity-Id ent_ksc",
+  "context_for_next_testing_agent": "Navigasi yang BENAR: R&D = sidebar `nav-rnd-hub` (BUKAN nav-group-rnd/nav-rnd-specs) → tab `hub-tab-rnd-specs` / `hub-tab-rnd-samples`. Pustaka Warna = nav-group-penjualan → nav-products-pricing → hub-tab-color-library. Supplier = nav-group-pembelian → nav-master-pembelian → tab Pemasok (default), tombol `create-supplier-button`, simpan `submit-supplier-button`. Setor hasil round pakai testid `round-submit-{roundId}` (label 'Setor hasil', BUKAN 'Kirim hasil'). Menutup modal setelah dropdown Radix terbuka: tekan Escape dulu, kalau tidak klik ditahan overlay <html> (bukan bug). Pelanggan berlimit besar untuk uji SO: cust_textile_medan (150 jt, assigned Bima tetapi sales@ tetap boleh membuat SO); Fashion Bandung (40 jt) untuk kontrol negatif kredit. Skenario: `cd /app/backend/tests && python iter281_as01_scenario.py` (WAJIB reseed sebelum jalan ulang).",
+  "rca_of_the_issue": "MD-03 thumbnail desain: KNSelect memilih implementasi berdasarkan jumlah opsi (SEARCH_THRESHOLD=6). Jalur KNCombobox merender `opt.render || opt.label` (baris 94 & 121) sedangkan jalur Radix Select — yang dipakai bila opsi < 6 — merender `{opt.label}` saja (baris 209) dan trigger memakai `<SelectValue placeholder>`. Dropdown desain di data demo hanya berisi 5 opsi, jadi properti `render` (yang membawa `data-testid=spec-design-thumb-{id}` + <img>) dibuang. Ringkasan `spec-design-preview` sendiri BEKERJA (muncul dengan <img> dari /api/design-gallery/{id}/files/{fid}), hanya thumbnail di dalam daftar opsi yang hilang. Pilihan warna tidak terkena karena 29 opsi (>=6)."
+}

@@ -1,0 +1,31 @@
+{
+  "summary": "FB-02 increment tested (GPS positions + read-only logistics menu for sales/sales_admin). Backend: 10/10 pytest passed (POST /positions with lat/lng persists floats & last_position, without lat/lng -> 200 with nulls, non-numeric lat -> 422, short location -> 422, sales read GET list/detail/summary 200 while POST position -> 403). Frontend: sales & salesadmin see nav-logistics, logistics-readonly banner, no create button, no logistics-actions, no position form, Leaflet map renders (8 tiles, 4 markers, 1 polyline) with logistics-pos-gps-* coordinate rows. Driver 'Ambil GPS' works with mocked geolocation (button shows '-6.2, 106.8'), position submitted -> new row with coords, map still single instance, status kept in_transit. Regression: admin & warehouse keep create button + actions + GPS button. ONE REAL BUG FOUND: positions with null lat/lng are plotted at 0,0 so logistics-map-empty never shows and the map zooms out to the Atlantic/Africa.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "PositionMap.jsx", "issue": "Filter uses Number.isFinite(Number(p.lat)) — Number(null)===0, so positions WITHOUT GPS are treated as coordinate (0,0). Consequences: (a) KSC/LG-00005 (prepared, 1 position without lat/lng) shows a map with a marker in the ocean instead of data-testid=logistics-map-empty (spec item 4 FAILS); (b) after a driver records any position without pressing 'Ambil GPS', fitBounds includes (0,0) and the LG-00007 map zooms out to Africa/Indian Ocean, making the real route unreadable. Fix: pts filter should be `p.lat != null && p.lng != null && Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng))`.", "selector": "[data-testid=\"logistics-map\"] / [data-testid=\"logistics-map-empty\"]", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Logistics detail (all roles)", "issues": ["Unrelated pre-existing console 403s for /api/uoms and /api/document-templates when logged in as sales_admin/driver (no visible breakage, but noisy errors)", "ETA field uses native browser date input (type=date) — consistent with rest of app, flagged only for awareness"]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter288_logistics_gps.py", "/app/backend/tests/test_fb02_logistics.py"],
+  "action_items": [
+    "Fix PositionMap null-coordinate filter (positions without lat/lng must be excluded; empty set must render logistics-map-empty), then rebuild static bundle via /app/scripts/rebuild_frontend.sh",
+    "Optional cleanup: LG-00007 now has 3 extra test positions (TEST_GPS Cikampek, TEST_GPS Tanpa Koordinat, Uji GPS Playwright) — no delete-position API exists; the GPS-less one is what exposes the map bug, keep it until fixed"
+  ],
+  "critical_code_review_comments": [
+    "PositionMap: Number(null)/Number('') === 0 makes the finite-check useless; always null-guard before Number() coercion.",
+    "DeliveryDetailModal takeGps: no fallback if geolocation permission is denied silently other than err banner — acceptable, but consider clearing lat/lng when the user edits location manually.",
+    "backend PositionIn.lat/lng are Optional[float] with no range validation (-90..90 / -180..180); out-of-range coordinates would be stored and break fitBounds."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter288_logistics_gps.py"],
+  "success_rate": {"backend": "100%", "frontend": "90%"},
+  "seed_data_creation": "3 positions added to KSC/LG-00007 via API/UI (2 with GPS, 1 without). No delivery created/transitioned; LG-00007 remains in_transit.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "demo12345 for admin@/warehouse@/sales@/salesadmin@/driver@kainnusantara.id",
+  "context_for_next_testing_agent": "Run pytest /app/backend/tests/test_iter288_logistics_gps.py (delivery lgs_3e0a57edeaf7 must stay in_transit). Frontend session persists between runs — logout via data-testid=logout-button before switching accounts, and scope-pick-ent_ksc only appears on fresh login. Verify logistics-map-empty on lgs_1ac5b3a6ef02 (prepared, position without GPS) after the PositionMap fix.",
+  "rca_of_the_issue": "PositionMap.jsx line 12: positions.filter((p) => Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng))). Number(null) coerces to 0 which is finite, so GPS-less positions become (0,0) points; they are then plotted and included in map.fitBounds, and pts.length is never 0 so the logistics-map-empty branch is unreachable whenever any position exists."
+}
