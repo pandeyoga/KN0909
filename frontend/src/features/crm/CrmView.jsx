@@ -14,7 +14,7 @@ import OmnichannelInteractions from "./OmnichannelInteractions";
  * Sub-tab: Pelanggan · Penagihan · Sales Force · Rate Insentif · Skema (Arsip) · Approval Kredit.
  * Row-level scoping ditegakkan backend (sales hanya melihat miliknya).
  */
-export default function CrmView({ currentUser, selectedEntity }) {
+export default function CrmView({ currentUser, selectedEntity, focusDoc, onClearFocus }) {
   const role = currentUser?.role;
   const isManager = role === "admin" || role === "manager";
   const TABS = [
@@ -43,7 +43,7 @@ export default function CrmView({ currentUser, selectedEntity }) {
         })}
       </div>
 
-      {tab === "customers" && <CustomerList currentUser={currentUser} selectedEntity={selectedEntity} />}
+      {tab === "customers" && <CustomerList currentUser={currentUser} selectedEntity={selectedEntity} focusDoc={focusDoc} onClearFocus={onClearFocus} />}
       {tab === "leads" && <LeadsPipeline currentUser={currentUser} selectedEntity={selectedEntity} />}
       {tab === "interactions" && <OmnichannelInteractions currentUser={currentUser} selectedEntity={selectedEntity} />}
       {tab === "collection" && <CollectionWorklist currentUser={currentUser} selectedEntity={selectedEntity} />}

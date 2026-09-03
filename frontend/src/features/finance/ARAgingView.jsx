@@ -45,7 +45,7 @@ function fmtDate(iso) {
   catch { return "—"; }
 }
 
-export default function ARAgingView({ selectedEntity, currentUser }) {
+export default function ARAgingView({ selectedEntity, currentUser, focusDoc, onClearFocus }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -73,6 +73,14 @@ export default function ARAgingView({ selectedEntity, currentUser }) {
   }, [selectedEntity]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Deep-link dari Meja Finance (jatuh tempo): saring ke pelanggan + buka rinciannya.
+  useEffect(() => {
+    if (focusDoc?.focus_type !== "customer" || !focusDoc.focus_id) return;
+    if (focusDoc.number) setQ(focusDoc.number);
+    openDetail(focusDoc.focus_id);
+    onClearFocus?.();
+  }, [focusDoc?.focus_id]); // eslint-disable-line
 
   const openDetail = useCallback(async (cid) => {
     setSelected(cid);

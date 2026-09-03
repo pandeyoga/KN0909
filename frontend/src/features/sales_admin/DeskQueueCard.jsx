@@ -157,7 +157,7 @@ function QueueRow({ row, queue, isQty, busy, onAction, testPrefix }) {
     : formatCurrency(row.value);
 
   return (
-    <div data-testid={`${testPrefix}-row-${row.ref_id}`}
+    <div data-testid={`${testPrefix}-row-${row.row_key || row.ref_id}`}
          className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2.5 hover:bg-[#FAFBFC]">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
@@ -183,7 +183,7 @@ function QueueRow({ row, queue, isQty, busy, onAction, testPrefix }) {
         {value}
       </span>
 
-      <button type="button" data-testid={`${testPrefix}-action-${row.ref_id}`}
+      <button type="button" data-testid={`${testPrefix}-action-${row.row_key || row.ref_id}`}
               className="btn-secondary btn-xs shrink-0" disabled={busy} onClick={onAction}
               title={queue?.hint || ""}>
         {busy ? "Memproses…" : (row.action || queue?.action_label || "Buka")}

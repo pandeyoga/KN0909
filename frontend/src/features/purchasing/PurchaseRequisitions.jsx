@@ -21,7 +21,7 @@ import DetailPanel from "./PurchaseRequisitionDetailPanel";
  * Sumber: manual | reorder | special_order.
  */
 
-export default function PurchaseRequisitions({ currentUser, selectedEntity = "all" }) {
+export default function PurchaseRequisitions({ currentUser, selectedEntity = "all", focusDoc, onClearFocus }) {
   const [view, setView] = useState("list");            // list | create | detail
   const [items, setItems] = useState([]);
   const [byStatus, setByStatus] = useState({});
@@ -75,6 +75,14 @@ export default function PurchaseRequisitions({ currentUser, selectedEntity = "al
   }
 
   function flash(msg) { setToast(msg); setTimeout(() => setToast(""), 3500); }
+
+  // Deep-link dari Meja MD → langsung buka PR yang diklik.
+  useEffect(() => {
+    if (focusDoc?.focus_type === "purchase_requisition" && focusDoc.focus_id) {
+      openDetail(focusDoc.focus_id);
+      onClearFocus?.();
+    }
+  }, [focusDoc?.focus_id]); // eslint-disable-line
 
   async function openDetail(id) {
     try {

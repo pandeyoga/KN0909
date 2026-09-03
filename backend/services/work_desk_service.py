@@ -306,7 +306,7 @@ async def finance_desk(actor: Dict[str, Any], scope: Dict[str, Any],
               age_days=max(0, int(r.get("days_late") or 0)),
               badge="lewat" if r.get("overdue") else "segera",
               action="Catat kwitansi", action_kind="receipt",
-              extra={"order_id": r["order_id"]}) for r in tagih],
+              extra={"order_id": r["order_id"], "row_key": r["order_id"]}) for r in tagih],
         action_label="Catat kwitansi", owner="finance"))
 
     # 3 — selisih bayar (lebih/kurang bayar) dalam batas kewenangan Finance
@@ -351,7 +351,8 @@ async def finance_desk(actor: Dict[str, Any], scope: Dict[str, Any],
               title=r.get("customer_name", "—"),
               subtitle=f"lewat {r['days_late']} hari · sales {r.get('sales_name') or '—'}",
               value=r.get("outstanding") or 0, age_days=int(r.get("days_late") or 0),
-              badge="lewat", action="Tagih", action_kind="open") for r in lewat],
+              badge="lewat", action="Tagih", action_kind="open",
+              extra={"customer_id": r.get("customer_id", ""), "order_id": r.get("order_id")}) for r in lewat],
         action_label="Tagih", owner="finance"))
 
     # 6 — HUTANG jatuh tempo (PB-01 lanjutan): PO ber-`payment_due_date` (turun dari termin
@@ -465,7 +466,8 @@ async def md_desk(actor: Dict[str, Any], scope: Dict[str, Any],
         "desain", "Permintaan desain",
         "Setujui, tugaskan ke desainer, lalu putuskan karya yang diserahkan.",
         [_row(ref_type="design_request", ref_id=r["id"], number=r.get("number", ""),
-              title=r.get("customer_name") or r.get("so_number") or "Internal",
+              title=r.get("customer_name") or r.get("so_number")
+                    or f"Internal · {r.get('target_type') or r.get('design_type') or 'desain'}",
               subtitle=(r.get("brief") or "")[:80], value=0,
               age_days=_age_days(r.get("requested_at") or r.get("created_at")),
               badge=label_st.get(r.get("status"), r.get("status", "")),
@@ -494,8 +496,8 @@ async def md_desk(actor: Dict[str, Any], scope: Dict[str, Any],
         "pr", "Permintaan pembelian bahan",
         "PR draf perlu diajukan; PR menunggu persetujuan perlu dikejar.",
         [_row(ref_type="purchase_requisition", ref_id=p["id"], number=p.get("number") or p.get("pr_number", ""),
-              title=p.get("purpose") or p.get("notes") or f"{len(p.get('items') or [])} baris",
-              subtitle=p.get("requested_by") or "", value=float(p.get("total") or p.get("estimated_total") or 0),
+              title=p.get("purpose") or p.get("notes") or _pr_items_title(p),
+              subtitle=_pr_subtitle(p), value=float(p.get("total") or p.get("estimated_total") or _pr_total(p)),
               age_days=_age_days(p.get("created_at")),
               badge="draf" if p.get("status") == "draft" else "menunggu persetujuan",
               action="Buka", action_kind="open") for p in prs],
@@ -510,7 +512,7 @@ async def md_desk(actor: Dict[str, Any], scope: Dict[str, Any],
         "Inspeksi berjalan tanpa sample ACC — warna & handfeel hanya jadi pengamatan. Tetapkan acuannya.",
         [_row(ref_type="inspection", ref_id=i["id"], number=i.get("number", ""),
               title=i.get("supplier_name") or i.get("customer_name") or i.get("ref_doc_number") or "—",
-              subtitle=i.get("kind", ""), value=0, age_days=_age_days(i.get("spk_date") or i.get("created_at")),
+              subtitle=_ins_kind_label(i), value=0, age_days=_age_days(i.get("spk_date") or i.get("created_at")),
               badge=i.get("status", ""), action="Buka", action_kind="open") for i in ins],
         action_label="Buka", owner="md", value_kind="count", value_label="SPK"))
 
@@ -523,6 +525,59 @@ async def md_desk(actor: Dict[str, Any], scope: Dict[str, Any],
 # ═══════════════════════════════════════════════════════════════════════════
 # MEJA ADMIN GUDANG — Sesi #087 (termasuk jembatan Gudang → Logistik)
 # ═══════════════════════════════════════════════════════════════════════════
+def _ins_kind_label(i: Dict[str, Any]) -> str:
+    from services.inspection_service import KIND_LABEL
+    kind = i.get("kind", "")
+    ref = i.get("ref_doc_number") or i.get("po_number") or i.get("so_number") or ""
+    return " · ".join(x for x in [KIND_LABEL.get(kind, kind), ref, i.get("product_name") or ""] if x)
+
+
+def _pr_items_title(p: Dict[str, Any]) -> str:
+    items = p.get("items") or []
+    if not items:
+        return "PR tanpa baris"
+    head = items[0]
+    lead = f"{head.get('product_name') or head.get('description') or head.get('sku') or 'bahan'}"
+    return lead if len(items) == 1 else f"{lead} +{len(items) - 1} lainnya"
+
+
+def _pr_total(p: Dict[str, Any]) -> float:
+    return round(sum(float(i.get("subtotal") or (float(i.get("quantity") or 0) * float(i.get("est_price") or 0)))
+                     for i in p.get("items") or []), 2)
+
+
+def _pr_subtitle(p: Dict[str, Any]) -> str:
+    items = p.get("items") or []
+    qty = sum(float(i.get("quantity") or 0) for i in items)
+    unit = (items[0].get("unit") if items else "") or ""
+    parts = [f"{qty:g} {unit}".strip(), p.get("warehouse_name") or "", p.get("supplier_name") or "",
+             f"butuh {str(p.get('needed_by'))[:10]}" if p.get("needed_by") else "",
+             p.get("requested_by") or ""]
+    return " · ".join(x for x in parts if x)
+
+
+def _delivery_subtitle(d: Dict[str, Any]) -> str:
+    mode = {"own_fleet": "armada sendiri", "courier": "ekspedisi", "pickup": "diambil"}.get(d.get("mode"), d.get("mode") or "")
+    who = d.get("driver_name") or d.get("courier_name") or ""
+    parts = [", ".join(d.get("shipment_nos") or []), mode, who, d.get("vehicle_plate") or "",
+             f"ETA {str(d.get('eta'))[:10]}" if d.get("eta") else "",
+             f"gagal: {d.get('fail_reason')}" if d.get("fail_reason") else ""]
+    return " · ".join(x for x in parts if x)[:110]
+
+
+def _po_receive_subtitle(p: Dict[str, Any]) -> str:
+    """'diterima 200/400 yard · 2 baris · ETA 03 Sep' — cukup untuk memutuskan tanpa membuka PO."""
+    items = p.get("items") or []
+    ordered = sum(float(i.get("quantity") or 0) for i in items)
+    received = sum(float(i.get("received_qty") or 0) for i in items)
+    unit = (items[0].get("unit") if items else "") or ""
+    eta = (p.get("expected_delivery_date") or "")[:10]
+    parts = [f"diterima {received:g}/{ordered:g} {unit}".strip(), f"{len(items)} baris"]
+    if eta:
+        parts.append(f"ETA {eta}")
+    return " · ".join(parts)
+
+
 async def warehouse_admin_desk(actor: Dict[str, Any], scope: Dict[str, Any],
                                entity_ids: List[str]) -> Dict[str, Any]:
     eq = _ent_q(scope)
@@ -551,7 +606,9 @@ async def warehouse_admin_desk(actor: Dict[str, Any], scope: Dict[str, Any],
         "Picking/packing yang belum dispatch — pesanan pelanggan menunggu.",
         [_row(ref_type="wms_task", ref_id=t["id"], number=t.get("order_number") or t.get("id", ""),
               title=t.get("product_name") or t.get("customer_name") or "—",
-              subtitle=f"{t.get('warehouse_name', '')} · {t.get('status', '')}", value=float(t.get("quantity") or 0),
+              subtitle=" · ".join(x for x in [t.get("warehouse_name", ""), t.get("customer_name", ""),
+                                              f"diambil {float(t.get('picked_qty') or 0):g}/{float(t.get('quantity') or 0):g} {t.get('unit') or ''}".strip()] if x),
+              value=float(t.get("quantity") or 0),
               age_days=_age_days(t.get("created_at")), badge=t.get("status", ""),
               action="Buka WMS", action_kind="open", extra={"order_id": t.get("order_id")}) for t in tasks],
         action_label="Buka WMS", owner="warehouse_admin", value_kind="qty", value_label="Qty"))
@@ -563,11 +620,13 @@ async def warehouse_admin_desk(actor: Dict[str, Any], scope: Dict[str, Any],
         "inbound", "PO menunggu penerimaan",
         "Barang supplier yang belum/baru sebagian diterima — siapkan inbound & inspeksi.",
         [_row(ref_type="purchase_order", ref_id=p["id"], number=p.get("po_number", ""),
-              title=p.get("supplier_name", "—"), subtitle=p.get("status", ""),
+              title=p.get("supplier_name", "—"), subtitle=_po_receive_subtitle(p),
               value=float(p.get("grand_total") or p.get("total") or 0),
-              age_days=_age_days(p.get("created_at")), badge=p.get("status", ""),
-              action="Buka", action_kind="open") for p in pos],
-        action_label="Buka", owner="warehouse_admin"))
+              age_days=_age_days(p.get("created_at")),
+              badge="Menunggu barang" if p.get("status") == "pending" else "Penerimaan sebagian",
+              action="Terima barang", action_kind="open",
+              extra={"expected_delivery_date": p.get("expected_delivery_date", "")}) for p in pos],
+        action_label="Terima barang", owner="warehouse_admin"))
 
     # 4 — SPK inspeksi belum ditugaskan
     ins = await db.inspections.find(
@@ -577,7 +636,7 @@ async def warehouse_admin_desk(actor: Dict[str, Any], scope: Dict[str, Any],
         "Tugaskan petugas inspect supaya barang tidak tertahan di karantina.",
         [_row(ref_type="inspection", ref_id=i["id"], number=i.get("number", ""),
               title=i.get("supplier_name") or i.get("customer_name") or i.get("ref_doc_number") or "—",
-              subtitle=i.get("kind", ""), value=0, age_days=_age_days(i.get("spk_date") or i.get("created_at")),
+              subtitle=_ins_kind_label(i), value=0, age_days=_age_days(i.get("spk_date") or i.get("created_at")),
               badge="draf", action="Tugaskan", action_kind="open") for i in ins],
         action_label="Tugaskan", owner="warehouse_admin", value_kind="count", value_label="SPK"))
 
@@ -585,7 +644,8 @@ async def warehouse_admin_desk(actor: Dict[str, Any], scope: Dict[str, Any],
     cc = await db.cycle_count_sessions.find({**eq, "status": "submitted"}, {"_id": 0}).to_list(100)
     tr = await db.warehouse_transfers.find({**eq, "status": "waiting_approval"}, {"_id": 0}).to_list(100)
     rows = [_row(ref_type="cycle_count", ref_id=c["id"], number=c.get("number", ""), title=c.get("name") or c.get("warehouse_name", "—"),
-                 subtitle=f"{len(c.get('discrepancies') or [])} selisih", value=0, age_days=_age_days(c.get("created_at")),
+                 subtitle=f"{len(c.get('items') or [])} item dihitung · {len(c.get('discrepancies') or [])} selisih · menunggu ACC",
+                 value=0, age_days=_age_days(c.get("created_at")),
                  badge="opname", action="Setujui", action_kind="open") for c in cc]
     rows += [_row(ref_type="warehouse_transfer", ref_id=t["id"], number=t.get("code", ""),
                   title=f"{t.get('source_warehouse_name', '')} → {t.get('dest_warehouse_name', '')}",
@@ -604,7 +664,7 @@ async def warehouse_admin_desk(actor: Dict[str, Any], scope: Dict[str, Any],
         "Jadwalkan ulang yang gagal; tutup (Selesaikan) yang sudah terkirim.",
         [_row(ref_type="logistics_delivery", ref_id=d["id"], number=d.get("number", ""),
               title=d.get("customer_name") or d.get("order_number") or "—",
-              subtitle=(d.get("fail_reason") or d.get("receiver_name") or "")[:60], value=0,
+              subtitle=_delivery_subtitle(d), value=0,
               age_days=_age_days(d.get("created_at")), badge="gagal" if d.get("status") == "failed" else "terkirim",
               action="Buka", action_kind="open") for d in lg],
         action_label="Buka", owner="warehouse_admin", value_kind="count", value_label="Pengiriman"))

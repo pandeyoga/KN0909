@@ -259,9 +259,9 @@ export default function AppViewRouter(props) {
       )}
       {activeView === "reports" && <ManagerDashboard token={token} selectedEntity={selectedEntity} />}
       {activeView === "costing" && <CostingView selectedEntity={selectedEntity} />}
-      {activeView === "ar-aging" && <ARAgingView selectedEntity={selectedEntity} currentUser={user} />}
+      {activeView === "ar-aging" && <ARAgingView selectedEntity={selectedEntity} currentUser={user} focusDoc={focusDoc} onClearFocus={() => setFocusDoc(null)} />}
       {activeView === "advance-report" && <AdvanceReportView selectedEntity={selectedEntity} onOpenDocument={openDocument} />}
-      {activeView === "payment-plans" && <PaymentPlansView currentUser={user} selectedEntity={selectedEntity} onOpenDocument={openDocument} />}
+      {activeView === "payment-plans" && <PaymentPlansView currentUser={user} selectedEntity={selectedEntity} onOpenDocument={openDocument} focusDoc={focusDoc} onClearFocus={() => setFocusDoc(null)} />}
       {activeView === "store-credit" && <StoreCreditView selectedEntity={selectedEntity} currentUser={user} />}
       {activeView === "bank-accounts" && <BankAccountsView selectedEntity={selectedEntity} />}
       {activeView === "bank-reconciliation" && <BankReconciliationView selectedEntity={selectedEntity} />}
@@ -316,7 +316,8 @@ export default function AppViewRouter(props) {
       {activeView === "warehouse-admin-desk" && <RoleDesk desk="warehouse_admin" selectedEntity={selectedEntity} onOpenDocument={openDocument} />}
       {activeView === "returns" && (
         <SalesReturns currentUser={user}
-          onNavigate={(navId, view, tab) => onNavSelect(navId, view, tab)} />
+          onNavigate={(navId, view, tab) => onNavSelect(navId, view, tab)}
+          focusDoc={focusDoc} onClearFocus={() => setFocusDoc(null)} />
       )}
       {activeView === "return-policies" && <ReturnPoliciesView currentUser={user} />}
       {activeView === "amendments" && <AmendmentCenterView currentUser={user} selectedEntity={selectedEntity} />}
@@ -331,7 +332,7 @@ export default function AppViewRouter(props) {
       {activeView === "color-library" && <ColorLibraryView currentUser={user} />}
       {activeView === "domain-registry" && <DomainRegistryView />}
       {activeView === "uom-conversions" && <UomConversionView user={user} products={data.products || []} />}
-      {activeView === "customers-crm" && <CrmView currentUser={user} selectedEntity={selectedEntity} />}
+      {activeView === "customers-crm" && <CrmView currentUser={user} selectedEntity={selectedEntity} focusDoc={focusDoc} onClearFocus={() => setFocusDoc(null)} />}
       {activeView === "approval-inbox" && <ApprovalInbox currentUser={user} onNavigate={(navId, view, tab) => onNavSelect(navId, view, tab)} onOpenDocument={openDocument} />}
       {activeView === "my-approvals" && <MyApprovalsView currentUser={user} selectedEntity={selectedEntity} onNavigate={(view) => onNavSelect(APPROVAL_HUB_OF[view] || view, view)} />}
       {activeView === "approval-rules" && <ApprovalRulesSettings currentUser={user} />}
@@ -368,8 +369,10 @@ export default function AppViewRouter(props) {
       )}
       {activeView === "rnd-samples" && (
         <RndSamplesView currentUser={user} selectedEntity={selectedEntity}
-          focus={rndFocus?.view === "rnd-samples" ? rndFocus : null}
-          onFocusConsumed={onRndFocusConsumed} />
+          focus={rndFocus?.view === "rnd-samples" ? rndFocus
+            : (focusDoc?.focus_type === "md_sample" && focusDoc.focus_id
+              ? { nonce: `desk:${focusDoc.focus_id}`, sampleId: focusDoc.focus_id } : null)}
+          onFocusConsumed={() => { onRndFocusConsumed?.(); setFocusDoc(null); }} />
       )}
       {activeView === "rnd-designs" && <RndDesignsView currentUser={user} selectedEntity={selectedEntity} />}
       {activeView === "rnd-reports" && <RndReportsView currentUser={user} selectedEntity={selectedEntity} />}
@@ -383,17 +386,17 @@ export default function AppViewRouter(props) {
       {activeView === "vendor-bills" && <VendorBillsView currentUser={user} selectedEntity={selectedEntity} />}
       {activeView === "contra-bons" && <ContraBonsView currentUser={user} selectedEntity={selectedEntity} entities={entities} />}
       {activeView === "interco-transactions" && <IntercoView currentUser={user} selectedEntity={selectedEntity} entities={entities} />}
-      {activeView === "internal-requests" && <InternalRequestsView currentUser={user} selectedEntity={selectedEntity} />}
+      {activeView === "internal-requests" && <InternalRequestsView currentUser={user} selectedEntity={selectedEntity} focusDoc={focusDoc} onClearFocus={() => setFocusDoc(null)} />}
       {activeView === "design-requests" && <DesignRequestsView currentUser={user} selectedEntity={selectedEntity} focusDoc={focusDoc} onClearFocus={() => setFocusDoc(null)} />}
       {activeView === "logistics" && <LogisticsView currentUser={user} selectedEntity={selectedEntity} focusDelivery={logisticsFocus} onFocusConsumed={onLogisticsFocusConsumed} />}
       {activeView === "landed-cost" && <LandedCostView currentUser={user} selectedEntity={selectedEntity} />}
       {activeView === "input-tax" && <InputTaxView currentUser={user} selectedEntity={selectedEntity} />}
       {activeView === "rfq" && <RFQView currentUser={user} selectedEntity={selectedEntity} />}
-      {activeView === "purchase-requisitions" && <PurchaseRequisitions currentUser={user} selectedEntity={selectedEntity} />}
+      {activeView === "purchase-requisitions" && <PurchaseRequisitions currentUser={user} selectedEntity={selectedEntity} focusDoc={focusDoc} onClearFocus={() => setFocusDoc(null)} />}
       {activeView === "reorder" && <ReorderSuggestions currentUser={user} selectedEntity={selectedEntity} />}
       {activeView === "operations" && <OperationsView data={data} movements={movements} tasks={tasks} entities={entities} selectedEntity={selectedEntity} onGenerateLabel={generateLabel} onCreateInboundTask={createInboundTask} onCreateOutboundTasks={createOutboundTasks} onScanTask={scanTask} onAdvanceTask={advanceTask} onShowDetail={setActiveDetail} onNavigate={(target) => onNavSelect(target, target)} token={token} user={user} defaultTab={wmsInitialTab} focusDoc={focusDoc} onClearFocus={() => setFocusDoc(null)} onOpenDocument={openDocument} />}
       {activeView === "qc-inspection" && <QCInspection currentUser={user} selectedEntity={selectedEntity} />}
-      {activeView === "inspections" && <InspectionsView currentUser={user} selectedEntity={selectedEntity} />}
+      {activeView === "inspections" && <InspectionsView currentUser={user} selectedEntity={selectedEntity} focusDoc={focusDoc} onClearFocus={() => setFocusDoc(null)} />}
       {activeView === "hr-employees" && <EmployeesView currentUser={user} selectedEntity={selectedEntity} />}
       {activeView === "hr-org-units" && <OrgUnitsView currentUser={user} selectedEntity={selectedEntity} />}
       {activeView === "hr-attendance" && <AttendanceView currentUser={user} selectedEntity={selectedEntity} />}

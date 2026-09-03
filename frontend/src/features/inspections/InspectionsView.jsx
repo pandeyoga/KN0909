@@ -52,7 +52,7 @@ const CSV_COLUMNS = [
   { key: "decision_label", header: "Keputusan" },
 ]);
 
-export default function InspectionsView({ currentUser, selectedEntity = "all" }) {
+export default function InspectionsView({ currentUser, selectedEntity = "all", focusDoc, onClearFocus }) {
   const [meta, setMeta] = useState({
     kinds: [], statuses: [], decisions: [], color_results: [], handfeel_results: [],
     officers: [], policy: {}, role: "", can_release_hold: false,
@@ -103,6 +103,14 @@ export default function InspectionsView({ currentUser, selectedEntity = "all" })
     qcTasksWithoutDoc().then(setOrphanTasks).catch(() => setOrphanTasks([]));
   }, []);
   useEffect(() => { loadOrphans(); }, [loadOrphans]);
+
+  // Deep-link dari Meja MD / Meja Admin Gudang: saring ke nomor SPK + buka detailnya.
+  useEffect(() => {
+    if (focusDoc?.focus_type !== "inspection" || !focusDoc.focus_id) return;
+    if (focusDoc.number) setSearch(focusDoc.number);
+    getInspection(focusDoc.focus_id).then(setDetail).catch(() => {});
+    onClearFocus?.();
+  }, [focusDoc?.focus_id]); // eslint-disable-line
 
   const openDetail = useCallback(async (id) => {
     try { setDetail(await getInspection(id)); }

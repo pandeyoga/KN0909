@@ -33,10 +33,19 @@ function Kpi({ label, value, tone = "#1C1C1E", testId }) {
   );
 }
 
-export default function PaymentPlansView({ currentUser, selectedEntity, onOpenDocument }) {
+export default function PaymentPlansView({ currentUser, selectedEntity, onOpenDocument, focusDoc, onClearFocus }) {
   const [tab, setTab] = useState("denda");
   const [status, setStatus] = useState("");
   const [q, setQ] = useState("");
+
+  // Deep-link dari Meja Finance: buka tab yang tepat & saring ke nomor dokumennya.
+  useEffect(() => {
+    if (!focusDoc?.focus_id) return;
+    if (focusDoc.tab) setTab(focusDoc.tab);
+    if (focusDoc.number) setQ(focusDoc.number);
+    setStatus("");
+    onClearFocus?.();
+  }, [focusDoc?.focus_id]); // eslint-disable-line
   const [plans, setPlans] = useState([]);
   const [pen, setPen] = useState({ items: [], stats: {} });
   const [vstats, setVstats] = useState({ pending: 0 });

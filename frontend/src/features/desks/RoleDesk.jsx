@@ -49,6 +49,16 @@ export default function RoleDesk({ desk = "md", selectedEntity = "all", onOpenDo
       onOpenDocument?.({ view: "logistics", nav_id: "logistics" });
       return;
     }
+    if (row.ref_type === "logistics_delivery") {
+      openLogistics({ deliveryId: row.ref_id });
+      onOpenDocument?.({ view: "logistics", nav_id: "logistics" });
+      return;
+    }
+    if (row.ref_type === "shipment") {
+      openLogistics({ search: row.number || "" });
+      onOpenDocument?.({ view: "logistics", nav_id: "logistics" });
+      return;
+    }
     onOpenDocument?.(rowLink(row, queue?.id, desk));
   }
 

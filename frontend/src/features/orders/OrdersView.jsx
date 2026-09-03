@@ -106,6 +106,7 @@ export default function OrdersView({
     if (focusDoc?.focus_type === "sales_order" && focusDoc?.focus_id) {
       setViewMode("list");
       setStatusFilter("all");
+      if (focusDoc.number) setSearchQuery(focusDoc.number);   // tabel langsung tersaring ke baris ini
       setSelectedOrder(focusDoc.focus_id);
       onClearFocus?.();
     }

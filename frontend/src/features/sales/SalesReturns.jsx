@@ -40,7 +40,7 @@ const CSV_COLUMNS = [
 
 
 // ─── Main component ─────────────────────────────────────────────────────────
-export default function SalesReturns({ currentUser, onNavigate }) {
+export default function SalesReturns({ currentUser, onNavigate, focusDoc, onClearFocus }) {
   const [filterStatus, setFilterStatus] = useState("all");
   const [returnType, setReturnType]   = useState("all");   // UI/UX 2026-06 — saring per tipe
   const [search, setSearch]         = useState("");
@@ -77,6 +77,15 @@ export default function SalesReturns({ currentUser, onNavigate }) {
     [paged.refresh, loadCounts]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { loadCounts(); }, [loadCounts]);
+
+  // Deep-link dari Meja Admin Sales: saring tabel ke nomor retur + buka detailnya.
+  useEffect(() => {
+    if (focusDoc?.focus_type !== "sales_return" || !focusDoc.focus_id) return;
+    setFilterStatus("all");
+    if (focusDoc.number) setSearch(focusDoc.number);
+    axios.get(`${API}/sales-returns/${focusDoc.focus_id}`).then((r) => setSelected(r.data)).catch(() => {});
+    onClearFocus?.();
+  }, [focusDoc?.focus_id]); // eslint-disable-line
 
   // Load eligible orders for create form
   async function loadOrders() {

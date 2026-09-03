@@ -104,6 +104,12 @@ const BADGE_LABEL = {
   submitted: "Diajukan",
   open: "Terbuka",
   pending: "Menunggu",
+  // WMS / logistik / inspeksi
+  picking: "Pengambilan", packing: "Pengepakan", packed: "Terkemas", loading: "Pemuatan",
+  scheduled: "Terjadwal", prepared: "Disiapkan", loaded: "Dimuat", in_transit: "Dalam perjalanan",
+  delivered: "Terkirim", failed: "Gagal", terkirim: "Terkirim", gagal: "Gagal", opname: "Opname",
+  transfer: "Transfer", receiving: "Penerimaan", assigned: "Ditugaskan", in_progress: "Berjalan",
+  kewajiban: "Kewajiban", "diakui (historis)": "Diakui (historis)",
 };
 
 const BADGE_TONE = {
@@ -115,11 +121,12 @@ const BADGE_TONE = {
 };
 
 const BADGE_GROUP = {
-  danger: ["lewat", "uncovered", "cancelled", "quarantine"],
+  danger: ["lewat", "uncovered", "cancelled", "quarantine", "failed", "gagal", "diakui (historis)"],
   warn: ["segera", "partial", "menunggu", "waiting_approval", "waiting_stock",
          "pending_approval", "pending_process", "pending", "draft"],
-  ok: ["approved", "confirmed", "picked", "shipped", "dispatched", "done", "covered"],
-  info: ["reserved", "submitted", "open", "partially_picked", "partially_shipped"],
+  ok: ["approved", "confirmed", "picked", "shipped", "dispatched", "done", "covered", "delivered", "terkirim", "packed", "loaded"],
+  info: ["reserved", "submitted", "open", "partially_picked", "partially_shipped", "picking", "packing", "loading",
+         "scheduled", "prepared", "in_transit", "receiving", "assigned", "in_progress", "kewajiban"],
 };
 
 /** Kata Indonesia untuk penanda baris; tak dikenal → dirapikan, tidak dibuang. */
@@ -160,12 +167,14 @@ export const ROW_TARGET = {
 
 /** Antrean Finance menunjuk layar yang berbeda walau jenis dokumennya sama. */
 export const FINANCE_QUEUE_TARGET = {
-  siap_faktur_pajak: { view: "tax-invoices", nav_id: "tax-hub" },
-  uang_masuk:        { view: "customers-crm", nav_id: "customers-crm" },
-  selisih_bayar:     { view: "payment-plans", nav_id: "payment-plans" },
-  denda_draft:       { view: "payment-plans", nav_id: "payment-plans" },
-  jatuh_tempo:       { view: "ar-aging", nav_id: "ar-aging" },
+  siap_faktur_pajak: { view: "orders", nav_id: "sales-orders", focus_type: "sales_order" },
+  uang_masuk:        { view: "customers-crm", nav_id: "customers-crm", focus_type: "customer" },
+  selisih_bayar:     { view: "payment-plans", nav_id: "payment-plans", focus_type: "ar_receipt", tab: "selisih" },
+  denda_draft:       { view: "payment-plans", nav_id: "payment-plans", focus_type: "penalty", tab: "denda" },
+  // jatuh tempo → aging PER PELANGGAN: fokus ke pelanggannya (row.customer_id), bukan pesanannya
+  jatuh_tempo:       { view: "ar-aging", nav_id: "ar-aging", focus_type: "customer", focus_key: "customer_id", number_key: "title" },
   hutang_jatuh_tempo: { view: "purchasing", nav_id: "purchase-orders", focus_type: "purchase_order" },
+  uang_muka_belum_kirim: { view: "orders", nav_id: "sales-orders", focus_type: "sales_order" },
 };
 
 /** Sesi #087 — tujuan baris Meja MD & Meja Admin Gudang (per ref_type). */
@@ -183,17 +192,27 @@ export const ROLE_DESK_TARGET = {
 export const mdDesk = (params) => axios.get(`${API}/md/desk`, { params }).then((r) => r.data);
 export const warehouseAdminDesk = (params) => axios.get(`${API}/warehouse-admin/desk`, { params }).then((r) => r.data);
 
+/** Meja Admin Gudang: PO dibuka langsung di Barang Masuk (tugas penerimaan terpilih), bukan di layar PO. */
+const WH_DESK_TARGET = {
+  purchase_order: { view: "operations", nav_id: "wms-operations", focus_type: "purchase_order", tab: "inbound" },
+};
+
 export function rowLink(row, queueId = "", desk = "sales_admin") {
   if (desk === "md" || desk === "warehouse_admin") {
-    const t = ROLE_DESK_TARGET[row?.ref_type] || ROW_TARGET[row?.ref_type] || ROW_TARGET.sales_order;
+    const t = (desk === "warehouse_admin" && WH_DESK_TARGET[row?.ref_type])
+      || ROLE_DESK_TARGET[row?.ref_type] || ROW_TARGET[row?.ref_type] || ROW_TARGET.sales_order;
     return { view: t.view, nav_id: t.nav_id, focus_type: t.focus_type, focus_id: row?.ref_id, number: row?.number, tab: t.tab };
   }
   const byQueue = desk === "finance" ? FINANCE_QUEUE_TARGET[queueId] : null;
   const base = byQueue || ROW_TARGET[row?.ref_type] || ROW_TARGET.sales_order;
+  // `number` ikut dikirim supaya layar tujuan bisa MENYARING tabelnya ke baris ini —
+  // pengguna tidak perlu mencari lagi setelah melompat dari meja.
   return {
     view: base.view,
     nav_id: base.nav_id,
     focus_type: base.focus_type || row?.ref_type || "",
-    focus_id: row?.order_id || row?.ref_id || "",
+    focus_id: (base.focus_key ? row?.[base.focus_key] : (row?.order_id || row?.ref_id)) || "",
+    number: (base.number_key ? row?.[base.number_key] : row?.number) || "",
+    tab: base.tab,
   };
 }

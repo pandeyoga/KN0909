@@ -27,7 +27,7 @@ import CustomerFormModal from "./CustomerFormModal";
 import Customer360Panel from "./Customer360Panel";
 
 /** Daftar pelanggan + filter (segment / status kredit / sales) + Customer 360. */
-export default function CustomerList({ currentUser, selectedEntity }) {
+export default function CustomerList({ currentUser, selectedEntity, focusDoc, onClearFocus }) {
   const [salesUsers, setSalesUsers] = useState([]);
   const [notice, setNotice] = useState("");
   const [search, setSearch] = useState("");
@@ -37,6 +37,14 @@ export default function CustomerList({ currentUser, selectedEntity }) {
   const [showForm, setShowForm] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
+
+  // Deep-link (Meja Finance "uang masuk" / meja lain): saring daftar ke pelanggan + buka Customer 360.
+  useEffect(() => {
+    if (focusDoc?.focus_type !== "customer" || !focusDoc.focus_id) return;
+    if (focusDoc.number) setSearch(focusDoc.number);
+    setSelectedId(focusDoc.focus_id);
+    onClearFocus?.();
+  }, [focusDoc?.focus_id]); // eslint-disable-line
   const [opError, setOpError] = useState("");
 
   const role = currentUser?.role;

@@ -320,3 +320,17 @@ tersisa action items minor).
 - FKT-00003 sudah tidak ada (terhapus bersama SO uji); JE orphan KSC/JE-00102 (residu uji) dihapus.
 - Bukti: iteration_299 (BE 40/41 → RBAC diperbaiki, FE 100%); pytest iter297 (5), iter298 (15), iter299 (21). Fixture E2E kini memulangkan roll
   (`tests/iter299_restore_orphan_rolls.py`). Nomor terpakai: SO-00137..142, AR-00021..26, SJ-00017/18.
+
+## 2026-09-03 — Sesi #091: Audit MEJA KERJA — "satu klik, tiba tersaring" ✅
+- `rowLink` mengirim `{focus_type, focus_id, number, tab}`; `openDocument` menyimpan number/tab di `focusDoc`. Layar tujuan menyaring
+  tabel + membuka detail: OrdersView (search=nomor), SalesReturns, InternalRequests, Inspections (search + modal), PurchaseRequisitions,
+  ARAgingView (search=nama + rincian pelanggan), PaymentPlansView (tab + q), CustomerList (search + Customer 360), RndSamples (focusDoc→focus),
+  LogisticsView (`focusDelivery.search` / deliveryId via openLogistics), CycleCount (`focusSessionId`), TransferManagement (`focusTransferId`).
+- Target Finance: siap_faktur_pajak & uang_muka → Pesanan; jatuh_tempo → AR Aging per pelanggan (row.customer_id); selisih/denda → tab Rencana Bayar.
+  Meja Admin Gudang: PO → langsung Barang Masuk (WH_DESK_TARGET). Baris uang_masuk ber-`row_key` (testid unik per pesanan).
+- Kualitas baris: PO inbound 'diterima X/Y · n baris · ETA'; PR judul bahan + subtitle qty/gudang/supplier; SPK label jenis + PO; DSR internal
+  menyebut jenis; logistik 'SJ · moda · sopir · plat · ETA · alasan gagal'; outbound 'gudang · pelanggan · diambil X/Y'; opname 'n item · selisih · menunggu ACC';
+  kamus BADGE_LABEL diperluas (packing/loading/delivered/failed/…).
+- Bukti: iteration_300 (13/15 → 15/15 setelah CycleCount/Transfer focus); pytest iter295 lulus.
+- Backlog kecil: pencarian OrdersView substring (SO-0001 ikut menarik SO-00010); `rnd-samples-search` tidak diisi; seed demo untuk antrean
+  Finance yang kosong (selisih_bayar, denda_draft, hutang_jatuh_tempo); 403 noise /api/warehouses & /api/esign untuk peran md.

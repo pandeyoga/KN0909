@@ -18,7 +18,7 @@ import TransferDetailModal from "./transfer/TransferDetailModal";
  *
  * Sub-components live in ./transfer/ (kept under file-size limits per KN_02).
  */
-export default function TransferManagement({ user }) {
+export default function TransferManagement({ user, focusTransferId = "", onFocusConsumed }) {
   const [transfers, setTransfers] = useState([]);
   const [products, setProducts] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
@@ -52,6 +52,14 @@ export default function TransferManagement({ user }) {
     fetchTransfers();
     fetchMasterData();
   }, [filterStatus]);
+
+  // Deep-link dari Meja Admin Gudang ("Setujui") → transfer yang diklik langsung terbuka.
+  useEffect(() => {
+    if (!focusTransferId || !transfers.length) return;
+    const t = transfers.find((x) => x.id === focusTransferId);
+    if (t) { setSelectedTransfer(t); setActionError(""); }
+    onFocusConsumed?.();
+  }, [focusTransferId, transfers]); // eslint-disable-line
 
   const fetchTransfers = async () => {
     setLoading(true);

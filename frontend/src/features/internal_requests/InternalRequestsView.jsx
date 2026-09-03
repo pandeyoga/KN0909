@@ -27,7 +27,7 @@ import {
   pinMeta, rejectInternalRequest,
 } from "./internalRequestsApi";
 
-export default function InternalRequestsView({ currentUser, selectedEntity = "all" }) {
+export default function InternalRequestsView({ currentUser, selectedEntity = "all", focusDoc, onClearFocus }) {
   const [items, setItems] = useState([]);
   const [summary, setSummary] = useState({});
   const [meta, setMeta] = useState({ can_decide: false, can_pick_source: false });
@@ -57,6 +57,15 @@ export default function InternalRequestsView({ currentUser, selectedEntity = "al
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { pinMeta().then(setMeta).catch(() => {}); }, []);
+
+  // Deep-link dari Meja Admin Sales → langsung buka permintaan yang diklik.
+  useEffect(() => {
+    if (focusDoc?.focus_type === "internal_request" && focusDoc.focus_id) {
+      setStatusFilter("");
+      openDetail(focusDoc.focus_id);
+      onClearFocus?.();
+    }
+  }, [focusDoc?.focus_id]); // eslint-disable-line
 
   function flash(msg) { setToast(msg); setTimeout(() => setToast(""), 4000); }
 

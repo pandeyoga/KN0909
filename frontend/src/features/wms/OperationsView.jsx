@@ -155,14 +155,18 @@ export default function OperationsView({
           </div>
           <div className="section-body">
             {/* T6: papan di atas boleh memaksa daftar ini memuat ulang. */}
-            <TransferManagement key={`transfer-${boardsVersion}`} user={user} />
+            <TransferManagement key={`transfer-${boardsVersion}`} user={user}
+              focusTransferId={focusDoc?.focus_type === "warehouse_transfer" ? focusDoc.focus_id : ""}
+              onFocusConsumed={onClearFocus} />
           </div>
         </div>
       )}
 
       {/* CYCLE COUNT TAB */}
       {activeTab === "cycle" && (
-        <CycleCount key={`cycle-${boardsVersion}`} token={token} warehouses={data.warehouses || []} products={data.products || []} userRole={user?.role} />
+        <CycleCount key={`cycle-${boardsVersion}`} token={token} warehouses={data.warehouses || []} products={data.products || []} userRole={user?.role}
+          focusSessionId={focusDoc?.focus_type === "cycle_count" ? focusDoc.focus_id : ""}
+          onFocusConsumed={onClearFocus} />
       )}
 
       {/* KESEHATAN TAB — ringkasan insiden, opname & antrean per gudang */}

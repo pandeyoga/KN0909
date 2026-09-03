@@ -55,6 +55,8 @@ export default function LogisticsView({ currentUser, selectedEntity, focusDelive
     if (focusDelivery?.deliveryId) { setStatus(""); setOpenId(focusDelivery.deliveryId); onFocusConsumed?.(); }
     // Sesi #087 — dari Meja Admin Gudang: langsung buka "Buat Pengiriman" dengan SJ terpilih.
     else if (focusDelivery?.createFromShipmentId) { setPreselectShipment(focusDelivery.createFromShipmentId); setShowCreate(true); onFocusConsumed?.(); }
+    // Meja Admin Gudang / meja lain: saring daftar ke nomor SJ / pesanan yang diklik.
+    else if (focusDelivery?.search) { setStatus(""); setQ(focusDelivery.search); onFocusConsumed?.(); }
   }, [focusDelivery?.nonce]); // eslint-disable-line
 
   return (

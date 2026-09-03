@@ -24,7 +24,7 @@ const STATUS_COLORS = {
 
 const fmt = new Intl.NumberFormat("id-ID");
 
-export default function CycleCount({ token, warehouses, products, userRole }) {
+export default function CycleCount({ token, warehouses, products, userRole, focusSessionId = "", onFocusConsumed }) {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
@@ -66,6 +66,12 @@ export default function CycleCount({ token, warehouses, products, userRole }) {
   };
 
   useEffect(() => { loadSessions(); }, []);
+
+  // Deep-link dari Meja Admin Gudang ("Setujui") → sesi opname langsung terbuka.
+  useEffect(() => {
+    if (!focusSessionId) return;
+    loadSession(focusSessionId).catch(() => {}).finally(() => onFocusConsumed?.());
+  }, [focusSessionId]); // eslint-disable-line
 
   const createSession = async () => {
     if (!form.warehouse_id) { setErr("Pilih gudang"); return; }
