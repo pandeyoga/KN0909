@@ -6,8 +6,38 @@ import { Switch } from "@/components/ui/switch";
 import KNSelect from "../../components/KNSelect";
 import {
   PAPER_SIZES, ORIENTATIONS, FONT_FAMILIES, FONT_SIZES, COLOR_PRESETS, EDITOR_TABS,
+  HEADER_MODES, FOOTER_MODES, TABLE_GRIDS, SECTION_LABELS,
 } from "./pdfConstants";
+import PdfScriptTab from "./PdfScriptTab";
 import { Plus, Trash2, Upload, ImageOff, Save, Loader2, Info } from "lucide-react";
+
+function Toggle({ label, checked, onChange, testId, hint }) {
+  return (
+    <label className="flex items-center justify-between gap-3 rounded-lg border border-[#EDEEF1] px-3 py-2">
+      <span className="text-[12.5px] font-medium">{label}{hint && <span className="block text-[10.5px] font-normal text-[#9A9BA3]">{hint}</span>}</span>
+      <Switch checked={!!checked} onCheckedChange={onChange} data-testid={testId} />
+    </label>
+  );
+}
+
+function ImageUpload({ label, hint, src, onFile, onRemove, testId }) {
+  const ref = useRef(null);
+  return (
+    <Row label={label} hint={hint}>
+      <div className="flex items-center gap-3">
+        <div className="flex h-16 min-w-[64px] max-w-[220px] items-center justify-center overflow-hidden rounded-md border border-[#E5E6EB] bg-[#F7F8FA] px-1">
+          {src ? <img src={src} alt={label} className="max-h-full max-w-full object-contain" /> : <ImageOff size={20} className="text-[#C4C5CC]" />}
+        </div>
+        <div className="flex flex-col gap-1">
+          <input ref={ref} type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
+            onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} data-testid={`${testId}-input`} />
+          <button type="button" className="btn-secondary flex items-center gap-1.5" onClick={() => ref.current?.click()} data-testid={`${testId}-upload`}><Upload size={13} /> Unggah</button>
+          {src && <button type="button" className="text-[11px] text-[#C0392B] hover:underline" onClick={onRemove} data-testid={`${testId}-remove`}>Hapus</button>}
+        </div>
+      </div>
+    </Row>
+  );
+}
 
 function Row({ label, hint, children }) {
   return (
@@ -31,6 +61,7 @@ function ColorField({ value, onChange, testId }) {
       <input
         type="text" value={value || ""} onChange={(e) => onChange(e.target.value)}
         className="form-input !w-[110px] font-mono text-[12px]"
+        data-testid={testId ? `${testId}-hex` : undefined}
       />
       <div className="flex items-center gap-1">
         {COLOR_PRESETS.map((c) => (
@@ -46,9 +77,17 @@ function ColorField({ value, onChange, testId }) {
 export default function PdfEditorTabs({
   config, patch, branding, patchBranding,
   onLogoFile, onRemoveLogo, onSaveBranding, savingBrand, brandingMsg, brandingErr, newLogoPreview,
+  onImageFile, newImages = {}, placeholders = [], defaultEffective = null, isDefault = false,
 }) {
   const fileRef = useRef(null);
   const cf = config || {};
+  const patchNested = (group, k, v) => patch(group, { ...(cf[group] || {}), [k]: v });
+  const tb = cf.table || {};
+  const sec = cf.sections || {};
+  // Penanda "berbeda dari bawaan" per kunci (pola override sipro) — hanya di jenis dokumen.
+  const differs = (k) => !isDefault && defaultEffective && JSON.stringify(cf[k]) !== JSON.stringify(defaultEffective[k]);
+  const Diff = ({ k }) => differs(k) ? <span className="ml-1 rounded bg-[#FFF3D6] px-1 text-[9px] font-bold text-[#8C4A00]" title="Menimpa bawaan seluruh dokumen">menimpa</span> : null;
+  const img = (key) => (newImages[key] !== undefined ? newImages[key] : branding?.[`${key.replace("_b64", "")}_src`] || "");
 
   // ── custom fields helpers ───────────────────────────────
   const customFields = cf.custom_fields || [];
@@ -60,7 +99,7 @@ export default function PdfEditorTabs({
   // ── signature slots helpers ─────────────────────────────
   const sigs = cf.signature_slots || [];
   const setSigs = (arr) => patch("signature_slots", arr);
-  const addSig = () => setSigs([...sigs, { label: "", role: "", name: "" }]);
+  const addSig = () => setSigs([...sigs, { label: "", role: "", name: "", show_stamp: false }]);
   const updSig = (i, k, v) => setSigs(sigs.map((r, idx) => (idx === i ? { ...r, [k]: v } : r)));
   const delSig = (i) => setSigs(sigs.filter((_, idx) => idx !== i));
 
@@ -83,8 +122,26 @@ export default function PdfEditorTabs({
         </TabsList>
 
         <div className="section-body grid gap-3">
+          {/* ── NASKAH (placeholder) ───────────────────────── */}
+          <TabsContent value="naskah" className="mt-0">
+            <PdfScriptTab config={cf} patch={patch} placeholders={placeholders} />
+          </TabsContent>
+
           {/* ── LAYOUT ─────────────────────────────────────── */}
           <TabsContent value="layout" className="grid gap-3 mt-0">
+            <Row label={<>Mode kop surat<Diff k="header_mode" /></>} hint="'Tanpa kop' untuk kertas berkop cetakan sendiri.">
+              <KNSelect value={cf.header_mode || "system"} onValueChange={(v) => patch("header_mode", v)} options={HEADER_MODES} className="field" data-testid="pdf-header-mode" />
+            </Row>
+            <Row label={<>Mode footer<Diff k="footer_mode" /></>}>
+              <KNSelect value={cf.footer_mode || "text"} onValueChange={(v) => patch("footer_mode", v)} options={FOOTER_MODES} className="field" data-testid="pdf-footer-mode" />
+            </Row>
+            <Row label={<>Bagian dokumen<Diff k="sections" /></>} hint="Sembunyikan bagian — angka tetap milik mesin, hanya tidak dicetak.">
+              <div className="grid gap-1.5">
+                {SECTION_LABELS.map(([k, lbl]) => (
+                  <Toggle key={k} label={lbl} checked={sec[k] !== false} onChange={(v) => patchNested("sections", k, v)} testId={`pdf-section-${k}`} />
+                ))}
+              </div>
+            </Row>
             <Row label="Ukuran Kertas">
               <KNSelect value={cf.paper_size || "A4"} onValueChange={(v) => patch("paper_size", v)}
                 options={PAPER_SIZES} className="field" data-testid="pdf-paper-size" />
@@ -131,6 +188,9 @@ export default function PdfEditorTabs({
               <textarea className="form-input min-h-[60px]" value={branding?.address || ""}
                 onChange={(e) => patchBranding("address", e.target.value)} data-testid="pdf-brand-address" />
             </Row>
+            <Row label="Tagline (opsional)">
+              <input type="text" className="form-input" value={branding?.tagline || ""} onChange={(e) => patchBranding("tagline", e.target.value)} data-testid="pdf-brand-tagline" placeholder="mis. Tekstil Nusantara Berkualitas" />
+            </Row>
             <div className="grid grid-cols-2 gap-2">
               <Row label="Telepon">
                 <input type="text" className="form-input" value={branding?.phone || ""}
@@ -140,7 +200,16 @@ export default function PdfEditorTabs({
                 <input type="text" className="form-input" value={branding?.npwp || ""}
                   onChange={(e) => patchBranding("npwp", e.target.value)} data-testid="pdf-brand-npwp" />
               </Row>
+              <Row label="Email">
+                <input type="text" className="form-input" value={branding?.email || ""} onChange={(e) => patchBranding("email", e.target.value)} data-testid="pdf-brand-email" />
+              </Row>
+              <Row label="Website">
+                <input type="text" className="form-input" value={branding?.website || ""} onChange={(e) => patchBranding("website", e.target.value)} data-testid="pdf-brand-website" />
+              </Row>
             </div>
+            <ImageUpload label="Gambar kop (mode 'Gambar kop')" hint="PNG/JPG lebar penuh, ≤ 1 MB. Dipakai bila Layout → Mode kop = Gambar." src={img("header_image_b64")} onFile={(f) => onImageFile("header_image_b64", f)} onRemove={() => onImageFile("header_image_b64", null)} testId="pdf-brand-header-image" />
+            <ImageUpload label="Gambar footer (mode 'Gambar footer')" hint="Strip bawah halaman, ≤ 1 MB." src={img("footer_image_b64")} onFile={(f) => onImageFile("footer_image_b64", f)} onRemove={() => onImageFile("footer_image_b64", null)} testId="pdf-brand-footer-image" />
+            <ImageUpload label="Cap perusahaan (stempel)" hint="PNG transparan; muncul di slot tanda tangan yang mencentang 'Cap'." src={img("stamp_b64")} onFile={(f) => onImageFile("stamp_b64", f)} onRemove={() => onImageFile("stamp_b64", null)} testId="pdf-brand-stamp" />
             <Row label="Logo" hint="PNG/JPG, disarankan < 200 KB. Disimpan sebagai base64.">
               <div className="flex items-center gap-3">
                 <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-md border border-[#E5E6EB] bg-[#F7F8FA]">
@@ -184,6 +253,25 @@ export default function PdfEditorTabs({
             </Row>
           </TabsContent>
 
+          {/* ── TABEL (gaya tabel rincian) ─────────────────── */}
+          <TabsContent value="tabel" className="grid gap-3 mt-0">
+            <Row label={<>Garis tabel<Diff k="table" /></>} hint="Transparan cocok untuk kertas berkop dengan garis cetakan sendiri.">
+              <KNSelect value={tb.grid || "full"} onValueChange={(v) => patchNested("table", "grid", v)} options={TABLE_GRIDS} className="field" data-testid="pdf-table-grid" />
+            </Row>
+            <Toggle label="Cetak nama kolom (kepala tabel)" checked={tb.show_header !== false} onChange={(v) => patchNested("table", "show_header", v)} testId="pdf-table-show-header" />
+            <Toggle label="Kepala tabel berwarna aksen" checked={tb.header_fill !== false} onChange={(v) => patchNested("table", "header_fill", v)} testId="pdf-table-header-fill" />
+            <Toggle label="Baris belang (zebra)" checked={!!tb.zebra} onChange={(v) => patchNested("table", "zebra", v)} testId="pdf-table-zebra" />
+            <Toggle label="Sorot baris total" checked={tb.total_highlight !== false} onChange={(v) => patchNested("table", "total_highlight", v)} testId="pdf-table-total-highlight" />
+            <div className="grid grid-cols-2 gap-2">
+              <Row label="Ukuran huruf tabel (pt)">
+                <input type="number" min="6" max="14" step="0.5" className="form-input" value={tb.font_size ?? 9} onChange={(e) => patchNested("table", "font_size", Number(e.target.value))} data-testid="pdf-table-font-size" />
+              </Row>
+              <Row label="Warna garis">
+                <ColorField value={tb.grid_color || "#bbbbbb"} onChange={(v) => patchNested("table", "grid_color", v)} testId="pdf-table-grid-color" />
+              </Row>
+            </div>
+          </TabsContent>
+
           {/* ── FIELD (custom + hidden) ────────────────────── */}
           <TabsContent value="field" className="grid gap-3 mt-0">
             <div className="flex items-center justify-between">
@@ -214,10 +302,11 @@ export default function PdfEditorTabs({
             {sigs.length === 0 && <p className="text-[11.5px] text-[#9A9BA3]">Kosong = pakai slot tanda tangan bawaan dokumen. Tambahkan untuk override.</p>}
             <div className="grid gap-2">
               {sigs.map((r, i) => (
-                <div key={i} className="grid grid-cols-[1fr_1fr_1fr_auto] items-center gap-2" data-testid={`pdf-sig-row-${i}`}>
+                <div key={i} className="grid grid-cols-[1fr_1fr_1fr_auto_auto] items-center gap-2" data-testid={`pdf-sig-row-${i}`}>
                   <input className="form-input" placeholder="Label (mis. Hormat kami)" value={r.label} onChange={(e) => updSig(i, "label", e.target.value)} />
                   <input className="form-input" placeholder="Peran (mis. finance)" value={r.role} onChange={(e) => updSig(i, "role", e.target.value)} />
                   <input className="form-input" placeholder="Nama" value={r.name} onChange={(e) => updSig(i, "name", e.target.value)} />
+                  <label className="flex items-center gap-1 text-[10.5px] whitespace-nowrap" title="Tempel cap perusahaan di slot ini"><input type="checkbox" checked={!!r.show_stamp} onChange={(e) => updSig(i, "show_stamp", e.target.checked)} data-testid={`pdf-sig-stamp-${i}`} /> Cap</label>
                   <button type="button" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-[#EDEEF1] text-[#C0392B] transition-colors hover:bg-[#FDECEA]" onClick={() => delSig(i)} data-testid={`pdf-sig-del-${i}`} aria-label="Hapus"><Trash2 size={15} /></button>
                 </div>
               ))}
@@ -226,6 +315,12 @@ export default function PdfEditorTabs({
 
           {/* ── FOOTER / WATERMARK ─────────────────────────── */}
           <TabsContent value="footer" className="grid gap-3 mt-0">
+            <Toggle label="Nomor halaman (Hal. 1 / 2)" checked={cf.show_page_numbers !== false} onChange={(v) => patch("show_page_numbers", v)} testId="pdf-show-page-numbers" />
+            <Toggle label="Tempat & tanggal sebelum tanda tangan" hint="mis. 'Bandung, 03 Sep 2026'" checked={!!cf.show_place_date} onChange={(v) => patch("show_place_date", v)} testId="pdf-show-place-date" />
+            {cf.show_place_date && <Row label="Tempat"><input className="form-input" value={cf.place || ""} onChange={(e) => patch("place", e.target.value)} placeholder="Bandung" data-testid="pdf-place" /></Row>}
+            <Toggle label="Catatan meterai di slot tanda tangan pertama" checked={!!cf.show_materai} onChange={(v) => patch("show_materai", v)} testId="pdf-show-materai" />
+            {cf.show_materai && <Row label="Teks meterai"><input className="form-input" value={cf.materai_note || ""} onChange={(e) => patch("materai_note", e.target.value)} data-testid="pdf-materai-note" /></Row>}
+            <Toggle label="Catatan 'dihasilkan oleh sistem' di kaki dokumen" checked={!!cf.show_generated_note} onChange={(v) => patch("show_generated_note", v)} testId="pdf-show-generated-note" />
             <Row label="Teks Footer" hint="Muncul di bagian bawah setiap halaman.">
               <input className="form-input" value={cf.footer_text || ""} onChange={(e) => patch("footer_text", e.target.value)}
                 placeholder="mis. Dokumen ini sah tanpa tanda tangan basah." data-testid="pdf-footer-text" />
@@ -234,6 +329,9 @@ export default function PdfEditorTabs({
               <input className="form-input" value={cf.watermark_text || ""} onChange={(e) => patch("watermark_text", e.target.value)}
                 placeholder="mis. SALINAN / LUNAS" data-testid="pdf-watermark-text" />
             </Row>
+            {cf.watermark_text && <Row label={`Ketebalan watermark (${cf.watermark_opacity ?? 6}%)`}>
+              <input type="range" min="1" max="40" value={cf.watermark_opacity ?? 6} onChange={(e) => patch("watermark_opacity", Number(e.target.value))} data-testid="pdf-watermark-opacity" className="w-full" />
+            </Row>}
           </TabsContent>
         </div>
       </Tabs>

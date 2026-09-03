@@ -256,3 +256,14 @@ tersisa action items minor).
 - Lintas modul: X-1 label Indonesia matriks izin (`config/auditLabels.js`), X-2 label aksi audit + render bertahap 50,
   X-3 tooltip sidebar, X-4 lencana `FB-2`, X-5 divisi Logistik.
 - Perbaikan ikutan (temuan iter293): `ConfirmHost` kini meneruskan `description`; bootstrap peran sempit tidak memanggil master tanpa izin.
+
+## 2026-09-03 — Sesi #086: Penomoran atomik (D-01) · KNDatePicker ETA · Template PDF paritas sipro ✅
+- **D-01**: `next_doc_number` mode bersama kini sequence atomik (`number_sequences` `__shared__`, disemai dari nomor tertinggi);
+  `customers`/`crm`/`invoices` tidak lagi `count()+1`; index unik `(entity_id, doc_type)`; gate INV-NUM-01/02. 40× serempak → 40 unik.
+- **ETA**: `components/KNDatePicker.jsx` (Popover+Calendar, locale `id`, ISO ↔ "Sel, 15 Sep 2026") dipakai di detail/buat pengiriman;
+  tabel & panel sopir menampilkan tanggal Indonesia.
+- **Template PDF** (analisis `memory/ANALISIS_TEMPLATE_PDF_SIPRO_2026-09-03.md`): lapisan `__default__` → override per jenis (diff saja),
+  `GET/PUT/DELETE /api/pdf/templates[/{code}]`, `validate-script`, naskah pembuka/penutup ber-placeholder tervalidasi (400 bila asing),
+  gaya tabel, bagian dokumen on/off, mode kop/footer (sistem/gambar/tanpa), nomor halaman, tempat-tanggal, meterai, cap, catatan sistem,
+  branding + tagline/email/website/gambar kop/footer/cap, versi + audit. UI: tab Naskah (chip + peringatan hidup) & Tabel, info lapisan, reset via server.
+- Bukti: `test_reports/iteration_294.json` (100% backend & UI), gate 248 PASS.

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import KNDatePicker from "../../components/KNDatePicker";
 import { X } from "lucide-react";
 import KNSelect from "../../components/KNSelect";
 import { createDelivery, listDrivers, unassignedShipments } from "./logisticsApi";
@@ -69,7 +70,7 @@ export default function DeliveryCreateModal({ params, onClose, onCreated }) {
             <KNSelect data-testid="logistics-mode" value={mode} onValueChange={setMode} className="field"
               options={[{ value: "expedition", label: "Ekspedisi (pihak ketiga)" }, { value: "own_fleet", label: "Armada sendiri" }]} /></div>
           <div className="grid gap-1"><label className="text-[11px] font-bold uppercase text-[#6B6B73]">ETA (perkiraan tiba)</label>
-            <input data-testid="logistics-eta" type="date" className="form-input" value={f.eta} onChange={set("eta")} /></div>
+            <KNDatePicker data-testid="logistics-eta" value={f.eta} onChange={(v) => setF((x) => ({ ...x, eta: v }))} placeholder="Pilih tanggal ETA" /></div>
           {mode === "expedition" ? (<>
             <div className="grid gap-1"><label className="text-[11px] font-bold uppercase text-[#6B6B73]">Ekspedisi</label>
               <input data-testid="logistics-courier" className="form-input" placeholder="mis. JNE, SiCepat, Indah Cargo" value={f.courier_name} onChange={set("courier_name")} /></div>

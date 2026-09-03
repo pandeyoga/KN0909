@@ -6,7 +6,7 @@ from fastapi.responses import Response, HTMLResponse
 from pydantic import BaseModel
 
 from db import db
-from dependencies import require_permission
+from dependencies import require_permission, audit
 from entity_scope import entity_ctx, assert_entity_access, resolve_list_scope
 from services import pdf_service as svc
 from services.pdf_resolvers import DOC_REGISTRY
@@ -48,10 +48,16 @@ class TemplateSave(BaseModel):
 
 class BrandingSave(BaseModel):
     company_name: str | None = None
+    tagline: str | None = None
     address: str | None = None
     phone: str | None = None
+    email: str | None = None
+    website: str | None = None
     npwp: str | None = None
     logo_b64: str | None = None
+    header_image_b64: str | None = None
+    footer_image_b64: str | None = None
+    stamp_b64: str | None = None
     signatures: List[Dict[str, Any]] | None = None
 
 
@@ -169,22 +175,59 @@ async def list_documents(doc_type: str, request: Request,
             "trace_type": trace_type, "documents": out}
 
 
+def _known(doc_type: str) -> None:
+    if doc_type != svc.DEFAULT_CODE and doc_type not in DOC_REGISTRY:
+        raise HTTPException(status_code=404, detail="Jenis dokumen tidak dikenal")
+
+
+@router.get("/templates")
+async def list_templates(request: Request) -> Dict[str, Any]:
+    """Semua jenis dokumen + mana yang sudah disetel (pola sipro `list_targets`)."""
+    await require_permission(request, "pdf_template", "view")
+    return {"data": await svc.list_templates(),
+            "placeholders": [{"token": k, "label": v} for k, v in svc.PLACEHOLDERS.items()]}
+
+
 @router.get("/templates/{doc_type}")
 async def get_template(doc_type: str, request: Request) -> Dict[str, Any]:
     await require_permission(request, "pdf_template", "view")
-    if doc_type not in DOC_REGISTRY:
-        raise HTTPException(status_code=404, detail="Jenis dokumen tidak dikenal")
+    _known(doc_type)
     return {"doc_type": doc_type, "config": await svc.get_template_cfg(doc_type),
-            "defaults": svc.DEFAULT_TEMPLATE_CFG}
+            "defaults": svc.DEFAULT_TEMPLATE_CFG, "meta": await svc.template_meta(doc_type),
+            "default_effective": await svc.get_template_cfg(svc.DEFAULT_CODE),
+            "placeholders": [{"token": k, "label": v} for k, v in svc.PLACEHOLDERS.items()]}
 
 
 @router.put("/templates/{doc_type}")
 async def put_template(doc_type: str, payload: TemplateSave, request: Request) -> Dict[str, Any]:
     actor = await require_permission(request, "pdf_template", "manage")
-    if doc_type not in DOC_REGISTRY:
-        raise HTTPException(status_code=404, detail="Jenis dokumen tidak dikenal")
-    cfg = await svc.save_template_cfg(doc_type, payload.config, actor.get("name", ""))
-    return {"doc_type": doc_type, "config": cfg}
+    _known(doc_type)
+    try:
+        cfg = await svc.save_template_cfg(doc_type, payload.config, actor.get("name", ""))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    meta = await svc.template_meta(doc_type)
+    await audit(actor["name"], "pdf_template_saved", "pdf_templates", doc_type,
+                {"version": meta.get("version"), "override_keys": meta.get("override_keys")})
+    return {"doc_type": doc_type, "config": cfg, "meta": meta}
+
+
+@router.delete("/templates/{doc_type}")
+async def reset_template(doc_type: str, request: Request) -> Dict[str, Any]:
+    """Kembalikan ke bawaan (buang override). Dokumen yang sudah terbit tidak berubah."""
+    actor = await require_permission(request, "pdf_template", "manage")
+    _known(doc_type)
+    cfg = await svc.reset_template_cfg(doc_type)
+    await audit(actor["name"], "pdf_template_reset", "pdf_templates", doc_type, {})
+    return {"doc_type": doc_type, "config": cfg, "meta": await svc.template_meta(doc_type)}
+
+
+@router.post("/templates/validate-script")
+async def validate_script(payload: Dict[str, Any], request: Request) -> Dict[str, Any]:
+    """Peringatan token asing HIDUP saat mengetik (tanpa menyimpan)."""
+    await require_permission(request, "pdf_template", "view")
+    text = str(payload.get("text") or "")
+    return {"unknown": svc.unknown_tokens(text), "ok": not svc.unknown_tokens(text)}
 
 
 @router.get("/branding/{entity_id}")

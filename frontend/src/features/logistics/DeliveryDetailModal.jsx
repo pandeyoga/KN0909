@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { X, Camera, MapPin, CheckCircle2, Truck, PackageCheck, Flag, AlertTriangle, RotateCcw, Save, LocateFixed, Navigation, Phone, MessageCircle, ExternalLink } from "lucide-react";
 import { askConfirm, askReason } from "../../services/confirmService";
+import KNDatePicker, { formatDateId } from "../../components/KNDatePicker";
 import { useEscapeClose } from "../../utils/escapeLayers";
 import DeliveryPhoto from "./DeliveryPhoto";
 import PositionMap from "./PositionMap";
@@ -192,8 +193,10 @@ export default function DeliveryDetailModal({ id, canManage, canUpdate, canOpenO
 function Field({ label, k, type = "text", edit, setEdit, editable, d }) {
   return (
     <div className="grid gap-1"><label className="text-[10.5px] font-bold uppercase text-[#6B6B73]">{label}</label>
-      {editable ? <input data-testid={`logistics-edit-${k}`} type={type} className="form-input" value={edit?.[k] || ""} onChange={(e) => setEdit({ ...edit, [k]: e.target.value })} />
-        : <p className="text-[12px] font-semibold" data-testid={`logistics-val-${k}`}>{d[k] || "—"}</p>}
+      {editable ? (type === "date"
+        ? <KNDatePicker data-testid={`logistics-edit-${k}`} value={edit?.[k] || ""} onChange={(v) => setEdit({ ...edit, [k]: v })} placeholder="Pilih tanggal ETA" />
+        : <input data-testid={`logistics-edit-${k}`} type={type} className="form-input" value={edit?.[k] || ""} onChange={(e) => setEdit({ ...edit, [k]: e.target.value })} />)
+        : <p className="text-[12px] font-semibold" data-testid={`logistics-val-${k}`}>{type === "date" ? (d[k] ? formatDateId(d[k]) : "—") : (d[k] || "—")}</p>}
     </div>
   );
 }

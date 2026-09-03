@@ -1,0 +1,27 @@
+{
+  "summary": "Iterasi 294 — Verified (1) D-01 atomic document numbering, (2) layered PDF template config + render, (3) Logistics ETA KNDatePicker. Backend: 6/6 pytest passed (40x concurrent shared next_doc_number → 40 unique sequential QA-xxxxx; 30x per-entity → 30 unique KSC/SO-xxxxx; 2 rapid POST /api/customers → distinct CUST- codes; PDF template layering __default__→invoice diff-only override, unknown placeholder → 400, validate-script, DELETE reset; preview HTML with intro/place-date/materai/kop-none/zebra/no-thead; render PDF %PDF; branding tagline/email/website in system header; regression GET /api/logistics/deliveries + /api/pdf/doc-types 200). scripts/verify_data_integrity.py: 248 PASS / 0 FAIL incl. INV-NUM-01/02. Frontend: PDF Designer layering UI (default label, layer info, naskah unknown-token warning, chip insert, save→v1 chip, invoice override listing color_primary, reset via confirm-modal, preview iframe renders) and Logistics ETA picker (button + Indonesian popover, 'Sel, 15 Sep 2026', read-only 'Kam, 01 Jan 2026', table '01 Jan 2026', create modal same picker, zero native input[type=date]) all working. All test-created data cleaned (pdf_templates empty, QA customers deleted, branding cleared).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_iter294_numbering_pdf.py", "/app/test_reports/pytest/iter294_results.xml"],
+  "action_items": [
+    "OPTIONAL testability: in PdfEditorTabs ColorField the data-testid sits on input[type=color]; the adjacent hex TEXT input has no testid (spec asked for 'pdf-color-primary text input'). Add e.g. `${testId}-hex`.",
+    "OPTIONAL: pdf-msg success banner disappears too fast to assert reliably (~<4s); pdf-meta-version chip was used instead."
+  ],
+  "critical_code_review_comments": [
+    "Placeholder syntax is DOUBLE brace ({{nomor}}) in backend PLACEHOLDERS/_TOKEN_RE and in PdfScriptTab; the review request text used single braces. Single-brace text is silently ignored (no 400) — spec/doc wording should be aligned, code is consistent.",
+    "pdf_service.template_meta() runs two find_one queries on the same doc (one excluding config, one including it) — collapse into one read.",
+    "routers/pdf.py preview/render wrap all exceptions into 500 with raw message; a missing/unknown source currently surfaces as 500 instead of 404 for LookupError/ValueError from build_document."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter294_numbering_pdf.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "Temporary only: 2 customers (QA Cust A/B) deleted; qa_docs number_sequences removed; pdf_templates overrides deleted; branding tagline/email/website reset to ''. Ent SO sequence advanced by 30 (harmless, per-entity counter).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin@kainnusantara.id / demo12345 (scope-pick-ent_ksc)",
+  "context_for_next_testing_agent": "Seed deliveries: lgs_1295d5500b26 (KSC/LG-00008, in_transit → ETA editable) and lgs_c957aee03929 (KSC/LG-00007, delivered → read-only ETA 01 Jan 2026). Create-shipment list is empty, so POST create flow cannot be exercised from UI. Logistics create button testid is `logistics-create-button` (not `logistics-create`). PDF designer tabs: pdf-tab-{naskah,layout,kop,typografi,tabel,field,ttd,footer}; doctype select is a KNSelect combobox → use pdf-doctype-select-option-{invoice|__default__}. Backend numbering test must use pymongo for cleanup (motor loop closes after asyncio.run).",
+  "rca_of_the_issue": "N/A — no defects found. Concurrency safety confirmed: shared-mode next_doc_number now uses an atomic find_one_and_update on number_sequences (entity_id='__shared__'), seeded once from the highest existing number."
+}

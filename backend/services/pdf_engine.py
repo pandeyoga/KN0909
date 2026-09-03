@@ -78,11 +78,31 @@ MASTER_TEMPLATE = r"""
 <!doctype html><html lang="id"><head><meta charset="utf-8"/>
 <style>
   @page { size: {{ cfg.paper_size }} {{ cfg.orientation }}; margin: {{ cfg.margin_top }}mm {{ cfg.margin_right }}mm {{ cfg.margin_bottom }}mm {{ cfg.margin_left }}mm;
-    {% if cfg.footer_text %}@bottom-center { content: "{{ cfg.footer_text }}"; font-size: 8pt; color:#888; }{% endif %}
+    {% if cfg.footer_text and cfg.footer_mode != 'none' and cfg.footer_mode != 'image' %}@bottom-center { content: "{{ cfg.footer_text }}"; font-size: 8pt; color:#888; }{% endif %}
+    {% if cfg.show_page_numbers %}@bottom-right { content: "Hal. " counter(page) " / " counter(pages); font-size: 7.5pt; color:#999; }{% endif %}
   }
   * { box-sizing: border-box; }
   body { font-family: {{ cfg.font_family }}, Arial, sans-serif; color:#1a1a1a; font-size: {{ cfg.font_size }}pt; margin:0; position:relative; }
-  {% if cfg.watermark_text or doc.watermark %}.watermark { position:fixed; top:42%; left:0; right:0; text-align:center; font-size:72pt; color:{{ cfg.color_primary }}; opacity:0.06; transform:rotate(-24deg); font-weight:800; z-index:0; }{% endif %}
+  {% if cfg.watermark_text or doc.watermark %}.watermark { position:fixed; top:42%; left:0; right:0; text-align:center; font-size:72pt; color:{{ cfg.color_primary }}; opacity:{{ ((cfg.watermark_opacity or 6) | float) / 100 }}; transform:rotate(-24deg); font-weight:800; z-index:0; }{% endif %}
+  .kop-image img { width:100%; max-height:120px; object-fit:contain; display:block; }
+  .kop-image { border-bottom:3px solid {{ cfg.color_primary }}; padding-bottom:6px; }
+  .kop-none { height:{{ cfg.header_spacer_mm or 0 }}mm; }
+  .footer-image { position:fixed; bottom:0; left:0; right:0; }
+  .footer-image img { width:100%; max-height:60px; object-fit:contain; display:block; }
+  .intro, .closing { font-size:9.5pt; color:#222; margin:10px 0; line-height:1.5; white-space:pre-wrap; }
+  .closing { margin-top:12px; }
+  .place-date { text-align:right; font-size:9.5pt; margin-top:14px; }
+  .materai { font-size:8pt; color:#666; border:1px dashed #999; padding:2px 6px; display:inline-block; margin-top:4px; }
+  .sign .space { position:relative; }
+  .sign .space img.stamp { position:absolute; left:50%; top:50%; transform:translate(-40%,-50%) rotate(-8deg); max-height:64px; max-width:110px; opacity:.85; }
+  .generated { font-size:7.5pt; color:#999; margin-top:14px; text-align:center; }
+  {% set tb = cfg.table or {} %}
+  table.items { font-size:{{ tb.font_size or 9 }}pt; }
+  table.items th, table.items td { font-size:{{ tb.font_size or 9 }}pt;
+    {% if tb.grid == 'none' %}border:none; border-bottom:1px solid transparent;{% elif tb.grid == 'horizontal' %}border:none; border-bottom:1px solid {{ tb.grid_color or '#bbb' }};{% else %}border:1px solid {{ tb.grid_color or '#bbb' }};{% endif %} }
+  {% if not tb.header_fill %}table.items th { background:transparent; }{% endif %}
+  {% if tb.zebra %}table.items tbody tr:nth-child(even) td { background:#F5F6F8; }{% endif %}
+  {% if tb.total_highlight %}.totals .row.strong { background:{{ cfg.color_primary }}0F; padding:5px 6px; border-radius:4px; }{% endif %}
   .content { position:relative; z-index:1; }
   .kop { display:flex; align-items:center; gap:14px; border-bottom:3px solid {{ cfg.color_primary }}; padding-bottom:10px; }
   .kop img { max-width:64px; max-height:64px; object-fit:contain; }
@@ -130,13 +150,21 @@ MASTER_TEMPLATE = r"""
 </style></head><body>
   {% if cfg.watermark_text or doc.watermark %}<div class="watermark">{{ cfg.watermark_text or doc.watermark }}</div>{% endif %}
   <div class="content">
+    {% if cfg.header_mode == 'image' and branding.header_image_src %}
+    <div class="kop-image"><img src="{{ branding.header_image_src }}"/></div>
+    {% elif cfg.header_mode == 'none' %}
+    <div class="kop-none"></div>
+    {% else %}
     <div class="kop">
       {% if cfg.show_logo and branding.logo_src %}<img src="{{ branding.logo_src }}"/>{% endif %}
       <div style="flex:1">
         <div class="co">{{ branding.company_name }}</div>
-        <div class="addr">{{ branding.address }}{% if branding.phone %} · Telp {{ branding.phone }}{% endif %}{% if branding.npwp %} · NPWP {{ branding.npwp }}{% endif %}</div>
+        {% if branding.tagline %}<div class="addr" style="font-style:italic">{{ branding.tagline }}</div>{% endif %}
+        <div class="addr">{{ branding.address }}{% if branding.phone %} · Telp {{ branding.phone }}{% endif %}{% if branding.email %} · {{ branding.email }}{% endif %}{% if branding.website %} · {{ branding.website }}{% endif %}{% if branding.npwp %} · NPWP {{ branding.npwp }}{% endif %}</div>
       </div>
     </div>
+    {% endif %}
+    {% if cfg.footer_mode == 'image' and branding.footer_image_src %}<div class="footer-image"><img src="{{ branding.footer_image_src }}"/></div>{% endif %}
     <div class="doctitle">{{ doc.title }}</div>
     <div class="docno">No. <b>{{ doc.number }}</b>{% if doc.date %} · {{ doc.date }}{% endif %}{% if doc.status %} · <span class="status-chip">{{ doc.status }}</span>{% endif %}</div>
 
@@ -159,6 +187,8 @@ MASTER_TEMPLATE = r"""
     </div>
     {% endif %}
 
+    {% if doc.intro_text %}<div class="intro">{{ doc.intro_text }}</div>{% endif %}
+
     {% if doc.meta %}
     <div class="meta">
       {% for m in doc.meta %}<div class="row"><span class="k">{{ m.label }}</span><span class="v">{{ m.value }}</span></div>{% endfor %}
@@ -167,7 +197,7 @@ MASTER_TEMPLATE = r"""
 
     {% if doc.columns and doc['items'] %}
     <table class="items">
-      <thead><tr>{% for c in doc.columns %}<th class="{{ c.align }}">{{ c.label }}</th>{% endfor %}</tr></thead>
+      {% if (cfg.table or {}).get('show_header', True) %}<thead><tr>{% for c in doc.columns %}<th class="{{ c.align }}">{{ c.label }}</th>{% endfor %}</tr></thead>{% endif %}
       <tbody>
         {% for it in doc['items'] %}<tr>{% for c in doc.columns %}<td class="{{ c.align }}">{{ it.get(c.key, '') }}</td>{% endfor %}</tr>{% endfor %}
       </tbody>
@@ -183,14 +213,17 @@ MASTER_TEMPLATE = r"""
 
     {% if cfg.show_terbilang and doc.terbilang %}<div class="terbilang">Terbilang: <b>{{ doc.terbilang }}</b></div>{% endif %}
     {% if doc.notes %}<div class="notes"><b>Catatan:</b> {{ doc.notes }}</div>{% endif %}
+    {% if doc.closing_note %}<div class="closing">{{ doc.closing_note }}</div>{% endif %}
+    {% if doc.place_date %}<div class="place-date">{{ doc.place_date }}</div>{% endif %}
 
     {% if doc.signatures %}
     <div class="signs">
       {% for s in doc.signatures %}
-      <div class="sign"><div class="role">{{ s.label }}</div><div class="space">{% if s.signature_src %}<img src="{{ s.signature_src }}"/>{% endif %}</div><div class="nm">{{ s.name or '(&nbsp;.................&nbsp;)' | safe }}{% if s.role %}<br/><span style="color:#888">{{ s.role }}</span>{% endif %}</div></div>
+      <div class="sign"><div class="role">{{ s.label }}</div>{% if cfg.show_materai and loop.first %}<div class="materai">{{ cfg.materai_note or 'Bermeterai cukup' }}</div>{% endif %}<div class="space">{% if s.stamp_src %}<img class="stamp" src="{{ s.stamp_src }}"/>{% endif %}{% if s.signature_src %}<img src="{{ s.signature_src }}"/>{% endif %}</div><div class="nm">{{ s.name or '(&nbsp;.................&nbsp;)' | safe }}{% if s.role %}<br/><span style="color:#888">{{ s.role }}</span>{% endif %}</div></div>
       {% endfor %}
     </div>
     {% endif %}
+    {% if cfg.show_generated_note %}<div class="generated">Dokumen ini dihasilkan oleh sistem Kain Nusantara{% if doc.number %} · {{ doc.number }}{% endif %}.</div>{% endif %}
 
     {% if doc.esign %}
     <div class="esign">

@@ -150,10 +150,11 @@ async def convert_lead(lead_id: str, actor: Dict[str, Any],
             return None, "Pelanggan tujuan tidak ditemukan."
         customer_id = existing_customer_id
     else:
-        count = await db.customers.count_documents({}) + 1
+        from core_utils import next_doc_number as _ndn
+        cust_code = await _ndn("customers", "code", "CUST-", width=4)   # D-01
         customer = {
             "id": new_id("cust"),
-            "code": f"CUST-{count:04d}",
+            "code": cust_code,
             "name": lead.get("company") or lead.get("name") or "Pelanggan Baru",
             "pic_name": lead.get("name", ""),
             "phone": lead.get("phone", ""),

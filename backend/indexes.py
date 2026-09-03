@@ -363,6 +363,13 @@ async def ensure_performance_indexes() -> dict:
                 failed += 1
                 logger.warning("[indexes] %s.%s gagal: %s", collection, name, exc)
     summary = {"created": created, "existed": existed, "failed": failed}
+    # D-01 — kunci UNIK pada sequence nomor: dua proses tak bisa membuat counter kembar.
+    try:
+        await db.number_sequences.create_index(
+            [("entity_id", ASCENDING), ("doc_type", ASCENDING)],
+            name="uq_entity_doctype", unique=True, background=True)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("[indexes] number_sequences unique gagal: %s", exc)
     logger.info(
         "[indexes] performance indexes → created=%d existed=%d failed=%d",
         created, existed, failed,

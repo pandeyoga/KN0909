@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { ArrowUpDown, ArrowUp, ArrowDown, Camera, MapPin, ExternalLink, ChevronRight, AlertTriangle } from "lucide-react";
 import { STATUS_PILL, todayWib } from "./logisticsApi";
+import { formatDateId } from "../../components/KNDatePicker";
 import { openOrderJourney } from "./logisticsDeepLink";
 
 // Tabel pengiriman: kolom bisa diurutkan, baris → detail (klik / Enter), tautan ke Pesanan,
@@ -66,7 +67,7 @@ export default function DeliveryTable({ rows, onOpen, canOpenOrder }) {
                 <td className="text-[11.5px]">{d.mode_label}</td>
                 <td className="text-[11.5px]">{carrier(d)}</td>
                 <td className={`text-[11.5px] tabular-nums ${isLate(d) ? "text-[#C0341D] font-bold" : ""}`} data-testid={`logistics-eta-${d.id}`}>
-                  {d.eta || "—"}{isLate(d) && <span className="ml-1 inline-flex items-center gap-0.5 text-[9.5px]" title="Melewati ETA"><AlertTriangle size={10} /> terlambat</span>}
+                  {d.eta ? formatDateId(d.eta, "dd MMM yyyy") : "—"}{isLate(d) && <span className="ml-1 inline-flex items-center gap-0.5 text-[9.5px]" title="Melewati ETA"><AlertTriangle size={10} /> terlambat</span>}
                 </td>
                 <td className="text-[11px] text-[#6B6B73]">{d.last_position ? <span className="flex items-center gap-1"><MapPin size={11} />{d.last_position.location}</span> : "—"}</td>
                 <td className="text-[11px]"><span className="flex items-center gap-1"><Camera size={11} /> {d.photo_counts?.load || 0} muat · {d.photo_counts?.pod || 0} POD</span></td>

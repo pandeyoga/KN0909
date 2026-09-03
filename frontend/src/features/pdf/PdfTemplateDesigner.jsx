@@ -5,15 +5,24 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios, { API } from "../../services/apiClient";
 import KNSelect from "../../components/KNSelect";
 import PdfEditorTabs from "./PdfEditorTabs";
+import { DEFAULT_CODE } from "./pdfConstants";
+import { askConfirm } from "../../services/confirmService";
 import {
-  FileText, Download, Save, RotateCcw, Loader2, RefreshCw, FileWarning,
+  FileText, Download, Save, RotateCcw, Loader2, RefreshCw, FileWarning, Layers,
 } from "lucide-react";
 
 export default function PdfTemplateDesigner({ currentUser, selectedEntity, entities = [] }) {
-  const [docTypes, setDocTypes] = useState([]);
-  const [docType, setDocType] = useState("");
+  const [docTypes, setDocTypes] = useState([]);       // dari /pdf/templates (berlapis: __default__ + jenis)
+  const [docType, setDocType] = useState(DEFAULT_CODE);
   const [config, setConfig] = useState(null);
   const [defaults, setDefaults] = useState(null);
+  const [meta, setMeta] = useState(null);             // {customized, version, updated_at, updated_by, override_keys}
+  const [defaultEffective, setDefaultEffective] = useState(null);
+  const [placeholders, setPlaceholders] = useState([]);
+  const [newImages, setNewImages] = useState({});     // {header_image_b64|footer_image_b64|stamp_b64: dataURL|""}
+  const isDefault = docType === DEFAULT_CODE;
+  // Pratinjau __default__ memakai dokumen nyata jenis pertama yang punya data.
+  const previewDocType = isDefault ? (docTypes.find((d) => d.doc_type !== DEFAULT_CODE)?.doc_type || "invoice") : docType;
   const [entityId, setEntityId] = useState("");
   const [branding, setBranding] = useState(null);
   const [newLogo, setNewLogo] = useState(null);       // data-URL logo baru (belum disimpan)
@@ -32,7 +41,9 @@ export default function PdfTemplateDesigner({ currentUser, selectedEntity, entit
   const flash = useRef(null);
 
   const docTypeOptions = useMemo(
-    () => docTypes.map((d) => ({ value: d.doc_type, label: d.label })), [docTypes]);
+    () => docTypes.map((d) => ({ value: d.doc_type,
+      label: `${d.label}${d.customized ? " · disetel" : ""}`,
+      group: d.doc_type === DEFAULT_CODE ? "Bawaan" : (d.module || "Lainnya") })), [docTypes]);
   const entityOptions = useMemo(
     () => entities.map((e) => ({ value: e.id, label: e.legal_name || e.short_name || e.id })), [entities]);
 
@@ -50,16 +61,14 @@ export default function PdfTemplateDesigner({ currentUser, selectedEntity, entit
     setEntityId(initial);
   }, [entities, selectedEntity, entityId]);
 
-  // muat daftar doc types
-  useEffect(() => {
-    (async () => {
-      try {
-        const r = await axios.get(`${API}/pdf/doc-types`);
-        setDocTypes(r.data || []);
-        if (r.data?.length) setDocType((p) => p || r.data[0].doc_type);
-      } catch (e) { setErr(e.response?.data?.detail || "Gagal memuat daftar dokumen."); }
-    })();
+  // muat daftar jenis dokumen berlapis (+ status disetel/versi)
+  const loadTargets = useCallback(async () => {
+    try {
+      const r = await axios.get(`${API}/pdf/templates`);
+      setDocTypes(r.data.data || []); setPlaceholders(r.data.placeholders || []);
+    } catch (e) { setErr(e.response?.data?.detail || "Gagal memuat daftar dokumen."); }
   }, []);
+  useEffect(() => { loadTargets(); }, [loadTargets]);
 
   // muat template cfg saat docType berubah
   useEffect(() => {
@@ -67,7 +76,9 @@ export default function PdfTemplateDesigner({ currentUser, selectedEntity, entit
     (async () => {
       try {
         const r = await axios.get(`${API}/pdf/templates/${docType}`);
-        setConfig(r.data.config); setDefaults(r.data.defaults);
+        setConfig(r.data.config); setDefaults(r.data.defaults); setMeta(r.data.meta || null);
+        setDefaultEffective(r.data.default_effective || null);
+        if (r.data.placeholders) setPlaceholders(r.data.placeholders);
       } catch (e) { setErr(e.response?.data?.detail || "Gagal memuat template."); }
     })();
   }, [docType]);
@@ -75,7 +86,7 @@ export default function PdfTemplateDesigner({ currentUser, selectedEntity, entit
   // muat branding saat entitas berubah
   useEffect(() => {
     if (!entityId) return;
-    setNewLogo(null); setBrandingMsg(""); setBrandingErr("");
+    setNewLogo(null); setNewImages({}); setBrandingMsg(""); setBrandingErr("");
     (async () => {
       try {
         const r = await axios.get(`${API}/pdf/branding/${entityId}`);
@@ -86,14 +97,14 @@ export default function PdfTemplateDesigner({ currentUser, selectedEntity, entit
 
   // muat sample doc saat docType/entitas berubah
   useEffect(() => {
-    if (!docType) return;
+    if (!previewDocType) return;
     (async () => {
       try {
-        const r = await axios.get(`${API}/pdf/sample/${docType}`, { params: { entity_id: entityId || undefined } });
+        const r = await axios.get(`${API}/pdf/sample/${previewDocType}`, { params: { entity_id: entityId || undefined } });
         setSample(r.data);
       } catch (e) { setSample(null); }
     })();
-  }, [docType, entityId]);
+  }, [previewDocType, entityId]);
 
   // pratinjau debounced (config/docType/entity/sample/nonce)
   const cfgKey = config ? JSON.stringify(config) : "";
@@ -104,7 +115,7 @@ export default function PdfTemplateDesigner({ currentUser, selectedEntity, entit
     const t = setTimeout(async () => {
       try {
         const r = await axios.post(`${API}/pdf/preview`, {
-          doc_type: docType, source_id: sample.source_id,
+          doc_type: previewDocType, source_id: sample.source_id,
           entity_id: entityId || sample.entity_id, config,
         }, { headers: { Accept: "text/html" } });
         setPreviewHtml(typeof r.data === "string" ? r.data : String(r.data || ""));
@@ -114,7 +125,7 @@ export default function PdfTemplateDesigner({ currentUser, selectedEntity, entit
       } finally { setPreviewLoading(false); }
     }, 550);
     return () => clearTimeout(t);
-  }, [cfgKey, docType, entityId, sample?.source_id, previewNonce]); // eslint-disable-line
+  }, [cfgKey, previewDocType, entityId, sample?.source_id, previewNonce]); // eslint-disable-line
 
   const patch = useCallback((k, v) => setConfig((c) => ({ ...(c || {}), [k]: v })), []);
   const patchBranding = useCallback((k, v) => setBranding((b) => ({ ...(b || {}), [k]: v })), []);
@@ -129,14 +140,23 @@ export default function PdfTemplateDesigner({ currentUser, selectedEntity, entit
     setNewLogo("");                                   // "" = minta hapus saat simpan
     setBranding((b) => ({ ...(b || {}), logo_src: "" }));
   }, []);
+  // Gambar kop / footer / cap — null = hapus, dataURL = ganti (disimpan bersama branding)
+  const onImageFile = useCallback((key, file) => {
+    if (file === null) { setNewImages((m) => ({ ...m, [key]: "" })); return; }
+    if (file.size > 1024 * 1024) { setBrandingErr("Ukuran gambar maksimal 1 MB."); return; }
+    const reader = new FileReader();
+    reader.onload = () => { setNewImages((m) => ({ ...m, [key]: reader.result })); setBrandingErr(""); };
+    reader.readAsDataURL(file);
+  }, []);
 
   async function saveTemplate() {
     if (!docType || !config) return;
     setSavingTpl(true); setErr("");
     try {
       const r = await axios.put(`${API}/pdf/templates/${docType}`, { config });
-      setConfig(r.data.config);
-      flashMsg("Template tersimpan.");
+      setConfig(r.data.config); setMeta(r.data.meta || null);
+      flashMsg(isDefault ? "Bawaan seluruh dokumen tersimpan — semua jenis yang tidak menimpanya ikut berubah." : "Template tersimpan (hanya perbedaan dari bawaan yang disimpan).");
+      loadTargets();
     } catch (e) { setErr(e.response?.data?.detail || "Gagal menyimpan template."); }
     finally { setSavingTpl(false); }
   }
@@ -147,34 +167,49 @@ export default function PdfTemplateDesigner({ currentUser, selectedEntity, entit
     try {
       const payload = {
         company_name: branding?.company_name || "",
+        tagline: branding?.tagline || "",
         address: branding?.address || "",
         phone: branding?.phone || "",
+        email: branding?.email || "",
+        website: branding?.website || "",
         npwp: branding?.npwp || "",
       };
       if (newLogo !== null) payload.logo_b64 = newLogo; // data-url atau "" (hapus)
+      Object.entries(newImages).forEach(([k, v]) => { payload[k] = v; });
       const r = await axios.put(`${API}/pdf/branding/${entityId}`, payload);
-      setBranding(r.data); setNewLogo(null);
+      setBranding(r.data); setNewLogo(null); setNewImages({});
       setBrandingMsg("Branding tersimpan.");
       setPreviewNonce((n) => n + 1);                  // segarkan pratinjau (branding server-side)
     } catch (e) { setBrandingErr(e.response?.data?.detail || "Gagal menyimpan branding."); }
     finally { setSavingBrand(false); }
   }
 
-  function resetDefaults() {
-    if (defaults) { setConfig({ ...defaults }); flashMsg("Dikembalikan ke default (belum disimpan)."); }
+  async function resetDefaults() {
+    // Pola sipro: reset = BUANG override di server; dokumen yang sudah terbit tidak berubah.
+    const ok = await askConfirm({
+      title: isDefault ? "Kembalikan bawaan seluruh dokumen ke setelan pabrik?" : `Buang setelan khusus "${docTypes.find((d) => d.doc_type === docType)?.label || docType}"?`,
+      description: isDefault ? "Semua jenis dokumen yang tidak menimpanya akan kembali ke gaya pabrik. Dokumen yang sudah terbit tidak berubah."
+        : "Jenis dokumen ini akan kembali mengikuti bawaan seluruh dokumen. Dokumen yang sudah terbit tidak berubah.",
+      confirmLabel: "Kembalikan", danger: true });
+    if (!ok) return;
+    try {
+      const r = await axios.delete(`${API}/pdf/templates/${docType}`);
+      setConfig(r.data.config); setMeta(r.data.meta || null);
+      flashMsg("Dikembalikan ke bawaan."); loadTargets();
+    } catch (e) { setErr(e.response?.data?.detail || "Gagal mengembalikan ke bawaan."); }
   }
 
   async function downloadPdf() {
     if (!sample?.source_id) return;
     setDownloading(true); setErr("");
     try {
-      const r = await axios.get(`${API}/pdf/render/${docType}/${sample.source_id}`, {
+      const r = await axios.get(`${API}/pdf/render/${previewDocType}/${sample.source_id}`, {
         params: { format: "pdf", entity_id: entityId || sample.entity_id, download: true },
         responseType: "blob",
       });
       const blobUrl = URL.createObjectURL(r.data);
       const a = document.createElement("a");
-      a.href = blobUrl; a.download = `${docType}-${sample.number || sample.source_id}.pdf`;
+      a.href = blobUrl; a.download = `${previewDocType}-${sample.number || sample.source_id}.pdf`;
       document.body.appendChild(a); a.click(); a.remove();
       URL.revokeObjectURL(blobUrl);
       flashMsg("PDF diunduh.");
@@ -200,8 +235,9 @@ export default function PdfTemplateDesigner({ currentUser, selectedEntity, entit
               className="field !w-[220px]" placeholder="Pilih entitas…" data-testid="pdf-entity-select" />
           </div>
           <div className="ml-auto flex flex-wrap items-center gap-2">
-            <button className="btn-secondary flex items-center gap-1.5" onClick={resetDefaults} data-testid="pdf-reset-default">
-              <RotateCcw size={14} /> Reset Default
+            <button className="btn-secondary flex items-center gap-1.5" onClick={resetDefaults} data-testid="pdf-reset-default" disabled={!meta?.customized}
+              title={meta?.customized ? "Buang setelan & kembali ke bawaan" : "Belum ada setelan khusus"}>
+              <RotateCcw size={14} /> {isDefault ? "Setelan Pabrik" : "Ikuti Bawaan"}
             </button>
             <button className="btn-secondary flex items-center gap-1.5" onClick={downloadPdf}
               disabled={downloading || !hasSample} data-testid="pdf-download">
@@ -212,6 +248,15 @@ export default function PdfTemplateDesigner({ currentUser, selectedEntity, entit
               {savingTpl ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Simpan Template
             </button>
           </div>
+        </div>
+        <div className="px-4 pb-3 flex flex-wrap items-center gap-2 text-[11.5px]" data-testid="pdf-layer-info">
+          <Layers size={13} className="text-[#0058CC]" />
+          {isDefault ? (
+            <span className="text-[#3C3C43]">Gaya & kop di sini dipakai <b>SEMUA</b> dokumen. Pilih jenis dokumen untuk menimpanya (mis. kolom tanda tangan Surat Jalan berbeda dari Invoice).</span>
+          ) : (
+            <span className="text-[#3C3C43]">Hanya <b>perbedaan</b> dari bawaan yang disimpan untuk jenis ini{meta?.override_keys?.length ? <>: <span className="font-mono text-[10.5px]">{meta.override_keys.join(", ")}</span></> : " — saat ini mengikuti bawaan sepenuhnya"}.</span>
+          )}
+          {meta?.customized && <span className="ml-auto rounded-full bg-[#EAF2FF] px-2 py-0.5 text-[10.5px] font-semibold text-[#0058CC]" data-testid="pdf-meta-version">v{meta.version} · {String(meta.updated_at || "").slice(0, 16).replace("T", " ")} · {meta.updated_by}</span>}
         </div>
         {(msg || err) && (
           <div className="px-4 pb-3">
@@ -230,6 +275,8 @@ export default function PdfTemplateDesigner({ currentUser, selectedEntity, entit
             onLogoFile={onLogoFile} onRemoveLogo={onRemoveLogo} onSaveBranding={saveBranding}
             savingBrand={savingBrand} brandingMsg={brandingMsg} brandingErr={brandingErr}
             newLogoPreview={newLogo}
+            onImageFile={onImageFile} newImages={newImages} placeholders={placeholders}
+            defaultEffective={defaultEffective} isDefault={isDefault}
           />
         ) : (
           <section className="section-card"><div className="section-body text-[12px] text-[#9A9BA3] py-6">Memuat konfigurasi…</div></section>
@@ -239,7 +286,7 @@ export default function PdfTemplateDesigner({ currentUser, selectedEntity, entit
         <section className="section-card" data-testid="pdf-preview-pane">
           <div className="section-head flex items-center justify-between">
             <h2 className="text-[13px] font-bold flex items-center gap-2">
-              Pratinjau
+              Pratinjau{isDefault && <span className="text-[10.5px] font-normal text-[#9A9BA3]">(contoh: {docTypes.find((d) => d.doc_type === previewDocType)?.label || previewDocType})</span>}
               {sample?.number && <span className="rounded-full bg-[#EAF2FF] px-2 py-0.5 text-[10.5px] font-semibold text-[#0058CC]">{sample.number}</span>}
               {previewLoading && <Loader2 size={13} className="animate-spin text-[#0058CC]" />}
             </h2>

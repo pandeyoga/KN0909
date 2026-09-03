@@ -32,10 +32,35 @@ export const COLOR_PRESETS = [
   "#0058CC", "#007AFF", "#1F7A45", "#B7791F", "#6B219A", "#C0392B", "#1a1a1a", "#334155",
 ];
 
+export const DEFAULT_CODE = "__default__";
+
+export const HEADER_MODES = [
+  { value: "system", label: "Dirakit sistem (logo + identitas)" },
+  { value: "image", label: "Gambar kop buatan desainer" },
+  { value: "none", label: "Tanpa kop (kertas berkop cetakan)" },
+];
+export const FOOTER_MODES = [
+  { value: "text", label: "Teks footer" },
+  { value: "image", label: "Gambar footer" },
+  { value: "none", label: "Tanpa footer" },
+];
+export const TABLE_GRIDS = [
+  { value: "full", label: "Kotak penuh" },
+  { value: "horizontal", label: "Garis mendatar saja" },
+  { value: "none", label: "Transparan (tanpa garis)" },
+];
+export const SECTION_LABELS = [
+  ["parties", "Blok Dari / Kepada"], ["meta", "Info meta (tanggal, termin, dll.)"],
+  ["items", "Tabel rincian"], ["totals", "Ringkasan total"], ["notes", "Catatan"],
+  ["signatures", "Kolom tanda tangan"], ["refs", "Referensi dokumen (QR jejak)"],
+];
+
 export const EDITOR_TABS = [
+  { id: "naskah", label: "Naskah" },
   { id: "layout", label: "Layout" },
   { id: "kop", label: "Kop Surat" },
   { id: "typografi", label: "Font & Warna" },
+  { id: "tabel", label: "Tabel" },
   { id: "field", label: "Field" },
   { id: "ttd", label: "Tanda Tangan" },
   { id: "footer", label: "Footer" },

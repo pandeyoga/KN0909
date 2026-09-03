@@ -4528,6 +4528,51 @@ async def layer_closing_invariants(db):
                         f"pengusul ≠ penyetuju (dual-control)")
 
 
+async def layer_numbering_invariants(db):
+    """D-01 (audit 2026-09-02) — nomor dokumen UNIK per koleksi (sequence atomik `number_sequences`).
+      INV-NUM-01 (FAIL): tidak ada nomor kembar pada koleksi bernomor utama.
+      INV-NUM-02 (FAIL): setiap sequence `last_no` ≥ nomor tertinggi yang sudah terpakai (counter tidak tertinggal)."""
+    print(f"\n{C}{B}L5-NUM — Penomoran dokumen (unik & counter tidak tertinggal){X}")
+    import re as _re
+    targets = [("sales_orders", "number"), ("purchase_orders", "po_number"), ("vendor_bills", "number"),
+               ("cash_transactions", "number"), ("ar_receipts", "number"), ("shipments", "shipment_no"),
+               ("logistics_deliveries", "number"), ("customers", "code"), ("interco_transactions", "number"),
+               ("journal_entries", "number"), ("credit_notes", "number"), ("contra_bons", "number")]
+    dups = []
+    for coll, field in targets:
+        rows = await db[coll].aggregate([
+            {"$match": {field: {"$type": "string", "$ne": ""}}},
+            {"$group": {"_id": f"${field}", "n": {"$sum": 1}}}, {"$match": {"n": {"$gt": 1}}},
+            {"$limit": 5}]).to_list(5)
+        dups += [f"{coll}.{field}={r['_id']}×{r['n']}" for r in rows]
+    if dups:
+        results["fail"] += 1
+        line("FAIL", R, f"INV-NUM-01: {len(dups)} nomor kembar", str(dups[:5]))
+    else:
+        results["pass"] += 1
+        line("PASS", G, f"INV-NUM-01: {len(targets)} koleksi bernomor — tidak ada nomor kembar")
+    lag = []
+    pat = _re.compile(r"(\d+)\s*$")
+    async for sq in db.number_sequences.find({"entity_id": "__shared__"}, {"_id": 0}):
+        try:
+            coll, field, prefix = sq["doc_type"].split(":", 2)
+        except ValueError:
+            continue
+        hi = 0
+        async for d in db[coll].find({field: {"$regex": f"^{_re.escape(prefix)}"}}, {"_id": 0, field: 1}):
+            m = pat.search(str(d.get(field) or ""))
+            if m:
+                hi = max(hi, int(m.group(1)))
+        if hi > int(sq.get("last_no") or 0):
+            lag.append(f"{sq['doc_type']} last_no={sq.get('last_no')} < terpakai={hi}")
+    if lag:
+        results["fail"] += 1
+        line("FAIL", R, f"INV-NUM-02: {len(lag)} counter tertinggal dari nomor terpakai", str(lag[:4]))
+    else:
+        results["pass"] += 1
+        line("PASS", G, "INV-NUM-02: semua counter bersama ≥ nomor tertinggi yang terpakai")
+
+
 async def layer_gl_audit_2026_09_invariants(db):
     """Audit independen 2026-09-02 (F-01/F-03/F-04/F-06) — pagar yang memerah bila kelasnya lahir lagi.
       INV-GL-DUP-01 (FAIL): satu source_id tidak boleh punya 2 JE non-void non-reversal yang
@@ -4624,6 +4669,7 @@ def _layer_registry():
         ("movement",    layer_movement_ledger_invariants, True,  ("INV-MOV",)),
         ("gl",          layer_gl_invariants,              True,  ("INV-GL",)),
         ("gl_audit",    layer_gl_audit_2026_09_invariants, True, ("INV-GL-DUP", "INV-CASH-02", "INV-AR-02", "INV-GL-REV")),
+        ("numbering",   layer_numbering_invariants,       True,  ("INV-NUM",)),
         ("domain",      layer_domain_invariants,          True,  ("INV-DOM",)),
         ("roll",        layer_roll_invariants,            True,  ("INV-ROLL",)),
         ("backorder",   layer_backorder_invariants,       True,  ("INV-BO",)),

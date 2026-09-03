@@ -71,7 +71,8 @@ async def create_customer(payload: CustomerCreate, request: Request) -> Dict[str
     # Badan usaha grup muncul sebagai PEMASOK bertipe "Entitas grup" di sisi pembeli.
     from services import group_partner_service as _grp
     await _grp.assert_new_customer_allowed(payload.name, getattr(payload, "npwp", "") or "")
-    count = await db.customers.count_documents({}) + 1
+    from core_utils import next_doc_number as _ndn
+    cust_code = await _ndn("customers", "code", "CUST-", width=4)   # D-01: atomik, bukan count()+1
     # assigned_sales: eksplisit > (sales pembuat jadi pemilik, S40) > kosong
     assigned_id = payload.assigned_sales_id
     if not assigned_id and actor.get("role") == "sales":
@@ -96,7 +97,7 @@ async def create_customer(payload: CustomerCreate, request: Request) -> Dict[str
                      "email": payload.email, "is_primary": True}]
     customer = {
         "id": new_id("cust"),
-        "code": f"CUST-{count:04d}",
+        "code": cust_code,
         "name": payload.name,
         "pic_name": payload.pic_name,
         "phone": payload.phone,

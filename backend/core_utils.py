@@ -31,22 +31,32 @@ async def next_doc_number(collection: str, field: str, prefix: str, width: int =
     Contoh: next_doc_number("purchase_orders","po_number","PO-",entity_id="ent_ksc") -> "KSC/PO-00010".
     """
     from db import db
+    from pymongo import ReturnDocument
     if entity_id is None or entity_id == "all" or scheme == "shared":
-        coll = db[collection]
-        pat = re.compile(r"(\d+)\s*$")
-        n = 0
-        async for d in coll.find(
-            {field: {"$regex": f"^{re.escape(prefix)}"}}, {"_id": 0, field: 1}
-        ):
-            val = d.get(field)
-            if isinstance(val, str):
-                m = pat.search(val)
-                if m:
-                    n = max(n, int(m.group(1)))
-        return f"{prefix}{n + 1:0{width}d}"
+        # D-01 (audit 2026-09-02) — dulu "pindai nomor tertinggi lalu +1" TANPA kunci:
+        # dua permintaan serempak membaca maks yang sama → nomor kembar. Kini sequence
+        # atomik bersama (`entity_id="__shared__"`), disemai SEKALI dari nomor tertinggi.
+        key = {"entity_id": "__shared__", "doc_type": f"{collection}:{field}:{prefix}"}
+        if not await db.number_sequences.find_one(key, {"_id": 1}):
+            pat = re.compile(r"(\d+)\s*$")
+            n = 0
+            async for d in db[collection].find(
+                {field: {"$regex": f"^{re.escape(prefix)}"}}, {"_id": 0, field: 1}
+            ):
+                val = d.get(field)
+                if isinstance(val, str):
+                    m = pat.search(val)
+                    if m:
+                        n = max(n, int(m.group(1)))
+            await db.number_sequences.update_one(
+                key, {"$setOnInsert": {**key, "prefix": prefix, "last_no": n,
+                                       "created_at": now_iso()}}, upsert=True)
+        seq = await db.number_sequences.find_one_and_update(
+            key, {"$inc": {"last_no": 1}, "$set": {"updated_at": now_iso()}},
+            return_document=ReturnDocument.AFTER)
+        return f"{prefix}{seq['last_no']:0{width}d}"
 
     # ── Mode per-entitas: sequence atomik ──────────────────────────────────
-    from pymongo import ReturnDocument
     doc_type = prefix.rstrip("-/").upper() or prefix
     code = await entity_code(entity_id)
     key = {"entity_id": entity_id, "doc_type": doc_type}

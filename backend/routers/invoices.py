@@ -39,7 +39,10 @@ async def simulate_payment(order_id: str, payload: PaymentSimulationCreate, requ
     if not order:
         raise HTTPException(status_code=404, detail="Order tidak ditemukan")
     assert_entity_access(order, "sales_orders", await entity_ctx(request))  # S#074 IDOR-WRITE
-    invoice_count = await db.invoices.count_documents({"order_id": order_id}) + 1
+    # D-01 — nomor invoice per order dari sequence atomik (dulu count()+1, rawan kembar).
+    from core_utils import next_doc_number as _ndn
+    _inv_prefix = f"INV-{order['number'].replace('SO-', '')}-"
+    invoice_number = await _ndn("invoices", "number", _inv_prefix, width=2)
     # Fase 1B — invoice mengikuti breakdown pajak order (server-authoritative).
     grand_total = float(order.get("grand_total", order.get("total_amount", 0)) or 0)
     amount = float(payload.amount) if (payload.amount and float(payload.amount) > 0) else grand_total
@@ -61,7 +64,7 @@ async def simulate_payment(order_id: str, payload: PaymentSimulationCreate, requ
                    f"(sisa {outstanding:,.0f}). Gunakan Penerimaan AR untuk kelebihan bayar.")
     invoice = {
         "id": new_id("inv"),
-        "number": f"INV-{order['number'].replace('SO-', '')}-{invoice_count:02d}",
+        "number": invoice_number,
         "order_id": order_id,
         "order_number": order["number"],
         "customer_id": order["customer_id"],

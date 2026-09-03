@@ -1,0 +1,41 @@
+// KNDatePicker — pemilih tanggal aplikasi (Popover + Calendar), nilai ISO `YYYY-MM-DD`,
+// tampilan Indonesia ("Rab, 03 Sep 2026"). Menggantikan <input type="date"> native yang
+// tampil berbeda per browser & memakai format lokal OS.
+import { useState } from "react";
+import { format, parseISO, isValid } from "date-fns";
+import { id as localeId } from "date-fns/locale";
+import { CalendarDays, X } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
+export const formatDateId = (iso, pattern = "EEE, dd MMM yyyy") => {
+  if (!iso) return "";
+  const d = parseISO(String(iso).slice(0, 10));
+  return isValid(d) ? format(d, pattern, { locale: localeId }) : String(iso);
+};
+
+export default function KNDatePicker({ value, onChange, placeholder = "Pilih tanggal", disabled = false, clearable = true, className = "", "data-testid": testId }) {
+  const [open, setOpen] = useState(false);
+  const selected = value ? parseISO(String(value).slice(0, 10)) : undefined;
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" disabled={disabled} data-testid={testId}
+          className={`form-input flex items-center gap-2 text-left ${!value ? "text-[#9A9BA3]" : ""} ${className}`}>
+          <CalendarDays size={14} className="shrink-0 text-[#0058CC]" />
+          <span className="flex-1 truncate">{value ? formatDateId(value) : placeholder}</span>
+          {clearable && value && !disabled && (
+            <span role="button" aria-label="Hapus tanggal" data-testid={testId ? `${testId}-clear` : undefined}
+              className="rounded p-0.5 text-[#9A9BA3] hover:bg-[#F2F3F5] hover:text-[#C0341D]"
+              onClick={(e) => { e.stopPropagation(); onChange(""); }}><X size={12} /></span>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start" data-testid={testId ? `${testId}-popover` : undefined}>
+        <Calendar mode="single" locale={localeId} selected={isValid(selected) ? selected : undefined}
+          defaultMonth={isValid(selected) ? selected : undefined} initialFocus
+          onSelect={(d) => { onChange(d ? format(d, "yyyy-MM-dd") : ""); setOpen(false); }} />
+      </PopoverContent>
+    </Popover>
+  );
+}

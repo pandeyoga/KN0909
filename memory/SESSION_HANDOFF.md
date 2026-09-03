@@ -1,5 +1,11 @@
 # SESSION HANDOFF — Kain Nusantara (KN10)
 
+## Session #086 — 03 Sep 2026 — D-01 penomoran atomik · KNDatePicker ETA · Template PDF paritas sipro ✅
+> `core_utils.next_doc_number` (shared → atomik), `components/KNDatePicker.jsx`, `services/pdf_service.py` berlapis (`__default__`+diff),
+> `routers/pdf.py` (list/reset/validate-script), `pdf_engine.py` (kop mode, tabel, nomor halaman, naskah, meterai, cap).
+> Analisis sipro: `memory/ANALISIS_TEMPLATE_PDF_SIPRO_2026-09-03.md`. Gate 248 PASS (INV-NUM-01/02 baru). Iterasi 294: 100%.
+> Belum diambil dari sipro (opsional): baris biaya manual `money_rows`, `auto_from_issuer`, watermark gambar, urutan bagian drag.
+
 ## Session #085 — 03 Sep 2026 — BACKLOG AUDIT_TEMUAN_2026-09-02 TUNTAS (P1-1..P1-3 · L-1..L-11 · G-1..G-8 · X-1..X-5) ✅
 > Semua butir `memory/AUDIT_TEMUAN_2026-09-02.md` selesai (status di header berkas itu). Bukti: `backend/test_audit_temuan_poc.py` 34/34,
 > `test_reports/iteration_293.json` (19/19 backend, UI lulus), `backend/tests/test_iter293_audit_backlog.py` (re-runnable).

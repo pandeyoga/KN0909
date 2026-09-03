@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Route, ArrowUp, ArrowDown, MapPin, Clock, CheckCircle2, AlertTriangle, Navigation, Phone, MessageCircle } from "lucide-react";
 import { listDeliveries, setMyRoute, STATUS_LABEL, STATUS_PILL, mapsUrl, telUrl, waUrl, todayWib } from "./logisticsApi";
+import { formatDateId } from "../../components/KNDatePicker";
 
 // Tugas sopir hari ini: pengiriman milik sopir yang login, berurutan tujuan (bisa disusun ulang).
 const ACTIVE = ["prepared", "loaded", "in_transit"];
@@ -60,7 +61,7 @@ export default function DriverTodayPanel({ params, onOpen, refreshKey }) {
                     </div>
                   )}
                   <div className="text-[10.5px] text-[#9A9BA3] mt-0.5 flex items-center gap-2 flex-wrap">
-                    <span className="flex items-center gap-1"><Clock size={10} /> ETA {d.eta || "—"}</span>
+                    <span className="flex items-center gap-1"><Clock size={10} /> ETA {d.eta ? formatDateId(d.eta, "dd MMM yyyy") : "—"}</span>
                     <span>SJ {(d.shipment_nos || []).join(", ")}</span>
                     {d.vehicle_plate && <span>{d.vehicle_plate}</span>}
                     {d.last_position && <span>Posisi: {d.last_position.location}</span>}
