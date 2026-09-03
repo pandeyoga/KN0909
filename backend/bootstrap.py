@@ -1522,6 +1522,15 @@ async def run_bootstrap() -> None:
     # FASE H3 — HRD Cuti/Izin + Lembur (saldo cuti + contoh pengajuan; sebelum payroll seed)
     await seed_hr_leave_foundation()
     # EPIC7-C — bagan akun baku + auto-posting jurnal (idempotent)
+    # Sesi #087 — akun demo MD & Admin Gudang (idempotent; seed lama tidak punya keduanya).
+    for u in ({"id": "user_md_01", "name": "Rina Merchandiser", "email": "md@kainnusantara.id", "role": "md",
+               "home_entity_id": "ent_ksc", "allowed_entity_ids": ["ent_ksc", "ent_kanda"], "division": "merchandiser"},
+              {"id": "user_whadmin_01", "name": "Hendra Kepala Gudang", "email": "wh.admin@kainnusantara.id",
+               "role": "warehouse_admin", "home_entity_id": "ent_ksc", "allowed_entity_ids": ["ent_ksc", "ent_kanda"],
+               "division": "logistics"}):
+        if not await db.users.find_one({"email": u["email"]}, {"_id": 1}):
+            await db.users.insert_one({**u, "password_hash": hash_password("demo12345"), "status": "active",
+                                       "created_at": now_iso()})
     from services import gl_service
     await gl_service.seed_default_coa()
     # F-02 (audit 2026-09-02) — backfill TIDAK boleh mematikan startup (periode tertutup dsb).

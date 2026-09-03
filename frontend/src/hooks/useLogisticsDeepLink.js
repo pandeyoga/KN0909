@@ -14,7 +14,7 @@ export default function useLogisticsDeepLink(onNavigate, onOpenOrder) {
     const onLogistics = (e) => {
       const d = (e && e.detail) || {};
       if (typeof navRef.current === "function") navRef.current();
-      setLogisticsFocus({ deliveryId: d.deliveryId || "", nonce: Date.now() });
+      setLogisticsFocus({ deliveryId: d.deliveryId || "", createFromShipmentId: d.createFromShipmentId || "", nonce: Date.now() });
     };
     const onOrder = (e) => {
       const d = (e && e.detail) || {};

@@ -36,7 +36,7 @@ from services import line_scope
 router = APIRouter(prefix="/api")
 
 #: Peran yang melihat SEMUA permintaan badan usahanya (bukan hanya tugasnya sendiri).
-FULL_VIEW_ROLES = ("admin", "manager", "sales_admin")
+FULL_VIEW_ROLES = ("admin", "manager", "sales_admin", "md")
 
 
 def _fail(exc: Exception) -> HTTPException:

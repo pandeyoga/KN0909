@@ -267,3 +267,17 @@ tersisa action items minor).
   gaya tabel, bagian dokumen on/off, mode kop/footer (sistem/gambar/tanpa), nomor halaman, tempat-tanggal, meterai, cap, catatan sistem,
   branding + tagline/email/website/gambar kop/footer/cap, versi + audit. UI: tab Naskah (chip + peringatan hidup) & Tabel, info lapisan, reset via server.
 - Bukti: `test_reports/iteration_294.json` (100% backend & UI), gate 248 PASS.
+
+## 2026-09-03 — Sesi #087: Meja MD · Meja Admin Gudang · DetailModal `framed` · Jembatan WMS→Logistik ✅
+- Peran baru `md` (md@) & `warehouse_admin` (wh.admin@) — `permissions_config`, `role_registry`, `roles.js` ROLE_NAV, `navMeta` ROLE_HOME.
+  BE `GET /api/md/desk` (desain · sample · pr · acuan) & `GET /api/warehouse-admin/desk` (sj_belum_diangkut · outbound · inbound · spk ·
+  persetujuan_gudang · logistik) di `work_desk_service.py`; FE `features/desks/RoleDesk.jsx` (testid `md-desk-*`, `wh-desk-*`).
+- `DetailModal` prop `framed` (kartu putih untuk panel tanpa kartu sendiri) dipakai `ins-detail-modal` & `dsr-detail-modal`.
+- Jembatan WMS→Logistik: tombol `create-delivery-{taskId}` setelah dispatch outbound & aksi `create_delivery` di Meja Admin Gudang →
+  `openLogistics({createFromShipmentId})` → LogisticsView membuka `DeliveryCreateModal` dengan SJ terpilih (`preselectShipmentId`).
+- Perbaikan pasca-uji (iteration_295): `md` masuk `FULL_VIEW_ROLES` di `routers/design_requests.py` (sebelumnya daftar 0 & detail 403);
+  `openDocument` kini meneruskan `link.tab` → "Buka WMS" dari meja mendarat di tab Barang Keluar/Transfer/Stock Opname.
+- Bukti: `test_reports/iteration_295.json` (BE 8/9 → 9/9 setelah fix, FE 100%), pytest `backend/tests/test_iter295_role_desks_bridge.py`.
+- Data uji tersisa (boleh dihapus manual): KSC/SJ-00007, KSC/LG-00009..00011 (plat 'TEST …').
+- **Backlog (opsional):** `dsr-assign-due` & `dsr-due-input` masih `<input type=date>` native → ganti KNDatePicker; "Buka WMS" belum
+  memilih tugas otomatis (hanya tab); tinjau integrasi Pembelian → WMS Inbound seperti pola Outbound→Logistik.

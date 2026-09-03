@@ -168,7 +168,26 @@ export const FINANCE_QUEUE_TARGET = {
   hutang_jatuh_tempo: { view: "purchasing", nav_id: "purchase-orders", focus_type: "purchase_order" },
 };
 
+/** Sesi #087 — tujuan baris Meja MD & Meja Admin Gudang (per ref_type). */
+export const ROLE_DESK_TARGET = {
+  design_request:     { view: "design-requests",       nav_id: "designer-hub",   focus_type: "design_request" },
+  md_sample:          { view: "rnd-samples",           nav_id: "rnd-hub",        focus_type: "md_sample" },
+  purchase_requisition: { view: "purchase-requisitions", nav_id: "sourcing",     focus_type: "purchase_requisition" },
+  inspection:         { view: "inspections",           nav_id: "wms-operations", focus_type: "inspection" },
+  shipment:           { view: "logistics",             nav_id: "logistics",      focus_type: "shipment" },
+  wms_task:           { view: "operations",            nav_id: "wms-operations", focus_type: "wms_task", tab: "outbound" },
+  cycle_count:        { view: "operations",            nav_id: "wms-operations", focus_type: "cycle_count", tab: "cycle" },
+  warehouse_transfer: { view: "operations",            nav_id: "wms-operations", focus_type: "warehouse_transfer", tab: "transfer" },
+  logistics_delivery: { view: "logistics",             nav_id: "logistics",      focus_type: "logistics_delivery" },
+};
+export const mdDesk = (params) => axios.get(`${API}/md/desk`, { params }).then((r) => r.data);
+export const warehouseAdminDesk = (params) => axios.get(`${API}/warehouse-admin/desk`, { params }).then((r) => r.data);
+
 export function rowLink(row, queueId = "", desk = "sales_admin") {
+  if (desk === "md" || desk === "warehouse_admin") {
+    const t = ROLE_DESK_TARGET[row?.ref_type] || ROW_TARGET[row?.ref_type] || ROW_TARGET.sales_order;
+    return { view: t.view, nav_id: t.nav_id, focus_type: t.focus_type, focus_id: row?.ref_id, number: row?.number, tab: t.tab };
+  }
   const byQueue = desk === "finance" ? FINANCE_QUEUE_TARGET[queueId] : null;
   const base = byQueue || ROW_TARGET[row?.ref_type] || ROW_TARGET.sales_order;
   return {

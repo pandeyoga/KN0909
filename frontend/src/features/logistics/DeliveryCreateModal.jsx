@@ -5,7 +5,7 @@ import KNSelect from "../../components/KNSelect";
 import { createDelivery, listDrivers, unassignedShipments } from "./logisticsApi";
 
 // FB-02 — buat pengiriman dari Surat Jalan yang belum diangkut (satu pesanan per pengiriman).
-export default function DeliveryCreateModal({ params, onClose, onCreated }) {
+export default function DeliveryCreateModal({ params, onClose, onCreated, preselectShipmentId = "" }) {
   const [ships, setShips] = useState([]);
   const [drivers, setDrivers] = useState([]);
   const [picked, setPicked] = useState([]);
@@ -15,7 +15,10 @@ export default function DeliveryCreateModal({ params, onClose, onCreated }) {
   const [err, setErr] = useState("");
 
   useEffect(() => {
-    unassignedShipments(params).then(setShips).catch((e) => setErr(e.response?.data?.detail || "Gagal memuat Surat Jalan."));
+    unassignedShipments(params).then((rows) => {
+      setShips(rows);
+      if (preselectShipmentId && rows.some((r) => r.id === preselectShipmentId)) setPicked([preselectShipmentId]);
+    }).catch((e) => setErr(e.response?.data?.detail || "Gagal memuat Surat Jalan."));
     listDrivers(params).then(setDrivers).catch(() => setDrivers([]));
   }, []); // eslint-disable-line
   useEffect(() => {

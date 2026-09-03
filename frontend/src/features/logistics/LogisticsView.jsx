@@ -24,6 +24,7 @@ export default function LogisticsView({ currentUser, selectedEntity, focusDelive
   const [status, setStatus] = useState("");
   const [q, setQ] = useState("");
   const [showCreate, setShowCreate] = useState(false);
+  const [preselectShipment, setPreselectShipment] = useState("");
   const [openId, setOpenId] = useState(null);
   const [tick, setTick] = useState(0);
 
@@ -52,6 +53,8 @@ export default function LogisticsView({ currentUser, selectedEntity, focusDelive
   // Deep-link dari Perjalanan Pesanan ("Buka di Logistik") → langsung buka detailnya.
   useEffect(() => {
     if (focusDelivery?.deliveryId) { setStatus(""); setOpenId(focusDelivery.deliveryId); onFocusConsumed?.(); }
+    // Sesi #087 — dari Meja Admin Gudang: langsung buka "Buat Pengiriman" dengan SJ terpilih.
+    else if (focusDelivery?.createFromShipmentId) { setPreselectShipment(focusDelivery.createFromShipmentId); setShowCreate(true); onFocusConsumed?.(); }
   }, [focusDelivery?.nonce]); // eslint-disable-line
 
   return (
@@ -116,7 +119,7 @@ export default function LogisticsView({ currentUser, selectedEntity, focusDelive
         <DeliveryTable rows={rows} onOpen={setOpenId} canOpenOrder={canOpenOrder} />
       )}
 
-      {showCreate && <DeliveryCreateModal params={params} onClose={() => setShowCreate(false)} onCreated={async (id) => { setShowCreate(false); await load(); setOpenId(id); }} />}
+      {showCreate && <DeliveryCreateModal params={params} preselectShipmentId={preselectShipment} onClose={() => { setShowCreate(false); setPreselectShipment(""); }} onCreated={async (id) => { setShowCreate(false); await load(); setOpenId(id); }} />}
       {openId && <DeliveryDetailModal id={openId} canManage={canManage} canUpdate={canManage || isDriver} canOpenOrder={canOpenOrder} onClose={() => setOpenId(null)} onChanged={load} />}
     </div>
   );

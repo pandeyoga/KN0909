@@ -303,7 +303,7 @@ export default function DesignRequestsView({ currentUser, selectedEntity = "all"
       />
 
       {detail && (
-        <DetailModal onClose={() => setDetail(null)} label="Rincian permintaan desain"
+        <DetailModal framed onClose={() => setDetail(null)} label="Rincian permintaan desain"
           testId="dsr-detail-modal">
           <DesignRequestDetailPanel
             doc={detail} meta={meta}

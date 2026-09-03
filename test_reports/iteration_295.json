@@ -1,0 +1,38 @@
+{
+  "summary": "Sesi #087 diuji end-to-end (backend + UI). BACKEND: /api/md/desk & /api/warehouse-admin/desk 200 dengan struktur & urutan queue sesuai spesifikasi (md: desain·sample·pr·acuan; wh: sj_belum_diangkut·outbound·inbound·spk·persetujuan_gudang·logistik), silang peran 403, admin 200 keduanya, tanpa token 401/403. Jembatan WMS→Logistik terbukti utuh: dispatch sebagian tugas outbound wms_4b26d0e72658 (35/50 yard) menerbitkan KSC/SJ-00007 → baris muncul di queue sj_belum_diangkut dengan action_kind=create_delivery → setelah pengiriman KSC/LG-00011 dibuat, baris HILANG dari queue. FRONTEND: Meja MD & Meja Admin Gudang menjadi beranda perannya (judul, metrics, kartu antrean, refresh, tanpa 403/blank/console error); tombol create-delivery-{taskId} muncul hijau 'Buat Pengiriman' setelah dispatch dan berpindah ke Logistik dengan modal Buat Pengiriman terbuka + SJ tercentang; aksi wh-desk-action-{shipmentId} 'Buat pengiriman' berperilaku sama dan penyimpanan menghasilkan KSC/LG-00011 (detail langsung terbuka). DetailModal framed: ins-detail-modal & dsr-detail-modal = SATU kartu putih (bg rgb(255,255,255), radius 16px, shadow ada, framedChildren=0 → tidak ada bingkai ganda), Escape menutup. Regresi driver@ hanya nav-logistics + nav-hr-my-profile; admin@ punya nav-md-desk & nav-warehouse-admin-desk dan keduanya render. SATU cacat nyata ditemukan: peran md tidak bisa membuka permintaan desain dari mejanya sendiri.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "GET /api/design-requests (+ /api/design-requests/{id})", "issue": "Peran `md` tidak termasuk FULL_VIEW_ROLES (routers/design_requests.py:39) sehingga _own_only(md)=True: daftar berhalaman mengembalikan total=0 untuk MD dan detail dijawab 403 ('hanya bisa membuka yang ditugaskan kepada Anda'). Akibatnya antrean UTAMA Meja MD (4 permintaan desain) tidak bisa dibuka — klik md-desk-action-{id} mendarat di layar Permintaan Desain kosong ('Belum ada permintaan desain', KPI 0). Meja MD sendiri (md_desk) sengaja mengantre semua DSR entitas, jadi kedua sisi tidak konsisten. Perbaikan: tambahkan 'md' ke FULL_VIEW_ROLES (dan pastikan izin setujui/tugaskan MD sesuai permissions_config).", "priority": "HIGH"}
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Meja MD → baris 'Permintaan desain' → layar DSR", "issue": "Deep-link berhasil pindah layar tetapi layar kosong (0 data) dan rincian tidak terbuka karena 403 backend di atas — pengguna MD melihat 'Belum ada permintaan desain'.", "affected_selectors": ["md-desk-action-dsr_3670f331128e", "design-requests-view"]},
+      {"flow": "Meja Admin Gudang → baris 'Tugas outbound berjalan' → 'Buka WMS'", "issue": "Navigasi mendarat di hub Operasi Gudang pada tab bawaan (Stok), bukan tab 'Barang Keluar' (wms-tab-outbound) dengan tugas terpilih; pengguna harus mencari tabnya sendiri. Prioritas rendah (tidak error).", "affected_selectors": ["wh-desk-action-wms_255e4d4f7cb1", "wms-tab-outbound"]}
+    ],
+    "design_issues": [
+      {"screen": "Rincian Permintaan Desain (dsr-detail-modal) & modal Buat Permintaan Desain", "issues": ["Field 'Tenggat' memakai input tanggal BAWAAN BROWSER (<input type=\"date\">: dsr-assign-due di DesignRequestDetailPanel.jsx:149, dsr-due-input di DesignRequestCreateModal.jsx:92) — tidak konsisten dengan KNDatePicker yang dipakai modal Logistik (logistics-eta)."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter295_role_desks_bridge.py", "/app/test_reports/pytest/iter295.xml"],
+  "action_items": [
+    "Tambahkan peran 'md' ke FULL_VIEW_ROLES di /app/backend/routers/design_requests.py:39 agar MD bisa melihat & membuka permintaan desain entitasnya (antrean utama Meja MD saat ini mati). Verifikasi ulang test_md_can_open_design_request_from_its_own_desk.",
+    "Opsional (UX): 'Buka WMS' dari Meja Admin Gudang sebaiknya membuka tab wms-tab-outbound dan memilih tugasnya (pola deep-link seperti create_delivery).",
+    "Opsional (konsistensi): ganti <input type=\"date\"> pada dsr-assign-due & dsr-due-input dengan KNDatePicker."
+  ],
+  "critical_code_review_comments": [
+    "work_desk_service.md_desk() mengantre SEMUA design_requests entitas, sementara router design_requests menganggap md sebagai own_only — dua sumber kebenaran tentang wewenang MD; satukan lewat izin (permissions_config), jangan lewat daftar peran hardcode di router.",
+    "work_desk_service.py sudah ~575 baris dan memuat 4 meja; pertimbangkan pisah per meja bila meja baru bertambah.",
+    "DetailModal framed: implementasi minimal & benar (tidak menambah kepala/kartu ganda); tidak ada temuan."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter295_role_desks_bridge.py"],
+  "success_rate": {"backend": "89% (8/9; 1 gagal = bug MD design-request, 1 skip terkondisi)", "frontend": "100% pada alur yang diuji (desk, framed modal, jembatan WMS→Logistik, regresi peran)"},
+  "seed_data_creation": "Data uji tersisa di ent_ksc: dispatch sebagian tugas wms_4b26d0e72658 (35/50 yard, sisa 15 yard belum dikirim) menerbitkan Surat Jalan KSC/SJ-00007; pengiriman logistik KSC/LG-00011 (lgs, armada sendiri, plat 'B 9911 QA', sopir Joko Susilo, tujuan 'TEST Alamat QA Medan', catatan 'TEST_iter295 bridge') dan KSC/LG-00010 + KSC/LG-00009 (dari uji API, plat 'TEST B 9999 QA') dibiarkan — hapus manual bila perlu.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "md@ / wh.admin@ / admin@ / manager@ / driver@kainnusantara.id — password demo12345 (semuanya bekerja)",
+  "context_for_next_testing_agent": "Queue sj_belum_diangkut kini KOSONG lagi (SJ-00007 sudah punya logistik). Untuk menguji ulang jembatan perlu SJ dispatched baru, tetapi hampir semua tugas outbound ent_ksc tertahan 409 'Roll commit untuk order tak cukup' (roll reserved habis) — satu-satunya jalan tersisa: dispatch sebagian tugas wms_4b26d0e72658 (sisa 15 yard) BILA roll masih ada, atau siapkan roll reserved baru. Testid terverifikasi: wms-tab-outbound · outbound-task-{id} · dispatch-qty-input · dispatch-partial-{id} · outbound-dispatch-confirm-confirm · create-delivery-{id} · logistics-create-modal · logistics-ship-{shipmentId} · logistics-mode(-option-own_fleet) · logistics-driver-select-option-user_driver_01 · logistics-create-submit · wh-desk-row/action-{shipmentId} · nav-designer-hub → hub-tab-design-requests → dsr-card-{id}. Nav DSR bukan 'nav-design-requests' melainkan 'nav-designer-hub'.",
+  "rca_of_the_issue": "MD design-request 403/0-baris: _own_only(actor) di routers/design_requests.py mengembalikan True untuk semua peran di luar ('admin','manager','sales_admin'), sehingga query dipaksa assigned_to=md_user_id (tidak ada) → daftar 0 & detail 403. Reproduksi: login md@ → GET /api/design-requests?page=1&page_size=50 (total 0) dan GET /api/design-requests/{id dari md/desk} → 403; di UI klik md-desk-action-{ref_id} → layar Permintaan Desain kosong. Mitigasi: masukkan 'md' ke FULL_VIEW_ROLES (atau ubah ke pemeriksaan izin design_request.manage/approve)."
+}

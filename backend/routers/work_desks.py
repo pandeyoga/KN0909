@@ -143,6 +143,25 @@ async def fulfillment_decision(order_id: str, payload: FulfillmentIn,
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# MEJA MD & MEJA ADMIN GUDANG — Sesi #087
+# ═══════════════════════════════════════════════════════════════════════════
+@router.get("/md/desk")
+async def md_desk(request: Request, entity_id: str = Query("")) -> Dict[str, Any]:
+    """Antrean MD: permintaan desain, sample/labdip, PR bahan, SPK tanpa acuan."""
+    actor = await require_permission(request, "design_request", "view")
+    _, scope, ids = await _scope(request, entity_id or None)
+    return await desks.md_desk(actor, scope, ids)
+
+
+@router.get("/warehouse-admin/desk")
+async def warehouse_admin_desk(request: Request, entity_id: str = Query("")) -> Dict[str, Any]:
+    """Antrean Admin Gudang: SJ belum diangkut, outbound, inbound PO, SPK, opname/transfer, logistik."""
+    actor = await require_permission(request, "wms", "view")
+    _, scope, ids = await _scope(request, entity_id or None)
+    return await desks.warehouse_admin_desk(actor, scope, ids)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # MEJA FINANCE
 # ═══════════════════════════════════════════════════════════════════════════
 @router.get("/finance/desk")

@@ -125,3 +125,9 @@ Pendukung: 3 retur jual (ber-garis waktu milestone), 5 order makloon, **7 alasan
   menandainya **"sudah ada SPK"** lebih dulu.
 * Chip tahap `Inspect` pada **Papan PO** memang MATI (🔒) — statusnya diturunkan dari
   hasil QC penerimaan; PATCH-nya dijawab **409**.
+
+## Peran baru sesi #087 (2026-09-03) — password `demo12345`
+| Peran | Email | Nama | Beranda | Catatan |
+|---|---|---|---|---|
+| MD / Merchandiser | `md@kainnusantara.id` | Rina Merchandiser | **Meja MD** (`md-desk`) | ent_ksc + ent_kanda; desain, sample/labdip, PR bahan, produk & harga; TANPA uang/gudang |
+| Admin Gudang | `wh.admin@kainnusantara.id` | Hendra Kepala Gudang | **Meja Admin Gudang** (`warehouse-admin-desk`) | ent_ksc + ent_kanda; semua wewenang gudang + tugaskan SPK, setujui opname/transfer, logistik manage |

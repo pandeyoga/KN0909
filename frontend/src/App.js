@@ -249,7 +249,7 @@ function App() {
   // Navigasi in-app ke view tujuan + set focusDoc agar view target auto-open dokumen.
   const openDocument = (link) => {
     if (!link || !link.view) return;
-    handleNavSelect(link.nav_id || link.view, link.view);
+    handleNavSelect(link.nav_id || link.view, link.view, link.tab);
     if (link.focus_id) setFocusDoc({ focus_type: link.focus_type, focus_id: link.focus_id });
     else setFocusDoc(null);
   };

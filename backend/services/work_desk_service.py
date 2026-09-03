@@ -399,3 +399,176 @@ async def finance_desk(actor: Dict[str, Any], scope: Dict[str, Any],
             "not_my_desk": ["Membuat / mengonfirmasi pesanan",
                             "Keputusan pemenuhan (ambil dari PT lain · reorder)",
                             "Sisi hutang lainnya: tagihan supplier · kontrabon · landed cost"]}
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# MEJA MD (Merchandiser) — Sesi #087
+# ═══════════════════════════════════════════════════════════════════════════
+def _ent_q(scope: Dict[str, Any]) -> Dict[str, Any]:
+    """Filter entitas dari scope pesanan (kunci `entity_id` sama di semua koleksi)."""
+    return {"entity_id": scope["entity_id"]} if scope.get("entity_id") is not None else {}
+
+
+async def md_desk(actor: Dict[str, Any], scope: Dict[str, Any],
+                  entity_ids: List[str]) -> Dict[str, Any]:
+    eq = _ent_q(scope)
+    queues: List[Dict[str, Any]] = []
+
+    # 1 — permintaan desain menunggu keputusan / penugasan MD
+    reqs = await db.design_requests.find(
+        {**eq, "status": {"$in": ["submitted", "approved", "in_progress", "delivered"]}},
+        {"_id": 0}).sort("requested_at", 1).to_list(200)
+    label_st = {"submitted": "perlu disetujui", "approved": "belum ditugaskan",
+                "in_progress": "dikerjakan desainer", "delivered": "perlu diputuskan"}
+    queues.append(_queue(
+        "desain", "Permintaan desain",
+        "Setujui, tugaskan ke desainer, lalu putuskan karya yang diserahkan.",
+        [_row(ref_type="design_request", ref_id=r["id"], number=r.get("number", ""),
+              title=r.get("customer_name") or r.get("so_number") or "Internal",
+              subtitle=(r.get("brief") or "")[:80], value=0,
+              age_days=_age_days(r.get("requested_at") or r.get("created_at")),
+              badge=label_st.get(r.get("status"), r.get("status", "")),
+              action="Buka", action_kind="open") for r in reqs],
+        action_label="Buka", owner="md", value_kind="count", value_label="Permintaan"))
+
+    # 2 — sample / labdip menunggu penilaian atau keputusan
+    samples = await db.md_samples.find(
+        {**eq, "status": {"$in": ["in_progress", "sent", "assessed"]}}, {"_id": 0}).to_list(200)
+    lbl = {"in_progress": "putaran berjalan", "sent": "dikirim ke pelanggan", "assessed": "perlu diputuskan"}
+    queues.append(_queue(
+        "sample", "Sample & labdip",
+        "Putaran sample yang menunggu penilaian pelanggan atau keputusan ACC/tolak.",
+        [_row(ref_type="md_sample", ref_id=s["id"], number=s.get("number", ""),
+              title=s.get("title") or s.get("design_title") or s.get("spec_number") or "—",
+              subtitle=f"{len(s.get('rounds') or [])} putaran · target {s.get('target_date') or '-'}",
+              value=float(s.get("cost_total") or 0),
+              age_days=_age_days(s.get("created_at")), badge=lbl.get(s.get("status"), s.get("status", "")),
+              action="Buka", action_kind="open") for s in samples],
+        action_label="Buka", owner="md"))
+
+    # 3 — pengajuan pembelian bahan (PR) yang belum diajukan / masih menunggu
+    prs = await db.purchase_requisitions.find(
+        {**eq, "status": {"$in": ["draft", "pending_approval"]}}, {"_id": 0}).to_list(200)
+    queues.append(_queue(
+        "pr", "Permintaan pembelian bahan",
+        "PR draf perlu diajukan; PR menunggu persetujuan perlu dikejar.",
+        [_row(ref_type="purchase_requisition", ref_id=p["id"], number=p.get("number") or p.get("pr_number", ""),
+              title=p.get("purpose") or p.get("notes") or f"{len(p.get('items') or [])} baris",
+              subtitle=p.get("requested_by") or "", value=float(p.get("total") or p.get("estimated_total") or 0),
+              age_days=_age_days(p.get("created_at")),
+              badge="draf" if p.get("status") == "draft" else "menunggu persetujuan",
+              action="Buka", action_kind="open") for p in prs],
+        action_label="Buka", owner="md"))
+
+    # 4 — SPK inspeksi dengan tahanan warna/handfeel (butuh acuan MD)
+    ins = await db.inspections.find(
+        {**eq, "status": {"$in": ["draft", "in_progress"]}, "baseline_sample_id": {"$in": [None, ""]}},
+        {"_id": 0}).to_list(100)
+    queues.append(_queue(
+        "acuan", "SPK inspeksi tanpa acuan sample",
+        "Inspeksi berjalan tanpa sample ACC — warna & handfeel hanya jadi pengamatan. Tetapkan acuannya.",
+        [_row(ref_type="inspection", ref_id=i["id"], number=i.get("number", ""),
+              title=i.get("supplier_name") or i.get("customer_name") or i.get("ref_doc_number") or "—",
+              subtitle=i.get("kind", ""), value=0, age_days=_age_days(i.get("spk_date") or i.get("created_at")),
+              badge=i.get("status", ""), action="Buka", action_kind="open") for i in ins],
+        action_label="Buka", owner="md", value_kind="count", value_label="SPK"))
+
+    return {"desk": "md", "queues": queues,
+            "not_my_desk": ["Konfirmasi pesanan & keputusan pemenuhan (Admin Sales)",
+                            "Uang masuk, faktur pajak & pembayaran supplier (Finance)",
+                            "Operasi gudang & pengiriman (Admin Gudang)"]}
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# MEJA ADMIN GUDANG — Sesi #087 (termasuk jembatan Gudang → Logistik)
+# ═══════════════════════════════════════════════════════════════════════════
+async def warehouse_admin_desk(actor: Dict[str, Any], scope: Dict[str, Any],
+                               entity_ids: List[str]) -> Dict[str, Any]:
+    eq = _ent_q(scope)
+    queues: List[Dict[str, Any]] = []
+
+    # 1 — SJ sudah dispatch gudang tetapi BELUM diangkut logistik (jembatan WMS→Logistik)
+    sj = await db.shipments.find(
+        {**eq, "status": "dispatched", "$or": [{"logistics_id": {"$exists": False}}, {"logistics_id": {"$in": [None, ""]}}]},
+        {"_id": 0}).sort("created_at", 1).to_list(200)
+    queues.append(_queue(
+        "sj_belum_diangkut", "Surat Jalan belum diangkut logistik",
+        "Barang sudah keluar gudang tetapi belum ada pengiriman — buat pengiriman (armada/ekspedisi).",
+        [_row(ref_type="shipment", ref_id=s["id"], number=s.get("shipment_no", ""),
+              title=s.get("customer_name") or s.get("order_number") or "—",
+              subtitle=f"{s.get('order_number', '')} · {s.get('product_name', '')}"[:80],
+              value=float(s.get("quantity") or 0), age_days=_age_days(s.get("created_at") or s.get("dispatched_at")),
+              badge="dispatched", action="Buat pengiriman", action_kind="create_delivery") for s in sj],
+        action_label="Buat pengiriman", owner="warehouse_admin", value_kind="qty", value_label="Qty"))
+
+    # 2 — tugas outbound belum tuntas
+    tasks = await db.wms_tasks.find(
+        {**eq, "flow_type": "outbound", "status": {"$in": ["pending", "created", "picking", "packing", "qc_pending"]}},
+        {"_id": 0}).to_list(300)
+    queues.append(_queue(
+        "outbound", "Tugas outbound berjalan",
+        "Picking/packing yang belum dispatch — pesanan pelanggan menunggu.",
+        [_row(ref_type="wms_task", ref_id=t["id"], number=t.get("order_number") or t.get("id", ""),
+              title=t.get("product_name") or t.get("customer_name") or "—",
+              subtitle=f"{t.get('warehouse_name', '')} · {t.get('status', '')}", value=float(t.get("quantity") or 0),
+              age_days=_age_days(t.get("created_at")), badge=t.get("status", ""),
+              action="Buka WMS", action_kind="open", extra={"order_id": t.get("order_id")}) for t in tasks],
+        action_label="Buka WMS", owner="warehouse_admin", value_kind="qty", value_label="Qty"))
+
+    # 3 — PO menunggu penerimaan barang
+    pos = await db.purchase_orders.find(
+        {**eq, "status": {"$in": ["pending", "receiving"]}}, {"_id": 0}).to_list(200)
+    queues.append(_queue(
+        "inbound", "PO menunggu penerimaan",
+        "Barang supplier yang belum/baru sebagian diterima — siapkan inbound & inspeksi.",
+        [_row(ref_type="purchase_order", ref_id=p["id"], number=p.get("po_number", ""),
+              title=p.get("supplier_name", "—"), subtitle=p.get("status", ""),
+              value=float(p.get("grand_total") or p.get("total") or 0),
+              age_days=_age_days(p.get("created_at")), badge=p.get("status", ""),
+              action="Buka", action_kind="open") for p in pos],
+        action_label="Buka", owner="warehouse_admin"))
+
+    # 4 — SPK inspeksi belum ditugaskan
+    ins = await db.inspections.find(
+        {**eq, "status": "draft"}, {"_id": 0}).to_list(100)
+    queues.append(_queue(
+        "spk", "SPK inspeksi belum ditugaskan",
+        "Tugaskan petugas inspect supaya barang tidak tertahan di karantina.",
+        [_row(ref_type="inspection", ref_id=i["id"], number=i.get("number", ""),
+              title=i.get("supplier_name") or i.get("customer_name") or i.get("ref_doc_number") or "—",
+              subtitle=i.get("kind", ""), value=0, age_days=_age_days(i.get("spk_date") or i.get("created_at")),
+              badge="draf", action="Tugaskan", action_kind="open") for i in ins],
+        action_label="Tugaskan", owner="warehouse_admin", value_kind="count", value_label="SPK"))
+
+    # 5 — opname & transfer menunggu persetujuan
+    cc = await db.cycle_count_sessions.find({**eq, "status": "submitted"}, {"_id": 0}).to_list(100)
+    tr = await db.warehouse_transfers.find({**eq, "status": "waiting_approval"}, {"_id": 0}).to_list(100)
+    rows = [_row(ref_type="cycle_count", ref_id=c["id"], number=c.get("number", ""), title=c.get("name") or c.get("warehouse_name", "—"),
+                 subtitle=f"{len(c.get('discrepancies') or [])} selisih", value=0, age_days=_age_days(c.get("created_at")),
+                 badge="opname", action="Setujui", action_kind="open") for c in cc]
+    rows += [_row(ref_type="warehouse_transfer", ref_id=t["id"], number=t.get("code", ""),
+                  title=f"{t.get('source_warehouse_name', '')} → {t.get('dest_warehouse_name', '')}",
+                  subtitle=f"{len(t.get('items') or [])} baris", value=0, age_days=_age_days(t.get("created_at")),
+                  badge="transfer", action="Setujui", action_kind="open") for t in tr]
+    queues.append(_queue(
+        "persetujuan_gudang", "Opname & transfer menunggu persetujuan",
+        "Selisih opname dan transfer antar gudang yang menunggu keputusan Anda.",
+        rows, action_label="Setujui", owner="warehouse_admin", value_kind="count", value_label="Dokumen"))
+
+    # 6 — pengiriman gagal / terkirim belum ditutup
+    lg = await db.logistics_deliveries.find(
+        {**eq, "status": {"$in": ["failed", "delivered"]}}, {"_id": 0}).to_list(200)
+    queues.append(_queue(
+        "logistik", "Pengiriman gagal / belum ditutup",
+        "Jadwalkan ulang yang gagal; tutup (Selesaikan) yang sudah terkirim.",
+        [_row(ref_type="logistics_delivery", ref_id=d["id"], number=d.get("number", ""),
+              title=d.get("customer_name") or d.get("order_number") or "—",
+              subtitle=(d.get("fail_reason") or d.get("receiver_name") or "")[:60], value=0,
+              age_days=_age_days(d.get("created_at")), badge="gagal" if d.get("status") == "failed" else "terkirim",
+              action="Buka", action_kind="open") for d in lg],
+        action_label="Buka", owner="warehouse_admin", value_kind="count", value_label="Pengiriman"))
+
+    return {"desk": "warehouse_admin", "queues": queues,
+            "not_my_desk": ["Konfirmasi pesanan & harga (Admin Sales)",
+                            "Pembayaran supplier & uang masuk (Finance)",
+                            "Keputusan desain & sample (MD)"]}

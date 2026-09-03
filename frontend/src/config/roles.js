@@ -88,6 +88,25 @@ export const ROLE_REGISTRY = {
     order: 8,
     newIn: "FB-2",
   },
+  // Sesi #087 — dua peran pelaksana baru dengan MEJA KERJA sendiri. Cermin `backend/role_registry.py`.
+  md: {
+    label: "MD",
+    longLabel: "MD / Merchandiser (produk, sample & desain)",
+    rank: 2,
+    crossEntity: false,
+    scopeHint: "1 badan usaha (bisa ditugaskan ke beberapa)",
+    order: 9,
+    newIn: "R-9",
+  },
+  warehouse_admin: {
+    label: "Admin Gudang",
+    longLabel: "Admin Gudang (kepala operasi gudang & logistik)",
+    rank: 2,
+    crossEntity: false,
+    scopeHint: "1 badan usaha (bisa ditugaskan ke beberapa)",
+    order: 10,
+    newIn: "R-9",
+  },
 };
 
 export const ROLE_IDS = Object.keys(ROLE_REGISTRY)
@@ -202,6 +221,36 @@ export const ROLE_NAV = {
       "store-credit",
       // 2026-09 — hutang jatuh tempo (Meja Finance) → PO hanya-lihat
       "pembelian", "purchase-orders", "purchasing",
+    ],
+    remove: [],
+  },
+  // Sesi #087 — MD/Merchandiser: pengembangan produk. Tidak mewarisi siapa pun.
+  md: {
+    inherit: null,
+    add: [
+      "md-desk", "home", "hr-my-profile",
+      // R&D & desain
+      "rnd-hub", "rnd-specs", "rnd-samples", "rnd-reports",
+      "designer-hub", "design-requests", "rnd-designs", "cs-design-gallery",
+      // produk & harga
+      "penjualan", "products-pricing", "md-products", "product-templates", "md-categories", "color-library", "md-uoms",
+      "cs-price-list", "sales-orders", "orders",
+      // pembelian bahan (PR/RFQ hanya-lihat PO)
+      "pembelian", "sourcing", "purchase-requisitions", "rfq", "purchase-orders", "purchasing", "master-pembelian", "suppliers",
+      // pantau inspeksi (acuan sample)
+      "gudang", "wms-operations", "inspections",
+      "approval-inbox", "document-center", "doc-trace",
+    ],
+    remove: ["designer-kpi", "rnd-divisions", "operations", "qc-inspection", "interco-transfers"],
+  },
+  // Sesi #087 — Admin Gudang: semua menu gudang + logistik + persetujuan gudang.
+  warehouse_admin: {
+    inherit: "warehouse",
+    add: [
+      "warehouse-admin-desk", "home", "hr-my-profile",
+      "logistics", "approval-inbox",
+      "document-center", "doc-trace",
+      "cs-stock-analytics",
     ],
     remove: [],
   },

@@ -16,6 +16,8 @@ export const PAGE_META = {
   // harian dua peran (kelas bug yang ditangkap `check_nav_map.py` CHECK 5).
   "sales-admin-desk":     { kicker: "Admin Sales",    title: "Meja Admin Sales \u00b7 Antrean Alur Pesanan" },
   "finance-desk":         { kicker: "Finance",        title: "Meja Finance \u00b7 Uang Masuk & Pajak Keluaran" },
+  "md-desk":              { kicker: "MD",             title: "Meja MD \u00b7 Desain, Sample & Bahan" },
+  "warehouse-admin-desk": { kicker: "Admin Gudang",   title: "Meja Admin Gudang \u00b7 Operasi Gudang & Logistik" },
   amendments:             { kicker: "Keuangan \u00b7 Kendali", title: "Pusat Amandemen \u00b7 Koreksi Ber-alasan & Ber-jejak" },
   "tax-invoices":         { kicker: "Keuangan \u00b7 Pajak", title: "Faktur Pajak Keluaran" },
   "returns":              { kicker: "Penjualan",      title: "Retur & Barang Sisa" },
@@ -165,6 +167,9 @@ export const ROLE_HOME_REGISTRY = {
   designer:    { view: "design-requests", navId: "designer-hub" },
   // FB-02 — sopir mendarat langsung di papan pengiriman.
   driver:      { view: "logistics", navId: "logistics" },
+  // Sesi #087 — MD & Admin Gudang mendarat di mejanya.
+  md:              { view: "md-desk", navId: "md-desk" },
+  warehouse_admin: { view: "warehouse-admin-desk", navId: "warehouse-admin-desk" },
 };
 
 // Smart guidance CTA.

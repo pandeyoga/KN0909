@@ -150,6 +150,7 @@ const SettlementsView = lazy(() => import("./features/pettycash/SettlementsView"
 const ExpenseCategoriesView = lazy(() => import("./features/pettycash/ExpenseCategoriesView"));
 const VehicleLogsView = lazy(() => import("./features/pettycash/VehicleLogsView"));
 const PdfTemplateDesigner = lazy(() => import("./features/pdf/PdfTemplateDesigner"));
+const RoleDesk = lazy(() => import("./features/desks/RoleDesk"));
 const DocumentCenter = lazy(() => import("./features/documents/DocumentCenter"));
 // FASE G-4 — Jejak Dokumen (relasi `refs[]` dua arah; jangkar bebas, termasuk QR cetak).
 const DocTraceView = lazy(() => import("./features/documents/trace/DocTraceView"));
@@ -308,6 +309,9 @@ export default function AppViewRouter(props) {
         <FinanceDesk currentUser={user} selectedEntity={selectedEntity}
           onOpenDocument={openDocument} />
       )}
+      {/* Sesi #087 — Meja MD & Meja Admin Gudang */}
+      {activeView === "md-desk" && <RoleDesk desk="md" selectedEntity={selectedEntity} onOpenDocument={openDocument} />}
+      {activeView === "warehouse-admin-desk" && <RoleDesk desk="warehouse_admin" selectedEntity={selectedEntity} onOpenDocument={openDocument} />}
       {activeView === "returns" && (
         <SalesReturns currentUser={user}
           onNavigate={(navId, view, tab) => onNavSelect(navId, view, tab)} />

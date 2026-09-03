@@ -9,6 +9,7 @@ import { apiErrorText } from "../../utils/apiError";
 import { notifySuccess } from "../../utils/feedback";
 import { askConfirm } from "../../services/confirmService";
 import { overlayDismiss } from "../../utils/overlayDismiss";
+import { openLogistics } from "../logistics/logisticsDeepLink";
 import { formatQty } from "../../utils/formatters";
 import { Badge, MiniBar } from "./OutboundScanBadges";
 import LoadingCheckPanel from "./LoadingCheckPanel";
@@ -410,6 +411,13 @@ export default function OutboundScanInterface({ user }) {
                       className="flex items-center gap-1.5 bg-[#007AFF] text-white rounded-lg px-3 py-1.5 text-[11px] font-semibold">
                       <FileText size={12} /> Surat Jalan
                     </button>
+                    {lastShipment?.id && !lastShipment?.logistics_id && (
+                      <button onClick={() => openLogistics({ createFromShipmentId: lastShipment.id })}
+                        data-testid={`create-delivery-${selectedTask.id}`} title="Lanjut ke Logistik: buat pengiriman untuk SJ ini"
+                        className="ml-2 flex items-center gap-1.5 bg-[#1F7A45] text-white rounded-lg px-3 py-1.5 text-[11px] font-semibold">
+                        Buat Pengiriman
+                      </button>
+                    )}
                   </div>
                 </div>
               )}

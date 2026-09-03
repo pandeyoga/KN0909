@@ -330,7 +330,7 @@ export default function InspectionsView({ currentUser, selectedEntity = "all" })
 
       {detail && (
         <DetailModal onClose={() => setDetail(null)} label="Rincian SPK inspeksi"
-          size="xl" testId="ins-detail-modal">
+          size="xl" testId="ins-detail-modal" framed>
           <InspectionDetailPanel
             doc={detail} meta={meta} currentUser={currentUser}
             onChanged={(fresh) => { if (fresh) setDetail(fresh); refreshAll(); }}

@@ -161,6 +161,34 @@ ROLES: Dict[str, Dict[str, Any]] = {
         "order": 8,
         "new_in": "FB2",
     },
+    # Sesi #087 (permintaan pemilik 2026-09-03) — dua peran pelaksana baru dengan MEJA
+    # KERJA-nya sendiri (pola Admin Sales/Finance): bekerja dari ANTREAN, bukan daftar.
+    "md": {
+        "label": "MD",
+        "long_label": "MD / Merchandiser (produk, sample & desain)",
+        "rank": 2,
+        "cross_entity": False,
+        "home_view": "md-desk",
+        "home_nav_id": "md-desk",
+        "scope_hint": "1 badan usaha (bisa ditugaskan ke beberapa)",
+        "description": ("Mengurus pengembangan produk: permintaan desain, putaran sample/labdip, "
+                        "spesifikasi, master produk & harga, dan pengajuan pembelian bahan."),
+        "order": 9,
+        "new_in": "R9",
+    },
+    "warehouse_admin": {
+        "label": "Admin Gudang",
+        "long_label": "Admin Gudang (kepala operasi gudang & logistik)",
+        "rank": 2,
+        "cross_entity": False,
+        "home_view": "warehouse-admin-desk",
+        "home_nav_id": "warehouse-admin-desk",
+        "scope_hint": "1 badan usaha (bisa ditugaskan ke beberapa)",
+        "description": ("Memimpin gudang: menugaskan SPK inspeksi, menyetujui opname & transfer, "
+                        "memastikan SJ yang dispatch diangkut logistik, menutup pengiriman."),
+        "order": 10,
+        "new_in": "R9",
+    },
 }
 
 #: Peringkat peran — SATU definisi (dulu disalin di config_service & so_approvals).

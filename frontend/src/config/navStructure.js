@@ -96,6 +96,23 @@ export const NAV_STRUCTURE = [
     roles: ["admin"],
     view:  "finance-desk",
   },
+  // Sesi #087 — meja MD & Admin Gudang (peran barunya lewat ROLE_NAV, pola yang sama).
+  {
+    type: "standalone",
+    id:    "md-desk",
+    label: "Meja MD",
+    icon:  Palette,
+    roles: ["admin"],
+    view:  "md-desk",
+  },
+  {
+    type: "standalone",
+    id:    "warehouse-admin-desk",
+    label: "Meja Admin Gudang",
+    icon:  Warehouse,
+    roles: ["admin"],
+    view:  "warehouse-admin-desk",
+  },
 
   // ── PENJUALAN ────────────────────────────────────────────────────────────────
   {

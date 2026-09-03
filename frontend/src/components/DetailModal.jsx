@@ -53,6 +53,9 @@ export default function DetailModal({
   size = "xl",
   label = "Rincian",
   testId = "detail-modal",
+  // Sesi #087 — `framed`: panel yang TIDAK punya kartu sendiri (root `grid gap-3`) dibungkus
+  // kartu putih di sini; tanpa itu isinya melayang transparan di atas halaman (laporan pemilik).
+  framed = false,
   children,
 }) {
   // Esc menutup lewat tumpukan lapisan (INV-UI-10): pemilih/dropdown di dalam panel
@@ -79,7 +82,7 @@ export default function DetailModal({
         aria-modal="true"
         aria-label={label}
         data-testid={testId}
-        className={`w-full ${SIZES[size] || SIZES.xl} my-auto`}
+        className={`w-full ${SIZES[size] || SIZES.xl} my-auto ${framed ? "rounded-2xl bg-white p-4 shadow-2xl max-h-[92vh] overflow-y-auto" : ""}`}
         onClick={(e) => e.stopPropagation()}
       >
         {children}
