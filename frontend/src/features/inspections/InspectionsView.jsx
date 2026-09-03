@@ -107,7 +107,7 @@ export default function InspectionsView({ currentUser, selectedEntity = "all", f
   // Deep-link dari Meja MD / Meja Admin Gudang: saring ke nomor SPK + buka detailnya.
   useEffect(() => {
     if (focusDoc?.focus_type !== "inspection" || !focusDoc.focus_id) return;
-    if (focusDoc.number) setSearch(focusDoc.number);
+    if (focusDoc.number) setSearch(`"${focusDoc.number}"`);
     getInspection(focusDoc.focus_id).then(setDetail).catch(() => {});
     onClearFocus?.();
   }, [focusDoc?.focus_id]); // eslint-disable-line

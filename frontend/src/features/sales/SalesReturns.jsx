@@ -82,7 +82,7 @@ export default function SalesReturns({ currentUser, onNavigate, focusDoc, onClea
   useEffect(() => {
     if (focusDoc?.focus_type !== "sales_return" || !focusDoc.focus_id) return;
     setFilterStatus("all");
-    if (focusDoc.number) setSearch(focusDoc.number);
+    if (focusDoc.number) setSearch(`"${focusDoc.number}"`);
     axios.get(`${API}/sales-returns/${focusDoc.focus_id}`).then((r) => setSelected(r.data)).catch(() => {});
     onClearFocus?.();
   }, [focusDoc?.focus_id]); // eslint-disable-line

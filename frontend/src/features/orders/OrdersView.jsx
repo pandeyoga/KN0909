@@ -106,7 +106,7 @@ export default function OrdersView({
     if (focusDoc?.focus_type === "sales_order" && focusDoc?.focus_id) {
       setViewMode("list");
       setStatusFilter("all");
-      if (focusDoc.number) setSearchQuery(focusDoc.number);   // tabel langsung tersaring ke baris ini
+      if (focusDoc.number) setSearchQuery(`"${focusDoc.number}"`);   // tanda kutip = nomor tepat (bukan substring)
       setSelectedOrder(focusDoc.focus_id);
       onClearFocus?.();
     }
@@ -218,7 +218,7 @@ export default function OrdersView({
               type="text"
               data-testid="orders-search-input"
               className="flex-1 bg-transparent text-[13px] outline-none placeholder:text-[#8E8E93]"
-              placeholder="Cari nomor pesanan, pelanggan, produk…"
+              placeholder='Cari nomor pesanan, pelanggan, produk… ("SO-0001" = nomor tepat)'
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
