@@ -108,7 +108,7 @@ export const NAV_STRUCTURE = [
   {
     type: "standalone",
     id:    "warehouse-admin-desk",
-    label: "Meja Admin Gudang",
+    label: "Meja Gudang",
     icon:  Warehouse,
     roles: ["admin"],
     view:  "warehouse-admin-desk",
@@ -122,9 +122,9 @@ export const NAV_STRUCTURE = [
     icon:    ShoppingCart,
     roles:   ["admin", "sales", "manager"],
     items: [
-      { id: "sales",            label: "POS / Sales Portal", icon: ShoppingBag, roles: ["admin", "sales"] },
-      { id: "sales-orders",     label: "Pesanan & Retur",    icon: FileText,    roles: ["admin", "sales", "manager"], hub: "sales-orders" },
-      { id: "customers-crm",    label: "Pelanggan & CRM",    icon: Users,       roles: ["admin", "sales", "manager"], hub: "customers-crm" },
+      { id: "sales",            label: "Kasir & Portal", icon: ShoppingBag, roles: ["admin", "sales"] },
+      { id: "sales-orders",     label: "Pesanan",    icon: FileText,    roles: ["admin", "sales", "manager"], hub: "sales-orders" },
+      { id: "customers-crm",    label: "Pelanggan",    icon: Users,       roles: ["admin", "sales", "manager"], hub: "customers-crm" },
       // Sales hanya melihat tab "Harga per Pelanggan" di hub ini (tab lain admin/manager).
       { id: "products-pricing", label: "Produk & Harga",     icon: Layers3,     roles: ["admin", "manager", "sales"], hub: "products-pricing" },
     ],
@@ -138,11 +138,11 @@ export const NAV_STRUCTURE = [
     icon:    ClipboardList,
     roles:   ["admin", "manager", "warehouse", "finance"],
     items: [
-      { id: "sourcing",         label: "Pengadaan (Sourcing)",    icon: Target,        roles: ["admin", "manager", "warehouse"], hub: "sourcing" },
-      { id: "purchase-orders",  label: "Pesanan Pembelian (PO)",  icon: ClipboardList, roles: ["admin", "manager", "finance"],   hub: "purchase-orders" },
-      { id: "accounts-payable", label: "Hutang Supplier (AP)",    icon: Receipt,       roles: ["admin", "manager", "warehouse"], hub: "accounts-payable" },
+      { id: "sourcing",         label: "Pengadaan",    icon: Target,        roles: ["admin", "manager", "warehouse"], hub: "sourcing" },
+      { id: "purchase-orders",  label: "Pesanan Pembelian",  icon: ClipboardList, roles: ["admin", "manager", "finance"],   hub: "purchase-orders" },
+      { id: "accounts-payable", label: "Hutang Pemasok",    icon: Receipt,       roles: ["admin", "manager", "warehouse"], hub: "accounts-payable" },
       { id: "master-pembelian", label: "Master Pembelian",        icon: Factory,       roles: ["admin", "manager"],              hub: "master-pembelian" },
-      { id: "cs-bom",           label: "BOM Printing",            icon: Printer,       roles: ["admin"], comingSoon: true },
+      { id: "cs-bom",           label: "Bahan Cetak",            icon: Printer,       roles: ["admin"], comingSoon: true },
     ],
   },
 
@@ -152,7 +152,7 @@ export const NAV_STRUCTURE = [
   {
     type:  "standalone",
     id:    "rnd-hub",
-    label: "R&D (Spesifikasi & Sample)",
+    label: "Riset & Sampel",
     icon:  FlaskConical,
     roles: ["admin", "manager", "sales", "warehouse"],
     hub:   "rnd-hub",
@@ -186,14 +186,14 @@ export const NAV_STRUCTURE = [
       // sendiri. Gantinya sales mendapat "Perjalanan Pesanan" (E8.14) yang memuat
       // progres gudang TANPA membuka layar gudang. `sales_admin` tetap melihatnya
       // (izin `wms.view` — memantau, tanpa aksi) lewat overlay ROLE_NAV.
-      { id: "wms-operations",     label: "Operasi Gudang (WMS)", icon: Warehouse, roles: ["admin", "warehouse", "manager"], hub: "wms-operations" },
+      { id: "wms-operations",     label: "Operasi Gudang", icon: Warehouse, roles: ["admin", "warehouse", "manager"], hub: "wms-operations" },
       { id: "stock-atp",          label: "Stok & ATP",           icon: Boxes,     roles: ["admin", "warehouse", "manager", "sales"], hub: "stock-atp" },
-      { id: "production",         label: "Produksi (BOM & WO)",  icon: Factory,   roles: ["admin", "manager", "warehouse"] },
-      { id: "wms-locations",      label: "Lokasi & Penempatan Rak",     icon: MapPin,    roles: ["admin", "warehouse", "manager"] },
-      { id: "md-warehouses",      label: "Gudang (Master)",      icon: Warehouse, roles: ["admin", "warehouse", "manager"] },
+      { id: "production",         label: "Produksi",  icon: Factory,   roles: ["admin", "manager", "warehouse"] },
+      { id: "wms-locations",      label: "Lokasi Rak",     icon: MapPin,    roles: ["admin", "warehouse", "manager"] },
+      { id: "md-warehouses",      label: "Data Gudang",      icon: Warehouse, roles: ["admin", "warehouse", "manager"] },
       { id: "cs-stock-analytics", label: "Analitik Stok",      icon: TrendingUp, roles: ["admin", "manager"] },
       // Pengiriman (ekspedisi / armada sendiri, foto muat & POD). Sopir hanya melihat item ini.
-      { id: "logistics",          label: "Logistik & Pengiriman", icon: Truck, roles: ["admin", "manager", "warehouse", "driver", "sales", "sales_admin", "warehouse_admin"], view: "logistics" },
+      { id: "logistics",          label: "Pengiriman", icon: Truck, roles: ["admin", "manager", "warehouse", "driver", "sales", "sales_admin", "warehouse_admin"], view: "logistics" },
     ],
   },
 
@@ -201,14 +201,14 @@ export const NAV_STRUCTURE = [
   {
     type:    "group",
     groupId: "rfid",
-    label:   "RFID & Traceability",
+    label:   "RFID",
     icon:    Cpu,
     roles:   ["admin", "warehouse"],
     items: [
       { id: "cs-rfid-lokasi",  label: "Lokasi RFID",           icon: MapPin, roles: ["admin", "warehouse"] },
-      { id: "cs-rfid-tags",    label: "Tags (tag↔item)",       icon: Tag,    roles: ["admin", "warehouse"] },
-      { id: "cs-rfid-devices", label: "Devices (Reader/Gate)", icon: Wifi,   roles: ["admin"] },
-      { id: "cs-rfid-gate",    label: "Gate Monitor",          icon: Cpu,    roles: ["admin", "warehouse"] },
+      { id: "cs-rfid-tags",    label: "Tag RFID",       icon: Tag,    roles: ["admin", "warehouse"] },
+      { id: "cs-rfid-devices", label: "Perangkat", icon: Wifi,   roles: ["admin"] },
+      { id: "cs-rfid-gate",    label: "Monitor Gerbang",          icon: Cpu,    roles: ["admin", "warehouse"] },
     ],
   },
 
@@ -222,20 +222,20 @@ export const NAV_STRUCTURE = [
     items: [
       { id: "finance-tower", label: "Dasbor Keuangan",     icon: PieChart,     roles: ["admin", "manager"] },
       { id: "cash-bank",   label: "Kas & Bank",            icon: CreditCard,   roles: ["admin", "manager"], hub: "cash-bank" },
-      { id: "ar-aging",    label: "AR / Piutang & Umur",  icon: TrendingDown, roles: ["admin", "manager"] },
+      { id: "ar-aging",    label: "Piutang",  icon: TrendingDown, roles: ["admin", "manager"] },
       // KEB-PDPT (S#090) — saldo 2-1400 per pelanggan: uang muka pesanan belum dikirim + deposit.
       { id: "advance-report", label: "Uang Muka Pelanggan", icon: Wallet,      roles: ["admin", "manager"] },
-      { id: "payment-plans", label: "Rencana Bayar & Denda", icon: CalendarClock, roles: ["admin", "manager"] },
+      { id: "payment-plans", label: "Rencana Bayar", icon: CalendarClock, roles: ["admin", "manager"] },
       // FASE G-9 — antrean uang yang nyangkut. Sales ikut dilibatkan: mereka yang paling
       // sering menerima kabar "sudah transfer kok" dari pelanggan, jadi boleh MELAPOR &
       // memantau (izin finance_case: view+create), tetapi tidak menutup kasus uang.
-      { id: "finance-cases", label: "Pusat Kasus Keuangan", icon: Briefcase, roles: ["admin", "manager", "sales"] },
-      { id: "store-credit", label: "Store Credit (Saldo)", icon: Wallet,      roles: ["admin", "manager"] },
-      { id: "tax-hub",     label: "Pajak (PPN & PPh)",     icon: Percent,      roles: ["admin", "manager"], hub: "tax-hub" },
-      { id: "ledger",      label: "Buku Besar & CoA",      icon: FileStack,    roles: ["admin", "manager"], hub: "ledger" },
-      { id: "fin-reports", label: "Laporan & Analitik",    icon: FileBarChart, roles: ["admin", "manager"], hub: "fin-reports" },
-      { id: "closing",     label: "Tutup Buku (Closing)",  icon: CalendarX,    roles: ["admin", "manager"] },
-      { id: "period-unlock", label: "Buka Periode (Unlock)", icon: Unlock,     roles: ["admin", "manager"] },
+      { id: "finance-cases", label: "Kasus Keuangan", icon: Briefcase, roles: ["admin", "manager", "sales"] },
+      { id: "store-credit", label: "Saldo Kredit", icon: Wallet,      roles: ["admin", "manager"] },
+      { id: "tax-hub",     label: "Pajak",     icon: Percent,      roles: ["admin", "manager"], hub: "tax-hub" },
+      { id: "ledger",      label: "Buku Besar",      icon: FileStack,    roles: ["admin", "manager"], hub: "ledger" },
+      { id: "fin-reports", label: "Laporan",    icon: FileBarChart, roles: ["admin", "manager"], hub: "fin-reports" },
+      { id: "closing",     label: "Tutup Buku",  icon: CalendarX,    roles: ["admin", "manager"] },
+      { id: "period-unlock", label: "Buka Periode", icon: Unlock,     roles: ["admin", "manager"] },
     ],
   },
 
@@ -247,7 +247,7 @@ export const NAV_STRUCTURE = [
     icon:    Wallet,
     roles:   ["admin", "manager", "sales", "warehouse"],
     items: [
-      { id: "petty-cash",   label: "Petty Cash & PD",  icon: Wallet, roles: ["admin", "manager", "sales"],              hub: "petty-cash" },
+      { id: "petty-cash",   label: "Kas Kecil",  icon: Wallet, roles: ["admin", "manager", "sales"],              hub: "petty-cash" },
       { id: "vehicle-logs", label: "Kendaraan",        icon: Car,    roles: ["admin", "manager", "warehouse", "sales"], view: "vehicle-logs" },
       { id: "fixed-assets", label: "Aset Tetap",       icon: Boxes,  roles: ["admin", "manager"],                       view: "fixed-assets" },
     ],
@@ -257,14 +257,14 @@ export const NAV_STRUCTURE = [
   {
     type:    "group",
     groupId: "hrd",
-    label:   "SDM (HRD)",
+    label:   "SDM",
     icon:    Users,
     roles:   ["admin", "manager"],
     items: [
-      { id: "hr-people",         label: "Karyawan & Organisasi", icon: UserCheck,  roles: ["admin", "manager"], hub: "hr-people" },
-      { id: "hr-attendance-hub", label: "Kehadiran & Cuti",      icon: Clock,      roles: ["admin", "manager"], hub: "hr-attendance-hub" },
-      { id: "hr-payroll-hub",    label: "Payroll",               icon: Calculator, roles: ["admin", "manager"], hub: "hr-payroll-hub" },
-      { id: "hr-kpi-hub",        label: "KPI Karyawan",          icon: Target,     roles: ["admin", "manager"], hub: "hr-kpi-hub" },
+      { id: "hr-people",         label: "Karyawan", icon: UserCheck,  roles: ["admin", "manager"], hub: "hr-people" },
+      { id: "hr-attendance-hub", label: "Kehadiran",      icon: Clock,      roles: ["admin", "manager"], hub: "hr-attendance-hub" },
+      { id: "hr-payroll-hub",    label: "Penggajian",               icon: Calculator, roles: ["admin", "manager"], hub: "hr-payroll-hub" },
+      { id: "hr-kpi-hub",        label: "KPI",          icon: Target,     roles: ["admin", "manager"], hub: "hr-kpi-hub" },
     ],
   },
 
@@ -272,13 +272,13 @@ export const NAV_STRUCTURE = [
   {
     type:  "standalone",
     id:    "analytics",
-    label: "Analytics Hub",
+    label: "Analitik",
     icon:  BarChart3,
     roles: ["admin", "manager"],
     hub:   "analytics",
   },
-  { type: "standalone", id: "cs-bi-sales", label: "BI Sales", icon: TrendingUp, roles: ["admin", "manager"], comingSoon: true },
-  { type: "standalone", id: "cs-bi-stock", label: "BI Stok",  icon: PieChart,   roles: ["admin", "manager"], comingSoon: true },
+  { type: "standalone", id: "cs-bi-sales", label: "Analitik Penjualan", icon: TrendingUp, roles: ["admin", "manager"], comingSoon: true },
+  { type: "standalone", id: "cs-bi-stock", label: "Dasbor Stok",  icon: PieChart,   roles: ["admin", "manager"], comingSoon: true },
 
   // ── UTILITAS & PENGATURAN ────────────────────────────────────────────────────
   {
@@ -302,7 +302,7 @@ export const NAV_STRUCTURE = [
   {
     type:  "standalone",
     id:    "settings-hub",
-    label: "Pengaturan & Master Data",
+    label: "Pengaturan",
     icon:  Settings,
     // manager: HANYA tab "Penjadwal & Notifikasi" (lihat + jalankan job, tanpa configure)
     // selaras permissions_config resource `scheduler`; tab lain tetap admin-only.

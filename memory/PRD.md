@@ -363,3 +363,11 @@ tersisa action items minor).
   `useLogisticsDeepLink` meneruskan `search` (bug lama: baris shipment di meja tidak menyaring Logistik).
 - Bukti: iteration_303 (BE 100%, FE 5/6) → iteration_304 (100/100); pytest test_iter303_doc_resolve.py 12/12.
 - Backlog: tombol salin/WA juga di panel PO, SJ, DSR; nomor dokumen di WhatsApp otomatis jadi tautan (butuh domain publik).
+
+## 2026-09-03 — Sesi #094: Nama menu singkat ✅ (self-test screenshot)
+- 37 label menu diringkas 1–2 kata Indonesia (Kasir & Portal, Pesanan, Pelanggan, Pengadaan, Pesanan Pembelian, Hutang Pemasok,
+  Bahan Cetak, Riset & Sampel, Operasi Gudang, Produksi, Lokasi Rak, Data Gudang, Pengiriman, RFID, Tag RFID, Perangkat, Monitor Gerbang,
+  Piutang, Rencana Bayar, Kasus Keuangan, Saldo Kredit, Pajak, Buku Besar, Laporan, Tutup Buku, Buka Periode, Kas Kecil, SDM, Karyawan,
+  Kehadiran, Penggajian, KPI, Analitik, Dasbor Penjualan, Dasbor Stok, Pengaturan, Meja Gudang).
+- Singkatan/istilah teknis (POS, CRM, WMS, PO, AP, BOM, R&D, BI, Payroll) dipindah ke judul halaman: PAGE_META ditambah untuk
+  orders, purchasing, operations, suppliers, makloons, amendments, costing, reorder, reports, documents, admin, escalations, home.

@@ -3,6 +3,20 @@
 
 // PAGE META (SSOT untuk TopBar kicker + title)
 export const PAGE_META = {
+  // S#094 — nama menu 1–2 kata; istilah teknis/singkatan (POS, CRM, WMS, PO, AP, BOM, R&D) hidup di judul halaman.
+  "orders":               { kicker: "Penjualan",      title: "Pesanan Penjualan (Sales Order) & Retur" },
+  "purchasing":           { kicker: "Pembelian",      title: "Pesanan Pembelian (Purchase Order)" },
+  "operations":           { kicker: "Gudang",         title: "Operasi Gudang (WMS) · Barang Masuk, Keluar, Opname & Transfer" },
+  "suppliers":            { kicker: "Pembelian",      title: "Pemasok (Supplier) · Master & Kinerja" },
+  "makloons":             { kicker: "Pembelian",      title: "Pengadaan (Sourcing) · Makloon & RFQ" },
+  "amendments":           { kicker: "Penjualan",      title: "Koreksi Pesanan (Amendment)" },
+  "costing":              { kicker: "Pembelian",      title: "Harga Pokok & Landed Cost" },
+  "reorder":              { kicker: "Gudang",         title: "Titik Pesan Ulang (Reorder Point)" },
+  "reports":              { kicker: "Keuangan",       title: "Laporan & Analitik Keuangan" },
+  "documents":            { kicker: "Alat",           title: "Pusat Cetak · Dokumen PDF & Label" },
+  "admin":                { kicker: "Pengaturan",     title: "Pengaturan & Master Data" },
+  "escalations":          { kicker: "Kerja Saya",     title: "Eskalasi & Tindak Lanjut" },
+  "home":                 { kicker: "Kerja Saya",     title: "Beranda" },
   admin:                  { kicker: "Pengaturan",     title: "Master Data & Audit" },
   "admin-home":           { kicker: "Eksekutif",      title: "Control Tower" },
   "manager-home":         { kicker: "Manajer",        title: "Dasbor Manajer \u00b7 Persetujuan, Target Tim & Keterlambatan" },
@@ -135,14 +149,14 @@ export const PAGE_META = {
   "hr-attendance-setup":  { kicker: "SDM (HRD)",      title: "Shift & Geofence" },
   "hr-live-tracking":     { kicker: "SDM (HRD)",      title: "Lacak Lapangan · Live Tracking Sales" },
   "hr-visits":            { kicker: "Penjualan",      title: "Kunjungan Sales (Visit)" },
-  "hr-payroll-runs":      { kicker: "SDM (HRD)",      title: "Payroll Run · Penggajian" },
+  "hr-payroll-runs":      { kicker: "SDM (HRD)",      title: "Penggajian (Payroll Run)" },
   "hr-payslips":          { kicker: "SDM (HRD)",      title: "Slip Gaji (Payslip)" },
   "hr-leave":             { kicker: "SDM (HRD)",      title: "Cuti & Izin" },
   "hr-overtime":          { kicker: "SDM (HRD)",      title: "Lembur (Overtime)" },
   "cs-kpi":               { kicker: "SDM (HRD)",      title: "KPI Karyawan (input manual per periode)" },
   "cs-design-gallery":    { kicker: "Desainer",       title: "Galeri Desain + AI" },
-  "cs-bi-sales":          { kicker: "Analitik (BI)",  title: "Dasbor BI Sales" },
-  "cs-bi-stock":          { kicker: "Analitik (BI)",  title: "Dasbor BI Stok" },
+  "cs-bi-sales":          { kicker: "Analitik (BI)",  title: "Dasbor Penjualan (Business Intelligence)" },
+  "cs-bi-stock":          { kicker: "Analitik (BI)",  title: "Dasbor Stok (Business Intelligence)" },
   "bi-finance":           { kicker: "Analitik (BI)",  title: "BI Keuangan · Tren, Rasio & Perbandingan PT" },
   "cs-bi-hrd":            { kicker: "Analitik (BI)",  title: "Dasbor BI SDM" },
 };
