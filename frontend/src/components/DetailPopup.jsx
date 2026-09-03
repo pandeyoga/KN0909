@@ -33,7 +33,7 @@ export default function DetailPopup({
           <button type="button" className="icon-button shrink-0" aria-label="Tutup"
             data-testid={`${testId}-close`} onClick={onClose}><X size={14} /></button>
         </div>
-        <div className="max-h-[75vh] overflow-y-auto p-3" data-testid={`${testId}-body`}>
+        <div className="max-h-[calc(100dvh-9rem)] overflow-y-auto p-3" data-testid={`${testId}-body`}>
           {children}
         </div>
       </div>

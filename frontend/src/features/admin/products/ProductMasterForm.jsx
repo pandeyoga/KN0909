@@ -21,10 +21,13 @@ import { uomSelectOptions } from "../../../utils/uomCatalog";        // FASE U
 import { parseDecimal } from "../../../utils/decimalInput";
 
 const TEXT_FIELDS = [
-  ["sku", "SKU"], ["name", "Nama produk"], ["variant", "Varian"],
-  ["motif", "Motif"], ["supplier", "Supplier"],
+  ["sku", "SKU / kode produk", "mis. BTK-MEGA-001"], ["name", "Nama produk", "mis. Batik Mega Mendung Premium"],
+  ["variant", "Varian", "mis. Premium"], ["motif", "Motif", "mis. Mega Mendung"], ["supplier", "Pabrik / pemasok", "mis. Cirebon Craft"],
 ];
-const MONEY_FIELDS = [["price", "Harga jual"], ["harga_pokok", "Harga pokok (HPP)"]];
+const MONEY_FIELDS = [
+  ["price", "Harga jual dasar (per satuan dasar)", "Harga acuan untuk pesanan/penawaran BARU. Pesanan yang sudah dibuat tetap memakai harga saat dibuat. Harga per badan usaha & per pelanggan diatur di tab Harga."],
+  ["harga_pokok", "Harga pokok (HPP) acuan", "Dipakai sebagai cadangan bila roll belum punya cost aktual; HPP jurnal memakai cost roll/WAC."],
+];
 
 export default function ProductMasterForm({
   product, setProduct, editingProductId, productError, saving = false,
@@ -72,27 +75,37 @@ export default function ProductMasterForm({
 
   return (
     <div className="grid gap-2" data-testid="admin-product-form">
-      {TEXT_FIELDS.map(([key, ph]) => (
-        <input key={key} data-testid={`admin-product-${key}-input`} className="field" type="text"
-          placeholder={ph} value={product[key] ?? ""}
-          onChange={(e) => set({ [key]: e.target.value })} />
-      ))}
-      <KNSelect data-testid="admin-product-category-input" className="field"
-        value={product.category ?? ""} placeholder="Pilih kategori"
-        onValueChange={(v) => set({ category: v })} options={categoryOptions} />
-      <KNSelect data-testid="admin-product-base_unit-input" className="field"
-        value={product.base_unit ?? "meter"} placeholder="Satuan Dasar"
-        onValueChange={(v) => set({ base_unit: v })} options={baseUnitOptions} />
-      {MONEY_FIELDS.map(([key, ph]) => (
-        <DecimalInput key={key} data-testid={`admin-product-${key}-input`} placeholder={ph}
-          value={product[key] ?? ""} min={0} onChange={(v) => set({ [key]: v })} />
-      ))}
+      <div className="grid gap-2 sm:grid-cols-2" data-testid="admin-product-identity">
+        {TEXT_FIELDS.map(([key, ph, hint]) => (
+          <label key={key} className={`grid gap-1 text-[11px] font-semibold text-[#3C3C43] ${key === "name" ? "sm:col-span-2" : ""}`}>
+            <span>{ph}{["sku", "name"].includes(key) ? " *" : ""}</span>
+            <input data-testid={`admin-product-${key}-input`} className="field" type="text"
+              placeholder={hint} value={product[key] ?? ""}
+              onChange={(e) => set({ [key]: e.target.value })} />
+          </label>
+        ))}
+        <label className="grid gap-1 text-[11px] font-semibold text-[#3C3C43]"><span>Kategori</span>
+          <KNSelect data-testid="admin-product-category-input" className="field"
+            value={product.category ?? ""} placeholder="Pilih kategori"
+            onValueChange={(v) => set({ category: v })} options={categoryOptions} /></label>
+        <label className="grid gap-1 text-[11px] font-semibold text-[#3C3C43]"><span>Satuan dasar *</span>
+          <KNSelect data-testid="admin-product-base_unit-input" className="field"
+            value={product.base_unit ?? "meter"} placeholder="Satuan Dasar"
+            onValueChange={(v) => set({ base_unit: v })} options={baseUnitOptions} />
+          <span className="text-[10px] font-normal text-[#8E8E93]">Satuan kendali stok, PO, SO & POS untuk produk ini.</span></label>
+        {MONEY_FIELDS.map(([key, ph, hint]) => (
+          <label key={key} className="grid gap-1 text-[11px] font-semibold text-[#3C3C43]"><span>{ph}</span>
+            <DecimalInput data-testid={`admin-product-${key}-input`} placeholder="0"
+              value={product[key] ?? ""} min={0} onChange={(v) => set({ [key]: v })} />
+            <span className="text-[10px] font-normal text-[#8E8E93]">{hint}</span></label>
+        ))}
+      </div>
 
       {/* ── Panel domain tekstil (Fase A) ─────────────────────────────────── */}
       <div data-testid="admin-product-domain-panel"
         className="grid gap-2 rounded-md border border-[#DCE7FA] bg-[#F6F9FF] p-2.5">
         <p className="text-[11px] font-bold uppercase tracking-wide text-[#0058CC]">
-          Domain Tekstil (wajib · KN_18 Fase A)
+          Spesifikasi Tekstil (wajib)
         </p>
         {enumError && (
           <p data-testid="admin-product-enum-error"
@@ -264,7 +277,7 @@ export default function ProductMasterForm({
       <div data-testid="admin-product-exclusivity-panel"
         className="grid gap-2 rounded-md border border-[#E6DCFA] bg-[#F8F5FF] p-2.5">
         <p className="text-[11px] font-bold uppercase tracking-wide text-[#6D4AC0]">
-          Kepemilikan Produk (PS-20 · "PO sendiri")
+          Kepemilikan Produk
         </p>
         <div className="flex gap-1.5" role="group" aria-label="Eksklusivitas produk">
           <button type="button" data-testid="admin-product-excl-umum"
@@ -359,23 +372,25 @@ export default function ProductMasterForm({
       {/* Konversi UOM */}
       <div data-testid="admin-product-uom-editor" className="rounded-md border border-[#EFF0F2] bg-[#FAFBFC] p-2.5">
         <div className="flex items-center justify-between">
-          <p className="text-[11px] font-bold uppercase tracking-wide text-[#8E8E93]">Konversi UOM (mis. roll → meter)</p>
+          <p className="text-[11px] font-bold uppercase tracking-wide text-[#8E8E93]">Isi roll standar produk ini (konversi khusus)</p>
           <button type="button" data-testid="admin-product-add-conv-button" className="secondary-button" onClick={addConv}>
             <Plus size={13} /> Konversi
           </button>
         </div>
         {(product.uom_conversions || []).length === 0 && (
           <p className="mt-1 text-[11px] text-[#6B6B73]">
-            Belum ada konversi variabel. Length (yard/cm/inch) otomatis; kg otomatis bila gramasi & lebar terisi.
+            Belum ada konversi khusus. Konversi umum (meter↔yard↔cm) sudah otomatis dari tab Satuan & Konversi;
+            kg otomatis bila gramasi & lebar terisi. Isi di sini hanya bila produk ini punya isi roll standar
+            (mis. 1 roll = 50 yard) supaya POS/gudang bisa menghitung roll ↔ yard.
           </p>
         )}
         {(product.uom_conversions || []).map((c, i) => (
           <div key={i} className="mt-2 grid grid-cols-[1fr_1fr_1fr_30px] items-center gap-1.5">
-            <input data-testid={`admin-product-conv-from-${i}`} className="field" placeholder="Dari (roll)"
+            <input data-testid={`admin-product-conv-from-${i}`} className="field" placeholder="Dari (mis. roll)"
               value={c.from_unit} onChange={(e) => updateConv(i, "from_unit", e.target.value)} />
-            <input data-testid={`admin-product-conv-to-${i}`} className="field" placeholder="Ke (meter)"
+            <input data-testid={`admin-product-conv-to-${i}`} className="field" placeholder="Ke (mis. yard)"
               value={c.to_unit} onChange={(e) => updateConv(i, "to_unit", e.target.value)} />
-            <DecimalInput data-testid={`admin-product-conv-factor-${i}`} placeholder="Faktor (50)"
+            <DecimalInput data-testid={`admin-product-conv-factor-${i}`} placeholder="Isi (mis. 50)"
               min={0} value={c.factor} onChange={(v) => updateConv(i, "factor", v)} />
             <button type="button" data-testid={`admin-product-conv-remove-${i}`} className="icon-button"
               onClick={() => removeConv(i)} aria-label="Hapus konversi"><XCircle size={14} /></button>

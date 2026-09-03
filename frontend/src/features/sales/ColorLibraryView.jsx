@@ -153,7 +153,7 @@ export default function ColorLibraryView({ currentUser }) {
                           Buat Labdip
                         </button>
                         <button data-testid={`color-history-${c.id}`}
-                          title="Riwayat labdip warna ini (MD-06): putaran, tanggal butuh, hasil"
+                          title="Riwayat labdip warna ini: putaran, tanggal butuh, hasil"
                           className="rounded border border-[#E5E5EA] px-1.5 py-[3px] text-[#6B6B73] hover:border-[#0058CC] hover:text-[#0058CC]"
                           onClick={() => setHistory({ colorId: c.id, label: `warna ${c.code} · ${c.name}` })}>
                           <History size={11} />

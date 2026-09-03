@@ -355,7 +355,6 @@ DEFAULT_PERMISSIONS = {
         # 2026-09 (sesi #075) — antrean "Hutang supplier jatuh tempo" di Meja Finance menaut ke
         # layar PO. HANYA-LIHAT: bayar/kontrabon/landed cost tetap manajer/admin (lihat catatan atas).
         "purchase_order": ["view"],
-        "approval": ["view"],
         "esign": ["view", "sign"],
         "document_delivery": ["view", "send"],
         "logistics": ["view"],   # FB-02 — admin sales memantau
@@ -472,7 +471,6 @@ DEFAULT_PERMISSIONS = {
         "inspection": ["view"],
         "inventory": ["view"],
         "document": ["view", "create", "print"],
-        "approval": ["view"],
     },
     # Sesi #087 — Admin Gudang: semua wewenang `warehouse` + memimpin (tugaskan SPK,
     # putuskan inspeksi, setujui opname & transfer, kelola logistik). TANPA uang.
@@ -504,7 +502,6 @@ DEFAULT_PERMISSIONS = {
         "esign": ["view", "sign"],
         "document_delivery": ["view", "send"],
         "logistics": ["view", "manage", "update"],
-        "approval": ["view"],
     },
     "driver": {
         "logistics": ["view", "update"],

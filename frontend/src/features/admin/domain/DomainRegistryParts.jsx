@@ -2,6 +2,7 @@
  * DomainRegistryParts — komponen pendukung layar Registry Domain (Fase A).
  * Dipisah agar `DomainRegistryView.jsx` tetap di bawah batas 500 baris.
  */
+import { stripInternalCodes } from "../../../utils/cleanText";
 import { ArrowRight, Check, Minus } from "lucide-react";
 
 export function Kpi({ label, value, hint, icon: Icon, tone = "#0058CC", testId }) {
@@ -71,7 +72,7 @@ export function StageChain({ stages, transitions }) {
         ))}
       </div>
       <p className="text-[10.5px] text-[#6B6B73]">
-        Keputusan <b>D-03</b>: satu proses <code>pre_treatment</code> menghasilkan <b>PFD</b>
+        Aturan: satu proses <code>pre_treatment</code> menghasilkan <b>PFD</b>
         (tujuan celup) atau <b>PFP</b> (tujuan printing). Transisi lain ditolak server (HTTP 400).
       </p>
     </div>
@@ -198,22 +199,22 @@ export function EnumCard({ name, meta }) {
         <p className="text-[12.5px] font-semibold">{meta.label}</p>
         <code className="rounded bg-[#F2F4F7] px-1.5 py-0.5 text-[10.5px] text-[#6B6B73]">{name}</code>
         <span className={`status-pill ${meta.in_use ? "pill-success" : "pill-muted"}`}>
-          {meta.in_use ? "dipakai" : `disiapkan · Fase ${meta.planned_phase || "?"}`}
+          {meta.in_use ? "dipakai" : "disiapkan"}
         </span>
-        {meta.ps && <span className="status-pill pill-muted">{meta.ps}</span>}
-        {meta.decision && meta.decision !== "—" && (
+        {false && meta.ps && <span className="status-pill pill-muted">{meta.ps}</span>}
+        {false && meta.decision && meta.decision !== "—" && (
           <span className="status-pill pill-muted">{meta.decision}</span>
         )}
       </div>
-      {meta.note && <p className="mt-1 text-[10.5px] text-[#6B6B73]">{meta.note}</p>}
+      {meta.note && <p className="mt-1 text-[10.5px] text-[#6B6B73]">{stripInternalCodes(meta.note)}</p>}
       <div className="mt-1.5 flex flex-wrap gap-1.5">
         {values.map((v) => (
           <span key={v.value} data-testid={`enum-value-${name}-${v.value}`}
-            title={v.description || v.label}
+            title={stripInternalCodes(v.description || v.label)}
             className="rounded-full border border-[#E5E5EA] bg-[#FAFBFC] px-2 py-0.5 text-[11px]">
             <b className="font-mono">{v.value}</b>
             {v.rank ? <span className="ml-1 text-[#6B219A]">rank {v.rank}</span> : null}
-            <span className="ml-1 text-[#6B6B73]">{v.label}</span>
+            <span className="ml-1 text-[#6B6B73]">{stripInternalCodes(v.label)}</span>
           </span>
         ))}
       </div>

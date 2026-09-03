@@ -120,7 +120,7 @@ export default function GRCatchWeightModal({ task, product, rolls, setRolls, onS
         <div className="rounded-md border border-[#EFF0F2] overflow-hidden mb-3" data-testid="gr-lot-section">
           <div className="flex items-center gap-1.5 px-2 py-1.5 bg-[#FAFBFC] border-b border-[#EFF0F2]">
             <span className="text-[10px] font-bold uppercase text-[#6B6B73]">
-              Identitas Lot (Fase C · 1 batch penerimaan = 1 lot per dye lot)
+              Identitas Lot (1 batch penerimaan = 1 lot per dye lot)
             </span>
             <span className={`ml-auto text-[10px] font-semibold ${blocking ? "text-rose-600" : "text-amber-600"}`}>
               {blocking ? "Mode blokir: wajib diisi" : "Mode peringatan: sangat disarankan"}

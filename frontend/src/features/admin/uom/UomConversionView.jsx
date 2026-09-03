@@ -13,6 +13,7 @@
  *
  * Nav: Produk & Harga → Konversi Satuan (admin & manager; ubah butuh izin uom:update).
  */
+import { stripInternalCodes } from "../../../utils/cleanText";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Calculator, Plus, RefreshCw, Ruler, X } from "lucide-react";
 import axios, { API } from "../../../services/apiClient";
@@ -110,7 +111,7 @@ export default function UomConversionView({ user, products = [] }) {
             <p className="text-[10.5px] text-[#6B6B73]">
               Satu registry untuk semua produk — dipakai PR, PO, penerimaan barang, dan
               perhitungan makloon. Setiap konversi menyimpan <b>jejak</b> (faktor + sumber)
-              sesuai keputusan <b>D-07</b>.
+              sebagai aturan tetap perusahaan.
             </p>
           </div>
           <button data-testid="uom-refresh" className="icon-button" onClick={load} aria-label="Muat ulang">
@@ -231,7 +232,7 @@ export default function UomConversionView({ user, products = [] }) {
           {/* Jejak konversi dokumen */}
           <div className="rounded-md border border-[#EFF0F2] bg-white">
             <div className="border-b border-[#EFF0F2] bg-[#FAFBFC] px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wide text-[#6B6B73]">
-              Jejak Konversi Dokumen Terakhir (bukti D-07)
+              Jejak Konversi Dokumen Terakhir
             </div>
             <UsageTable usage={usage} loading={loading} />
           </div>

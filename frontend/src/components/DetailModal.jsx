@@ -82,7 +82,7 @@ export default function DetailModal({
         aria-modal="true"
         aria-label={label}
         data-testid={testId}
-        className={`w-full ${SIZES[size] || SIZES.xl} my-auto ${framed ? "rounded-2xl bg-white p-4 shadow-2xl max-h-[92vh] overflow-y-auto" : ""}`}
+        className={`w-full ${SIZES[size] || SIZES.xl} my-auto ${framed ? "rounded-2xl bg-white p-4 shadow-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto" : ""}`}
         onClick={(e) => e.stopPropagation()}
       >
         {children}

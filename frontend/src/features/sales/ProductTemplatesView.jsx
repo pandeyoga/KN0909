@@ -130,7 +130,7 @@ export default function ProductTemplatesView({ currentUser }) {
           <div className="section-body">
             <ErrorNotice message={error} onRetry={loadList} onDismiss={() => setError("")} testId="tpl-error" />
             {canManage && (
-              <button data-testid="tpl-create-btn" className="btn-primary w-full text-[12px] py-2 mb-3 inline-flex items-center justify-center gap-1.5" onClick={() => setModal("create")}><Plus size={14} /> Template Baru</button>
+              <button data-testid="tpl-create-btn" className="btn-primary w-full text-[12px] py-2 mb-3 inline-flex items-center justify-center gap-1.5" onClick={() => setModal("create")}><Plus size={14} /> Template Varian Baru</button>
             )}
             {loading ? (
               <div className="grid gap-2">{[0, 1, 2].map((i) => <div key={i} className="h-16 bg-[#F5F5F7] rounded animate-pulse" />)}</div>
@@ -302,7 +302,12 @@ function TemplateModal({ mode, template, onClose, onSaved, onError }) {
   };
 
   return (
-    <Modal title={mode === "edit" ? "Edit Template" : "Template Baru"} icon={Layers3} onClose={onClose} testId="tpl-modal" wide>
+    <Modal title={mode === "edit" ? "Ubah Template Varian" : "Template Varian Baru"} icon={Layers3} onClose={onClose} testId="tpl-modal" wide>
+      <p data-testid="tpl-modal-intro" className="mb-3 rounded-md border border-[#CFE0FF] bg-[#EFF4FF] px-3 py-2 text-[11.5px] text-[#0B3D91]">
+        Template = <b>induk produk</b> (nama, tahap, jenis kain, gramasi, lebar, harga dasar). Dari satu template Anda
+        membuat banyak SKU sekaligus lewat <b>sumbu varian</b> (Warna × Grade × Lebar) — tiap kombinasi menjadi satu
+        produk di Master Produk dengan SKU otomatis. Cocok untuk kain yang sama dalam banyak warna/grade.
+      </p>
       <div className="grid sm:grid-cols-2 gap-3 text-[12px]">
         <Field label="Nama Template *"><input data-testid="tpl-input-name" className="field py-2 text-[13px]" value={form.name} onChange={set("name")} placeholder="Mis. Tenun Ikat Sumba" autoFocus /></Field>
         <Field label="Kategori"><input className="field py-2 text-[13px]" value={form.category} onChange={set("category")} /></Field>

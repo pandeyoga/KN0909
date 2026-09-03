@@ -78,7 +78,7 @@ RULE_KINDS = [
     {"value": "pack", "label": "Ukuran kemasan (roll/bal/cone/box)",
      "note": "Nilai umum perusahaan; dapat ditimpa per produk lewat master produk"},
     {"value": "formula", "label": "Formula (GSM × lebar)",
-     "note": "Panjang ↔ berat memakai gramasi & lebar produk (KN_18 §3)"},
+     "note": "Panjang ↔ berat memakai gramasi & lebar produk"},
 ]
 FORMULAS = [{"value": "gsm_width", "label": "GSM × lebar ÷ 1000 (kg per meter)"}]
 
@@ -105,7 +105,7 @@ CANONICAL_RULES: List[Dict[str, Any]] = [
 CANONICAL_FORMULA_RULES: List[Dict[str, Any]] = [
     {"from_unit": "meter", "to_unit": "kg", "kind": "formula", "formula": "gsm_width",
      "dimension": "cross",
-     "note": "kg = meter × (GSM × lebar ÷ 1000) — butuh gramasi & lebar produk (KN_18 §3.1)"},
+     "note": "kg = meter × (GSM × lebar ÷ 1000) — butuh gramasi & lebar produk"},
 ]
 
 DEFAULT_SETTINGS: Dict[str, Any] = {
@@ -469,9 +469,13 @@ async def ensure_defaults(actor: str = "system") -> Dict[str, Any]:
     created, existing = 0, 0
     for r in CANONICAL_RULES + CANONICAL_FORMULA_RULES:
         fu, tu = normalize_unit(r["from_unit"]), normalize_unit(r["to_unit"])
-        found = await db[RULES_COLL].find_one({"from_unit": fu, "to_unit": tu}, {"_id": 0, "id": 1})
+        found = await db[RULES_COLL].find_one({"from_unit": fu, "to_unit": tu}, {"_id": 0, "id": 1, "note": 1, "source": 1})
         if found:
             existing += 1
+            # Catatan aturan standar mengikuti teks DEFAULT (idempotent) — instalasi lama
+            # tidak boleh terus menampilkan catatan usang berkode internal.
+            if found.get("source") == "standard" and r.get("note") and found.get("note") != r.get("note"):
+                await db[RULES_COLL].update_one({"id": found["id"]}, {"$set": {"note": r["note"], "updated_at": now_iso()}})
             continue
         doc = _validate_rule({
             "from_unit": fu, "to_unit": tu, "kind": r.get("kind", "fixed"),

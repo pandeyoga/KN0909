@@ -270,7 +270,7 @@ export function LotStatusModal({ lot, statusOptions, onClose, onDone }) {
   return (
     <Shell testId="lot-status-modal" title={`Status Mutu Lot ${lot.lot_number}`} onClose={onClose}
       error={err} onDismissError={() => setErr("")}
-      subtitle="Status mutu lot bersifat informasional pada Fase C (tidak memblokir penjualan) dan seluruh perubahan tercatat dengan alasan + pelaku."
+      subtitle="Status mutu lot bersifat informasional (tidak memblokir penjualan) dan seluruh perubahan tercatat dengan alasan + pelaku."
       actions={(
         <>
           <button className="btn-secondary" onClick={onClose}>Batal</button>

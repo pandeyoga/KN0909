@@ -234,12 +234,13 @@ export const ROLE_NAV = {
       "designer-hub", "design-requests", "rnd-designs", "cs-design-gallery",
       // produk & harga
       "penjualan", "products-pricing", "md-products", "product-templates", "md-categories", "color-library", "md-uoms",
-      "cs-price-list", "sales-orders", "orders",
+      "cs-price-list", "products-pricing", "sales-orders", "orders",
       // pembelian bahan (PR/RFQ hanya-lihat PO)
       "pembelian", "sourcing", "purchase-requisitions", "rfq", "purchase-orders", "purchasing", "master-pembelian", "suppliers",
       // pantau inspeksi (acuan sample)
       "gudang", "wms-operations", "inspections",
-      "approval-inbox", "document-center", "doc-trace",
+      // Persetujuan MD (desain/sample) diputus di Meja MD — Pusat Persetujuan lintas modul bukan haknya.
+      "document-center", "doc-trace",
     ],
     remove: ["designer-kpi", "rnd-divisions", "operations", "qc-inspection", "interco-transfers"],
   },
@@ -248,7 +249,8 @@ export const ROLE_NAV = {
     inherit: "warehouse",
     add: [
       "warehouse-admin-desk", "home", "hr-my-profile",
-      "logistics", "approval-inbox",
+      "logistics",
+      // Persetujuan gudang (opname/transfer) diputus di Meja Admin Gudang — bukan Pusat Persetujuan lintas modul.
       "document-center", "doc-trace",
       "cs-stock-analytics",
     ],

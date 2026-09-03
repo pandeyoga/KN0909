@@ -37,10 +37,10 @@ export const HUB_TABS = {
     { view: "product-templates", label: "Template & Varian",     roles: ["admin", "manager"] },
     { view: "md-categories",     label: "Kategori",              roles: ["admin", "manager"] },
     { view: "color-library",     label: "Pustaka Warna",         roles: ["admin", "manager"] },
-    { view: "md-uoms",           label: "Satuan (UOM)",          roles: ["admin", "manager"] },
-    { view: "domain-registry",   label: "Registry Domain",       roles: ["admin", "manager"] },
-    { view: "uom-conversions",   label: "Konversi Satuan",       roles: ["admin", "manager"] },
-    { view: "pricelist",         label: "Pricelist per-PT",      roles: ["admin", "manager"] },
+    { view: "md-uoms",           label: "Satuan & Konversi",     roles: ["admin", "manager"] },
+    // Harga: dua lapis dalam SATU tempat — harga per badan usaha lalu harga khusus pelanggan.
+    { view: "pricelist",         label: "Harga per Badan Usaha", roles: ["admin", "manager"] },
+    { view: "cs-price-list",     label: "Harga per Pelanggan",   roles: ["admin", "manager", "sales"] },
   ],
   "sourcing": [
     { view: "reorder",               label: "Saran Reorder",     roles: ["admin", "manager"] },
@@ -178,6 +178,8 @@ export const HUB_TABS = {
     { view: "entity-masters",    label: "Master per Badan Usaha", roles: ["admin", "manager"] },
     { view: "scheduler",         label: "Penjadwal & Notifikasi", roles: ["admin", "manager"] },
     { view: "pdf-templates",     label: "Template PDF",          roles: ["admin"] },
+    // Registri domain (kamus stage/jenis kain/lini) = konfigurasi sistem, bukan pekerjaan harian produk.
+    { view: "domain-registry",   label: "Registri Domain",       roles: ["admin", "manager"] },
     { view: "approval-rules",    label: "Aturan Persetujuan",        roles: ["admin"] },
   ],
 };

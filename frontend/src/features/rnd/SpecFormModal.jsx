@@ -20,7 +20,7 @@ const STAGE_OPTS = [
   { value: "grey", label: "Grey (kain mentah)" },
   { value: "pfd", label: "PFD (siap celup)" },
   { value: "pfp", label: "PFP (siap cetak)" },
-  { value: "yarn", label: "Benang (yarn) — MD-01" },
+  { value: "yarn", label: "Benang (yarn)" },
 ];
 // MD-01 — pilihan khas benang (selaras `domain_registry` YARN_*).
 const YARN_SYSTEM_OPTS = ["Ne", "Nm", "Denier", "Tex"].map((v) => ({ value: v, label: v }));
@@ -170,7 +170,7 @@ export default function SpecFormModal({ selectedEntity, types = [], onClose, onS
 
           {isYarn ? (
             <div className="rounded-md border border-[#DCE7F7] bg-[#F7FAFF] p-2.5" data-testid="spec-yarn-fields">
-              <p className="mb-2 text-[10.5px] font-bold uppercase tracking-wide text-[#0058CC]">Isian khas benang (MD-01) — bukan gramasi/lebar</p>
+              <p className="mb-2 text-[10.5px] font-bold uppercase tracking-wide text-[#0058CC]">Isian khas benang — bukan gramasi/lebar</p>
               <div className="grid gap-2.5 md:grid-cols-3">
                 <Field label="Nomor benang *">
                   <input className="field" data-testid="spec-yarn-count-input" value={f.yarn_count}

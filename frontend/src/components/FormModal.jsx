@@ -135,7 +135,7 @@ export default function FormModal({
             memicu submit ganda. */}
         <Wrapper {...(onSubmit ? { onSubmit: submit, noValidate: true } : {})}>
           {/* BADAN — bisa di-scroll bila isian panjang */}
-          <div className="max-h-[70vh] overflow-y-auto px-4 py-3.5" data-testid={`${testId}-body`}>
+          <div className="max-h-[calc(100dvh-12rem)] overflow-y-auto px-4 py-3.5" data-testid={`${testId}-body`}>
             {children}
           </div>
 

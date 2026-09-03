@@ -262,7 +262,7 @@ function EliminationsPanel({ elims, onAdd, onDetect, onDelete, onSyncG6, onSyncP
         )}
         <div className="ml-auto flex items-center gap-2 flex-wrap">
           <button data-testid="cons-sync-g6-btn"
-                  title="Sinkronkan eliminasi margin (unrealized profit) dari transaksi antar-PT FASE G-6"
+                  title="Sinkronkan eliminasi margin (unrealized profit) dari transaksi antar-PT"
                   className="btn-secondary text-[12px] py-1.5 px-3 inline-flex items-center gap-1"
                   onClick={onSyncG6} disabled={busy}>
             <ArrowRightLeft size={13} /> Sinkron Antar-PT (G-6)
@@ -291,7 +291,7 @@ function EliminationsPanel({ elims, onAdd, onDetect, onDelete, onSyncG6, onSyncP
                 <span className={`text-[10px] font-bold rounded-full px-1.5 py-0.5 ${el.balanced ? "bg-[#E6F6EC] text-[#1B7F4B]" : "bg-[#FDEDE7] text-[#C0392B]"}`}>{el.balanced ? "Balanced" : "Tidak balanced"}</span>
                 {el.source_g6_pair_id && (
                   <span data-testid={`cons-elim-auto-g6-${el.id}`}
-                        title="Dijaga otomatis dari transaksi antar-PT (FASE G-6) — ikut berubah saat transaksinya dilunasi/dibatalkan"
+                        title="Dijaga otomatis dari transaksi antar-PT — ikut berubah saat transaksinya dilunasi/dibatalkan"
                         className="text-[10px] font-bold rounded-full px-1.5 py-0.5 bg-[#EDE7FB] text-[#6B219A]">
                     AUTO G-6
                   </span>

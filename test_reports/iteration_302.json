@@ -1,0 +1,44 @@
+{
+  "summary": "RETEST iteration_301 (4 butir + regresi). LULUS 3/4 butir + regresi penuh.\n\nLULUS:\n(1) RBAC Pusat Persetujuan — FE: md@ & wh.admin@ login → sidebar TANPA `nav-approval-inbox` (count=0) dan teks 'Pusat Persetujuan' tidak ada; Meja MD & Meja Admin Gudang memuat penuh, 0 respons 401/403/500, 0 console error. BE (test baru /app/backend/tests/test_iter302_approval_rbac.py, 16/16 lulus): GET /api/approvals/my-queue → 403 md@/finance@/wh.admin@, 200 manager@/salesadmin@/admin@; /api/approvals/matrix → 403 utk 3 peran tercabut; /auth/me tidak lagi memuat approval.view; meja /api/md/desk, /api/warehouse-admin/desk, /api/finance/desk tetap 200.\n(3) tpl-modal Escape — Template & Varian → 'Template Varian Baru' → tpl-modal muncul → Escape → count=0, sidebar `nav-home` bisa diklik (tidak ada overlay nyangkut).\n(4) Simpan Satuan — TSTV/'Test V'/Panjang/faktor 3 → modal `admin-create-form` tertutup (count=0), toast 'uoms dibuat: Test V' tampil, baris 'TSTV · panjang · 1 TSTV = 3 satuan dasar · 2 desimal' muncul, 0 respons ≥400; buka formulir lagi → kode & nama KOSONG (faktor kembali ke default 1). Data uji TSTV + sisa TSTU iterasi lalu sudah dibersihkan dari DB.\n(5) Regresi: pytest -n0 test_iter301_rbac_pricing_uom.py → 23 lulus + 1 skip (24) sesuai harapan.\n\nGAGAL: (2) Pembersihan kode internal BELUM tuntas — masih 8 kemunculan (7 di Registri Domain + 1 di Satuan & Konversi). Semuanya string HARDCODE di JSX / catatan tersimpan di DB yang TIDAK lewat `stripInternalCodes`.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/uom-rules (uom_conversion_rules)", "issue": "Dokumen aturan meter→kg di koleksi `uom_conversion_rules` masih menyimpan note 'kg = meter × (GSM × lebar ÷ 1000) — butuh gramasi & lebar produk (KN_18 §3.1)'. Sumber di backend/services/uom_rules_service.py:108 SUDAH bersih, tetapi bootstrap/seed hanya INSERT-jika-belum-ada dan tidak pernah memperbarui `note`, sehingga instalasi berjalan tetap menampilkan kode internal."},
+      {"endpoint": "GET /api/approvals/my-queue (peran sales)", "issue": "Bukan bug — dicatat agar tidak salah tafsir: peran `sales` juga 403 ('Permission ditolak: approval.view') karena `sales` memang tidak pernah punya approval.view di permissions_config.py (sales memakai endpoint price_approval). Ringkasan permintaan menyebut 'admin/manager/sales' — perlu diselaraskan dokumennya, bukan kodenya."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "DomainRegistryView (Pengaturan → Registri Domain)", "issue": "KPI 'Aturan Mengikat' masih ber-hint 'D-01 … D-23 (mengikat)' (DomainRegistryView.jsx:100)", "selector": "hub-tab-domain-registry", "priority": "MEDIUM"},
+      {"component": "DomainRegistryView", "issue": "Label field simulator masih 'TUJUAN (D-03)' (DomainRegistryView.jsx:143)", "selector": "hub-tab-domain-registry", "priority": "MEDIUM"},
+      {"component": "DomainRegistryView", "issue": "Kicker seksi masih 'PS-02 · PS-03 · D-22' di atas 'Kelengkapan Field Wajib per Tahap' (DomainRegistryView.jsx:181)", "selector": "hub-tab-domain-registry", "priority": "MEDIUM"},
+      {"component": "DomainRegistryParts", "issue": "Paragraf rantai tahap masih 'Keputusan D-03: satu proses pre_treatment menghasilkan PFD…' (DomainRegistryParts.jsx:75)", "selector": "hub-tab-domain-registry", "priority": "MEDIUM"},
+      {"component": "UomConversionView — baris aturan", "issue": "Baris `uom-rule-row-meter-kg` menampilkan '(KN_18 §3.1)' karena `note` dari API tidak dilewatkan `stripInternalCodes` DAN dokumen DB masih stale", "selector": "uom-rule-row-meter-kg", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter302_approval_rbac.py",
+    "/app/backend/tests/test_iter301_rbac_pricing_uom.py",
+    "/app/test_reports/pytest/iter302_rbac.xml",
+    "/app/test_reports/pytest/iter302_regress.xml"
+  ],
+  "action_items": [
+    "Hapus 4 string kode internal HARDCODE di frontend/src/features/admin/domain/DomainRegistryView.jsx (baris 100 hint KPI 'D-01 … D-23 (mengikat)', baris 143 label 'Tujuan (D-03)', baris 181 kicker 'PS-02 · PS-03 · D-22') dan DomainRegistryParts.jsx baris 75 ('Keputusan D-03'). `stripInternalCodes` hanya dipakai untuk teks DINAMIS, jadi literal JSX ini lolos.",
+    "Perbaiki catatan aturan meter→kg: tambahkan migrasi/sync idempotent di bootstrap agar `uom_conversion_rules.note` diperbarui dari DEFAULT (menghapus '(KN_18 §3.1)'), DAN lewatkan `note` ke `stripInternalCodes` di UomConversionView sebagai jaring pengaman.",
+    "Setelah perbaikan, jalankan ulang regex verifikasi /\\b(FASE|Fase)\\b|KN_18|\\b(PS|MD|D)-\\d{2}\\b/ pada innerText body di tab Registri Domain dan Satuan & Konversi → harus 0."
+  ],
+  "critical_code_review_comments": [
+    "Pembersihan teks bergantung pada `stripInternalCodes` yang hanya diterapkan pada data dinamis; literal JSX statis tidak terlindungi. Pertimbangkan lint rule / test snapshot yang menolak pola kode internal pada berkas JSX di bawah features/admin.",
+    "Pola seed 'insert-if-absent' untuk `uom_conversion_rules` membuat perubahan teks di sumber tidak pernah sampai ke instalasi berjalan — sama seperti pelajaran `sync_permission_revocations`. Butuh sync eksplisit untuk field deskriptif."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter302_approval_rbac.py"],
+  "success_rate": {"backend": "100%", "frontend": "75%"},
+  "seed_data_creation": "Membuat satuan uji TSTV ('Test V', panjang, faktor 3) lewat UI untuk butir 4; TSTV dan sisa TSTU dari iterasi 301 sudah DIHAPUS dari koleksi `uoms` (kembali 8 satuan baku: MTR, YRD, CM, INCH, RLL, PCS, KG, PANEL).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "demo12345 untuk admin@, manager@, salesadmin@, finance@, md@, wh.admin@ (@kainnusantara.id)",
+  "context_for_next_testing_agent": "Butir RBAC approval (1), tpl-modal Escape (3), Simpan Satuan (4) sudah LULUS dan tidak perlu diuji ulang kecuali ada regresi. Yang tersisa hanya butir 2 (kode internal) di 5 titik yang sudah dipetakan ke nomor baris. Catatan alur: login harus mengosongkan localStorage dulu bila mau berganti akun di sesi Playwright yang sama; setelah login klik `scope-pick-ent_ksc`; navigasi Produk & Harga = nav-group-penjualan → nav-products-pricing → hub-tab-md-uoms / hub-tab-product-templates; Pengaturan = nav-settings-hub → hub-tab-domain-registry. Field satuan: admin-uom-code-input / -name-input / -base_type-input (KNSelect, opsi `admin-uom-base_type-input-option-length`) / -factor_to_base-input, tombol admin-create-uom-button.",
+  "rca_of_the_issue": "Butir 2 gagal karena dua akar berbeda: (a) 4 kemunculan di Registri Domain adalah STRING LITERAL di JSX (DomainRegistryView.jsx:100/143/181, DomainRegistryParts.jsx:75) — helper `stripInternalCodes` hanya dipanggil untuk deskripsi/label enum dinamis, jadi literal statis tidak tersaring; (b) '(KN_18 §3.1)' pada `uom-rule-row-meter-kg` berasal dari DOKUMEN DB `uom_conversion_rules` yang stale — sumber uom_rules_service.py:108 sudah bersih namun seed/bootstrap tidak memperbarui field `note` pada dokumen yang sudah ada, dan frontend menampilkan `note` mentah tanpa sanitasi."
+}

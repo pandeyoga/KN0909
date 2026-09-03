@@ -7,6 +7,7 @@ import PermissionMatrixRecords from "./PermissionMatrixRecords";
 import { auditActionLabel } from "../../config/auditLabels";   // X-2
 import KNSelect from "../../components/KNSelect";
 import FormModal from "../../components/FormModal";
+import UomConversionView from "./uom/UomConversionView";
 import ProductMasterForm from "./products/ProductMasterForm";
 import LineFilter from "../../components/LineFilter";   // FASE L — chip penyaring lini
 import ProductLifecycleCell from "../rnd/ProductLifecycleCell";
@@ -94,6 +95,7 @@ export default function AdminView({
   // tidak pernah cocok dengan isi dokumen sehingga menambah satuan tidak mengubah
   // apa pun di layar. `factor_per_document` = satuan yang faktornya boleh ditulis
   // per baris dokumen (keputusan pemilik: panjang 1 panel berbeda per pesanan).
+  const [showImportExport, setShowImportExport] = useState(false);
   const [uom, setUom] = useState({ code: "", name: "", base_type: "length", precision: 2, factor_to_base: 1, aliases: "", factor_per_document: false });
   const [template, setTemplate] = useState({ document_type: "surat_jalan", name: "", header: "Kain Nusantara", footer: "", columns: "SKU,Nama Barang,Qty,Unit", logo_url: "", paper_size: "A4", orientation: "portrait", margin_mm: 12, signature_left: "Dibuat Oleh", signature_right: "Disetujui Oleh", section_order: ["header", "customer", "items", "allocation", "signature", "footer"] });
   const [userForm, setUserForm] = useState({ name: "", email: "", role: "sales", password: "demo12345", home_entity_id: "", allowed_entity_ids: [] });
@@ -261,38 +263,11 @@ export default function AdminView({
           open={showCreateForm}
           onClose={() => setShowCreateForm(false)}
           title={editingProductId && tab === "products" ? "Ubah Data Master" : "Buat Data Master"}
-          subtitle="Isian untuk tab yang sedang dibuka — termasuk impor/ekspor CSV"
+          subtitle={tab === "products" ? "Data induk produk. Harga di sini = harga dasar untuk pesanan BARU; pesanan yang sudah dibuat tidak berubah." : "Isian untuk tab yang sedang dibuka."}
           icon={Plus}
           size="md"
           testId="admin-create-form"
         >
-          {!["permissions", "audit"].includes(tab) && <div data-testid="admin-import-export-panel" className="mb-3 grid gap-2 rounded-md border border-[#EFF0F2] bg-[#FAFBFC] p-2.5">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-[#6B6B73]">Impor / Ekspor {currentResource}</p>
-            <input data-testid="admin-import-file-input" className="field" type="file" accept=".csv,.xlsx" onChange={(e) => setImportFile(e.target.files?.[0] || null)} />
-            <div className="flex flex-wrap gap-1.5">
-              <button data-testid="admin-dry-run-button" className="secondary-button" disabled={importLoading} onClick={handleDryRunImport}>{importLoading ? "..." : "Preview Dry-Run"}</button>
-              <button data-testid="admin-import-button" className="secondary-button" onClick={() => { onImportMaster(currentResource, importFile, false); setImportPreview(null); }}>Impor</button>
-              <button data-testid="admin-export-csv-button" className="secondary-button" onClick={() => onExportMaster(currentResource, "csv")}>Ekspor CSV</button>
-              {tab === "products" && (
-                <button data-testid="admin-export-yarn-button" className="secondary-button" title="Katalog benang + kode versi supplier (MD-02/08) — untuk dibagikan ke pabrik"
-                  onClick={() => onExportMaster("yarn", "csv")}>Ekspor Katalog Benang</button>
-              )}
-            </div>
-            {importPreview && (
-              <div data-testid="import-preview-result" className="rounded-md border border-[#EFF0F2] bg-white p-2 text-[11.5px]">
-                <p className="font-bold mb-1">Preview: {importPreview.total} baris</p>
-                <p className="text-green-700 inline-flex items-center gap-1"><Check size={12} /> Akan dibuat: {importPreview.created}</p>
-                <p className="text-blue-700">~ Akan diupdate: {importPreview.updated}</p>
-                {(importPreview.errors || []).length > 0 && (
-                  <div className="mt-1 max-h-24 overflow-auto">
-                    <p className="text-red-700 font-bold inline-flex items-center gap-1"><AlertTriangle size={12} /> {importPreview.errors.length} error:</p>
-                    {(importPreview.errors || []).map((e, i) => <p key={i} className="text-red-600 text-[10.5px]">{e}</p>)}
-                  </div>
-                )}
-                <button data-testid="confirm-import-button" className="mt-1 primary-button text-[11px]" onClick={() => { onImportMaster(currentResource, importFile, false); setImportPreview(null); }}>Konfirmasi Impor</button>
-              </div>
-            )}
-          </div>}
           {tab === "products" && (
             <ProductMasterForm
               product={product}
@@ -315,19 +290,40 @@ export default function AdminView({
             <button data-testid="admin-create-customer-button" className="primary-button" disabled={!canWrite} title={writeBlockHint} onClick={() => onAdminCreate("customers", customer)}><Save size={14} /> Simpan Pelanggan</button>
             {!canWrite && <p data-testid="admin-customer-scope-note" className="text-[10.5px] text-[#8C4A00]">{writeBlockHint}</p>}
           </div>}
-          {tab === "uoms" && <div className="grid gap-2">
-            {[["code", "Kode UOM (mis. PANEL)"], ["name", "Nama UOM"], ["base_type", "Base type (length/weight/count)"], ["precision", "Precision"], ["factor_to_base", "Faktor ke satuan dasar"]].map(([key, ph]) => <input key={key} data-testid={`admin-uom-${key}-input`} className="field" placeholder={ph} value={uom[key]} onChange={(e) => setUom({ ...uom, [key]: ["precision", "factor_to_base"].includes(key) ? Number(e.target.value) : e.target.value })} />)}
-            <input data-testid="admin-uom-aliases-input" className="field"
-              placeholder="Alias dipisah koma — kata yang dipakai dokumen (mis. panel, pnl)"
-              title="Kata satuan yang tersimpan di dokumen. Tanpa alias, satuan ini tidak akan dikenali dokumen yang sudah ada."
-              value={uom.aliases} onChange={(e) => setUom({ ...uom, aliases: e.target.value })} />
+          {tab === "uoms" && <div className="grid gap-2.5" data-testid="admin-uom-form">
+            <p className="text-[11px] text-[#6B6B73]">Satuan dasar yang dipakai stok, PO, SO, dan POS. Faktor ke satuan dasar menentukan konversi tetap (mis. 1 yard = 0,9144 meter). Konversi khusus per produk (isi 1 roll) diisi di Master Produk.</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <label className="grid gap-1 text-[11px] font-semibold text-[#3C3C43]">Kode satuan *
+                <input data-testid="admin-uom-code-input" className="field" placeholder="mis. PANEL" value={uom.code} onChange={(e) => setUom({ ...uom, code: e.target.value.toUpperCase() })} /></label>
+              <label className="grid gap-1 text-[11px] font-semibold text-[#3C3C43]">Nama satuan *
+                <input data-testid="admin-uom-name-input" className="field" placeholder="mis. Panel" value={uom.name} onChange={(e) => setUom({ ...uom, name: e.target.value })} /></label>
+              <label className="grid gap-1 text-[11px] font-semibold text-[#3C3C43]">Dimensi *
+                <KNSelect data-testid="admin-uom-base_type-input" className="field" value={uom.base_type} placeholder="Pilih dimensi"
+                  onValueChange={(v) => setUom({ ...uom, base_type: v })}
+                  options={[{ value: "length", label: "Panjang (dasar: meter)" }, { value: "weight", label: "Berat (dasar: kg)" }, { value: "count", label: "Hitungan (dasar: pcs)" }]} /></label>
+              <label className="grid gap-1 text-[11px] font-semibold text-[#3C3C43]">Faktor ke satuan dasar *
+                <input data-testid="admin-uom-factor_to_base-input" className="field" type="number" step="any" min="0" placeholder="mis. 0.9144 untuk yard" value={uom.factor_to_base} onChange={(e) => setUom({ ...uom, factor_to_base: Number(e.target.value) })} /></label>
+              <label className="grid gap-1 text-[11px] font-semibold text-[#3C3C43]">Angka desimal
+                <input data-testid="admin-uom-precision-input" className="field" type="number" min="0" max="6" value={uom.precision} onChange={(e) => setUom({ ...uom, precision: Number(e.target.value) })} /></label>
+              <label className="grid gap-1 text-[11px] font-semibold text-[#3C3C43]">Alias (dipisah koma)
+                <input data-testid="admin-uom-aliases-input" className="field" placeholder="mis. panel, pnl"
+                  title="Kata satuan yang tersimpan di dokumen. Tanpa alias, satuan ini tidak akan dikenali dokumen yang sudah ada."
+                  value={uom.aliases} onChange={(e) => setUom({ ...uom, aliases: e.target.value })} /></label>
+            </div>
             <label className="flex items-center gap-2 text-[11.5px] text-[#3C3C43]">
               <input data-testid="admin-uom-factor-per-document-input" type="checkbox"
                 checked={!!uom.factor_per_document}
                 onChange={(e) => setUom({ ...uom, factor_per_document: e.target.checked })} />
               Faktor berbeda per dokumen (mis. panjang 1 panel berbeda tiap pesanan)
             </label>
-            <button data-testid="admin-create-uom-button" className="primary-button" onClick={() => onAdminCreate("uoms", { ...uom, aliases: String(uom.aliases || "").split(",").map((a) => a.trim()).filter(Boolean) })}><Save size={14} /> Simpan UOM</button>
+            <button data-testid="admin-create-uom-button" className="primary-button" disabled={!uom.code || !uom.name || !(uom.factor_to_base > 0)}
+              onClick={async () => {
+                const r = await onAdminCreate("uoms", { ...uom, aliases: String(uom.aliases || "").split(",").map((a) => a.trim()).filter(Boolean) });
+                if (r?.ok) {   // tutup & kosongkan supaya tidak tercipta duplikat
+                  setUom({ code: "", name: "", base_type: "length", factor_to_base: 1, precision: 2, aliases: "", factor_per_document: false });
+                  setShowCreateForm(false);
+                }
+              }}><Save size={14} /> Simpan Satuan</button>
           </div>}
           {tab === "templates" && <div className="grid gap-2">
             {[["document_type", "Tipe dokumen"], ["name", "Nama template"], ["header", "Header"], ["footer", "Footer"], ["columns", "Kolom dipisah koma"], ["logo_url", "Logo URL"], ["paper_size", "Ukuran kertas"], ["orientation", "Orientasi"], ["margin_mm", "Margin mm"], ["signature_left", "TTD kiri"], ["signature_right", "TTD kanan"]].map(([key, ph]) => <input key={key} data-testid={`admin-template-${key}-input`} className="field" placeholder={ph} value={template[key]} onChange={(e) => setTemplate({ ...template, [key]: key === "margin_mm" ? Number(e.target.value) : e.target.value })} />)}
@@ -354,8 +350,44 @@ export default function AdminView({
           </div>}
         </FormModal>
         <div className="section-card">
-          <div className="section-head"><h2>Records</h2></div>
+          <div className="section-head flex items-center justify-between gap-2">
+            <h2>Records</h2>
+            {!["permissions", "audit", "integrations"].includes(tab) && (
+              <button type="button" data-testid="admin-toggle-import-export" className="secondary-button text-[11px]"
+                onClick={() => setShowImportExport((v) => !v)}>
+                {showImportExport ? "Tutup Impor / Ekspor" : "Impor / Ekspor CSV"}
+              </button>
+            )}
+          </div>
           <div className="section-body">
+          {!["permissions", "audit", "integrations"].includes(tab) && showImportExport && <div data-testid="admin-import-export-panel" className="mb-3 grid gap-2 rounded-md border border-[#EFF0F2] bg-[#FAFBFC] p-2.5">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-[#6B6B73]">Impor / Ekspor massal — {currentResource}</p>
+            <p className="text-[10.5px] text-[#6B6B73]">Unggah CSV/XLSX untuk membuat atau memperbarui banyak baris sekaligus. Gunakan <b>Preview Dry-Run</b> dulu untuk melihat dampaknya tanpa menyimpan.</p>
+            <input data-testid="admin-import-file-input" className="field" type="file" accept=".csv,.xlsx" onChange={(e) => setImportFile(e.target.files?.[0] || null)} />
+            <div className="flex flex-wrap gap-1.5">
+              <button data-testid="admin-dry-run-button" className="secondary-button" disabled={importLoading} onClick={handleDryRunImport}>{importLoading ? "..." : "Preview Dry-Run"}</button>
+              <button data-testid="admin-import-button" className="secondary-button" onClick={() => { onImportMaster(currentResource, importFile, false); setImportPreview(null); }}>Impor</button>
+              <button data-testid="admin-export-csv-button" className="secondary-button" onClick={() => onExportMaster(currentResource, "csv")}>Ekspor CSV</button>
+              {tab === "products" && (
+                <button data-testid="admin-export-yarn-button" className="secondary-button" title="Katalog benang + kode versi supplier — untuk dibagikan ke pabrik"
+                  onClick={() => onExportMaster("yarn", "csv")}>Ekspor Katalog Benang</button>
+              )}
+            </div>
+            {importPreview && (
+              <div data-testid="import-preview-result" className="rounded-md border border-[#EFF0F2] bg-white p-2 text-[11.5px]">
+                <p className="font-bold mb-1">Preview: {importPreview.total} baris</p>
+                <p className="text-green-700 inline-flex items-center gap-1"><Check size={12} /> Akan dibuat: {importPreview.created}</p>
+                <p className="text-blue-700">~ Akan diupdate: {importPreview.updated}</p>
+                {(importPreview.errors || []).length > 0 && (
+                  <div className="mt-1 max-h-24 overflow-auto">
+                    <p className="text-red-700 font-bold inline-flex items-center gap-1"><AlertTriangle size={12} /> {importPreview.errors.length} error:</p>
+                    {(importPreview.errors || []).map((e, i) => <p key={i} className="text-red-600 text-[10.5px]">{e}</p>)}
+                  </div>
+                )}
+                <button data-testid="confirm-import-button" className="mt-1 primary-button text-[11px]" onClick={() => { onImportMaster(currentResource, importFile, false); setImportPreview(null); }}>Konfirmasi Impor</button>
+              </div>
+            )}
+          </div>}
           {tab === "permissions" && <PermissionMatrixRecords matrix={permissions.matrix} onUpdatePermissions={onUpdatePermissions} />}
           {tab === "audit" && <div data-testid="audit-history-records" className="grid gap-2">
             {(auditLogs || []).slice(0, auditShown).map((log) => <button data-testid={`audit-row-${log.id}`} key={log.id} className="rounded-md border border-[#EFF0F2] bg-[#FAFBFC] interactive-card p-2.5 text-left" onClick={() => onShowDetail({ title: auditActionLabel(log.action), body: `Dicatat oleh ${log.actor} pada ${log.entity_type}. Kunci aksi: ${log.action}`, facts: [{ label: "Sumber Daya", value: `${log.entity_type} · ${log.entity_id}` }, { label: "Badan Usaha", value: log.scope_entity_name || log.scope_entity_id || "Tingkat grup" }, { label: "Peran", value: log.role || "—" }, { label: "Waktu", value: new Date(log.timestamp).toLocaleString("id-ID") }], target: "admin", cta: "Tetap di Audit" })}><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-[12.5px] font-semibold">{auditActionLabel(log.action)} <span className="text-[10px] font-mono font-normal text-[#9A9BA3]" title="kunci aksi">{log.action}</span></p><p className="text-[10.5px] font-semibold text-[#0058CC]">{new Date(log.timestamp).toLocaleString("id-ID")}</p></div><p className="mt-0.5 text-[11.5px] text-[#3C3C43]">{log.actor} • {log.entity_type} • {log.entity_id}{log.scope_entity_name ? ` • ${log.scope_entity_name}` : ""}</p><p className="mt-1 line-clamp-2 text-[10.5px] text-[#3C3C43]">{JSON.stringify(log.after ?? log.details ?? {}).slice(0, 240)}</p></button>)}
@@ -372,7 +404,7 @@ export default function AdminView({
               <>
                 <input data-testid="admin-products-search" className="field mb-1" value={productQuery}
                   onChange={(e) => setProductQuery(e.target.value)}
-                  placeholder="Cari SKU / nama KN atau kode / nama versi supplier (MD-08)…" />
+                  placeholder="Cari SKU / nama produk atau kode / nama versi supplier…" />
                 <LineFilter value={lineFilter} onChange={setLineFilter} storageKey="admin-products"
                             allowed={currentUser?.allowed_line_codes} className="mb-1"
                             testId="admin-products-line-filter" />
@@ -399,7 +431,9 @@ export default function AdminView({
                 : { title: row.name || row.legal_name || row.code || row.email, body: `Record ${tab} — gunakan tombol di baris ini untuk mengubah atau menonaktifkan.`, facts: [{ label: "Module", value: tab }, { label: "Status", value: row.status || (row.active === false ? "inactive" : "active") }] })}>
                 <div className="min-w-0">
                   <p data-testid={`admin-record-title-${row.id}`} className="text-[12.5px] font-semibold truncate">{row.name || row.legal_name || row.code || row.email}</p>
-                  <p data-testid={`admin-record-meta-${row.id}`} className="text-[11px] text-[#3C3C43] truncate">{row.sku || row.code || row.document_type || row.role || row.short_name || row.city} • {row.status || (row.active === false ? "inactive" : "active")}{tab === "products" ? supplierCodesLabel(row) : ""}</p>
+                  <p data-testid={`admin-record-meta-${row.id}`} className="text-[11px] text-[#3C3C43] truncate">{tab === "uoms"
+                    ? `${row.code} · ${{ length: "panjang", weight: "berat", count: "hitungan" }[row.base_type] || row.base_type || "—"} · 1 ${row.code} = ${row.factor_to_base ?? "?"} satuan dasar · ${row.precision ?? 2} desimal${(row.aliases || []).length ? ` · alias: ${row.aliases.join(", ")}` : ""}${row.factor_per_document ? " · faktor per dokumen" : ""}`
+                    : <>{row.sku || row.code || row.document_type || row.role || row.short_name || row.city} • {row.status || (row.active === false ? "inactive" : "active")}{tab === "products" ? supplierCodesLabel(row) : ""}</>}</p>
                   {tab === "products" && (
                     <div data-testid={`admin-product-domain-${row.id}`} className="mt-1 flex flex-wrap items-center gap-1">
                       <ProductLifecycleCell product={row}
@@ -433,13 +467,18 @@ export default function AdminView({
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {tab === "products" && <button data-testid={`admin-edit-products-${row.id}-button`} className="secondary-button" onClick={(e) => { e.stopPropagation(); loadProductForEdit(row); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Ubah</button>}
-                  {tab !== "products" && <button data-testid={`admin-update-${tab}-${row.id}-button`} className="secondary-button" onClick={(e) => { e.stopPropagation(); onAdminPatch(tab === "templates" ? "document-templates" : tab, row.id, tab === "uoms" ? { precision: row.precision } : { status: row.status || "active" }); }}>Update</button>}
+                  {!["products", "uoms"].includes(tab) && <button data-testid={`admin-update-${tab}-${row.id}-button`} className="secondary-button" onClick={(e) => { e.stopPropagation(); onAdminPatch(tab === "templates" ? "document-templates" : tab, row.id, tab === "uoms" ? { precision: row.precision } : { status: row.status || "active" }); }}>Update</button>}
                   {tab === "templates" && data.orders?.[0] && <button data-testid={`admin-preview-template-${row.id}-button`} className="secondary-button" onClick={(e) => { e.stopPropagation(); onPreviewTemplate(row.id, data.orders[0].id); }}>Preview</button>}
                   <button data-testid={`admin-delete-${tab}-${row.id}-button`} className="danger-button" onClick={(e) => { e.stopPropagation(); onAdminDelete(tab === "templates" ? "document-templates" : tab, row.id); }}>Deactivate</button>
                 </div>
               </div>
             ))}
           </div>
+          {tab === "uoms" && (
+            <div className="mt-4" data-testid="admin-uom-conversions-embed">
+              <UomConversionView user={currentUser} products={data.products || []} />
+            </div>
+          )}
           {tab === "templates" && previewHtml && <iframe data-testid="template-live-preview-frame" title="Template Preview" className="mt-4 h-[480px] w-full rounded-md border border-[#EFF0F2] bg-white" srcDoc={previewHtml} />}
           </>}
           </div>

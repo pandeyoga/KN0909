@@ -2,6 +2,7 @@
  * UomConversionParts (FASE B) — bagian tampilan layar “Konversi Satuan”.
  * Dipisah dari view utama agar tiap file di bawah batas guardrail (<500 baris).
  */
+import { stripInternalCodes } from "../../../utils/cleanText";
 import { ArrowRight, Pencil, Power } from "lucide-react";
 import { SOURCE_LABEL } from "../../../hooks/useUomConversions";
 
@@ -82,7 +83,7 @@ export function RuleTable({ rules, onEdit, onToggle, canEdit, busyId, loading = 
               </td>
               <td className="px-2 py-1.5 text-[#6B6B73]">{r.dimension}</td>
               <td className="px-2 py-1.5 text-[#6B6B73]">
-                {r.note || r.label}
+                {stripInternalCodes(r.note || r.label)}
                 {r.source === "standard" && (
                   <span className="ml-1 text-[9.5px] font-semibold text-[#0058CC]">standar</span>
                 )}

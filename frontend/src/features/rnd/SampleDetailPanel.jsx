@@ -141,7 +141,7 @@ export default function SampleDetailPanel({ sampleId, currentUser, types: typesP
             {sample?.color_target?.color_id && (
               <button className="secondary-button !px-2 !py-1 text-[10.5px]"
                 data-testid="sample-labdip-history-button"
-                title="Riwayat labdip warna ini lintas permintaan (MD-06)"
+                title="Riwayat labdip warna ini lintas permintaan"
                 onClick={() => setHistoryOpen(true)}>
                 <History size={12} /> Riwayat labdip
               </button>

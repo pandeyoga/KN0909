@@ -1,10 +1,12 @@
 // Shared sub-components + AssignModal untuk ProductTemplatesView (dipisah agar file
 // utama di bawah batas guardrail). Modal/Field/Kpi dipakai TemplateModal & GenerateModal.
+import { useEscapeClose } from "@/utils/escapeLayers";
 import { useEffect, useState } from "react";
 import { X, Link2 } from "lucide-react";
 import axios, { API } from "../../services/apiClient";
 
 export function Modal({ title, icon: Icon, onClose, children, testId, wide }) {
+  useEscapeClose(true, onClose, false);   // Esc menutup — konsisten dengan FormModal
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" data-testid={testId}>
       <div className={`bg-white rounded-xl shadow-xl w-full ${wide ? "max-w-2xl" : "max-w-lg"} max-h-[90vh] overflow-auto`}>

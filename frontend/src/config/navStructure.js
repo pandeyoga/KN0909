@@ -125,8 +125,8 @@ export const NAV_STRUCTURE = [
       { id: "sales",            label: "POS / Sales Portal", icon: ShoppingBag, roles: ["admin", "sales"] },
       { id: "sales-orders",     label: "Pesanan & Retur",    icon: FileText,    roles: ["admin", "sales", "manager"], hub: "sales-orders" },
       { id: "customers-crm",    label: "Pelanggan & CRM",    icon: Users,       roles: ["admin", "sales", "manager"], hub: "customers-crm" },
-      { id: "products-pricing", label: "Produk & Harga",     icon: Layers3,     roles: ["admin", "manager"],          hub: "products-pricing" },
-      { id: "cs-price-list",    label: "Daftar Harga per Pelanggan", icon: Tag,    roles: ["admin", "manager", "sales"] },
+      // Sales hanya melihat tab "Harga per Pelanggan" di hub ini (tab lain admin/manager).
+      { id: "products-pricing", label: "Produk & Harga",     icon: Layers3,     roles: ["admin", "manager", "sales"], hub: "products-pricing" },
     ],
   },
 

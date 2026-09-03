@@ -9,6 +9,7 @@
  *
  * Sumber data: `GET /api/enums` (satu pintu) & `POST /api/enums/stage-transitions/validate`.
  */
+import { stripInternalCodes } from "../../../utils/cleanText";
 import { useMemo, useState } from "react";
 import {
   AlertTriangle, CheckCircle2, GitBranch, Layers3, RefreshCw, ShieldCheck, Workflow,
@@ -95,14 +96,14 @@ export default function DomainRegistryView() {
           hint="yarn → grey → pfd/pfp → finished" icon={Workflow} tone="#6B219A" />
         <Kpi testId="domain-kpi-transitions" label="Transisi Sah" value={transitions.length}
           hint="kombinasi lain ditolak server" icon={GitBranch} tone="#1E7B34" />
-        <Kpi testId="domain-kpi-decisions" label="Keputusan Pemilik" value={Object.keys(decisions).length}
-          hint="D-01 … D-23 (mengikat)" icon={ShieldCheck} tone="#8C4A00" />
+        <Kpi testId="domain-kpi-decisions" label="Aturan Mengikat" value={Object.keys(decisions).length}
+          hint="aturan yang dikunci sistem" icon={ShieldCheck} tone="#8C4A00" />
       </div>
 
       <section className="section-card">
         <div className="section-head">
           <div className="min-w-0">
-            <span className="kicker">KN_18 Fase A · PS-01</span>
+            <span className="kicker">Registri Domain</span>
             <h2>Rantai Tahap Bahan & Matriks Transisi</h2>
           </div>
           <button data-testid="domain-registry-reload" className="secondary-button ml-auto" onClick={reload}>
@@ -139,7 +140,7 @@ export default function DomainRegistryView() {
                 onValueChange={(v) => setSim({ ...sim, process_type: v })} options={options("process_type")} />
             </div>
             <div>
-              <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[#8E8E93]">Tujuan (D-03)</label>
+              <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-[#8E8E93]">Tujuan pre-treatment</label>
               <KNSelect data-testid="sim-target-use" className="field" value={sim.target_use}
                 onValueChange={(v) => setSim({ ...sim, target_use: v })}
                 options={options("target_use", [{ value: "", label: "— tidak diisi —" }])} />
@@ -177,7 +178,7 @@ export default function DomainRegistryView() {
       <section className="section-card">
         <div className="section-head">
           <div className="min-w-0">
-            <span className="kicker">PS-02 · PS-03 · D-22</span>
+            <span className="kicker">Kelengkapan data</span>
             <h2>Kelengkapan Field Wajib per Tahap</h2>
           </div>
         </div>
@@ -206,14 +207,14 @@ export default function DomainRegistryView() {
       <section className="section-card">
         <div className="section-head">
           <div className="min-w-0">
-            <span className="kicker">KN_18 §11</span>
-            <h2>Keputusan Pemilik yang Mengikat</h2>
+            <span className="kicker">Aturan</span>
+            <h2>Aturan Domain yang Mengikat</h2>
           </div>
         </div>
         <div className="section-body grid gap-1.5">
-          {Object.entries(decisions).map(([id, text]) => (
+          {Object.entries(decisions).map(([id, text], i) => (
             <p key={id} data-testid={`decision-${id}`} className="text-[11.5px]">
-              <b className="font-mono text-[#0058CC]">{id}</b> — {text}
+              <b className="text-[#0058CC]">{i + 1}.</b> {stripInternalCodes(text)}
             </p>
           ))}
         </div>

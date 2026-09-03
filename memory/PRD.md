@@ -334,3 +334,21 @@ tersisa action items minor).
 - Bukti: iteration_300 (13/15 → 15/15 setelah CycleCount/Transfer focus); pytest iter295 lulus.
 - Backlog kecil: pencarian OrdersView substring (SO-0001 ikut menarik SO-00010); `rnd-samples-search` tidak diisi; seed demo untuk antrean
   Finance yang kosong (selisih_bayar, denda_draft, hutang_jatuh_tempo); 403 noise /api/warehouses & /api/esign untuk peran md.
+
+## 2026-09-03 — Sesi #092: Master Data UX · RBAC Pusat Persetujuan · IA Produk & Harga ✅
+- Pencocokan nomor tepat: `build_search` mengenali q ber-tanda kutip ("SO-0001") → regex ^…$; lompatan dari meja mengisi `"nomor"`.
+- RBAC: `approval-inbox` dicabut dari ROLE_NAV md & warehouse_admin; `approval.view` dicabut (permissions_config + bootstrap REVOKE) untuk
+  md, finance, warehouse_admin → /api/approvals/* 403. Persetujuan domain mereka tetap di meja masing-masing.
+- Modal selalu terpusat: FormModal body max-h calc(100dvh-12rem), DetailPopup calc(100dvh-9rem), DetailModal calc(100dvh-2rem).
+- Ubah Data Master (produk): Impor/Ekspor dipindah ke kepala Records (`admin-toggle-import-export`); field berlabel + penjelasan;
+  catatan "harga master = harga dasar pesanan BARU, SO lama tidak berubah"; blok "Isi roll standar produk ini (konversi khusus)".
+- Satuan & Konversi: form UOM berlabel (dimensi KNSelect, tombol simpan tervalidasi, tutup & reset setelah sukses), baris informatif,
+  tombol Update tanpa fungsi dihapus, UomConversionView tertanam di tab yang sama; tab "Konversi Satuan" dihapus.
+- IA: Registri Domain → hub Pengaturan; "Harga per Badan Usaha" + "Harga per Pelanggan" berdampingan di Produk & Harga (menu
+  "Daftar Harga per Pelanggan" dihapus; sales melihat Produk & Harga hanya tab Harga per Pelanggan). Template Varian diberi intro (`tpl-modal-intro`) + Esc-close.
+- Kode internal (FASE/PS/D/MD/KN_18) dihapus dari UI: `utils/cleanText.js stripInternalCodes` untuk teks dinamis (registri, aturan UOM),
+  literal JSX dibersihkan, note aturan UOM standar disinkron ke DEFAULT (idempotent) & DB dibersihkan.
+- Bukti: iteration_301 (8/10 → fix), iteration_302 (BE 100%, FE 3/4 → sisa kode internal dibersihkan & diverifikasi regex 0 kecocokan),
+  pytest test_iter301_rbac_pricing_uom.py (23+1 skip), test_iter302_approval_rbac.py (16).
+- **Usulan IA lanjutan (menunggu keputusan pemilik):** zona sidebar KERJA SAYA / MODUL / ALAT / AKUN; lebur Beranda+Pusat Persetujuan ke Meja
+  per peran; Logistik ke bawah Gudang & Logistik; penamaan menu 1–2 kata; alamat dokumen `?doc=`.

@@ -308,6 +308,10 @@ async def sync_permission_revocations() -> None:
     REVOKE = {
         "sales": ["purchase_order", "purchase_requisition", "vendor_bill",
                   "landed_cost", "input_tax", "rfq"],
+        # S#092 — Pusat Persetujuan lintas modul hanya admin/manager/sales(+sales_admin
+        # baca). MD, Finance, Admin Gudang memutus persetujuan domainnya di MEJA masing-
+        # masing; `approval.view` pada mereka membocorkan antrean modul lain.
+        "md": ["approval"], "finance": ["approval"], "warehouse_admin": ["approval"],
     }
     RESCOPE = {
         "sales": {
