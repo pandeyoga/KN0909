@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Truck, Plus, Search, RefreshCw, AlertTriangle } from "lucide-react";
 import ErrorNotice from "../../components/ErrorNotice";
 import { listDeliveries, logisticsSummary, STATUS_LABEL } from "./logisticsApi";
@@ -41,6 +41,13 @@ export default function LogisticsView({ currentUser, selectedEntity, focusDelive
     finally { setLoading(false); }
   }
   useEffect(() => { load(); }, [selectedEntity, status]); // eslint-disable-line
+  // L-5 — cari sambil mengetik (debounce 300 ms); Enter / tombol Cari tetap bisa.
+  const qMounted = useRef(false);
+  useEffect(() => {
+    if (!qMounted.current) { qMounted.current = true; return undefined; }
+    const t = setTimeout(load, 300);
+    return () => clearTimeout(t);
+  }, [q]); // eslint-disable-line
 
   // Deep-link dari Perjalanan Pesanan ("Buka di Logistik") → langsung buka detailnya.
   useEffect(() => {
@@ -73,9 +80,10 @@ export default function LogisticsView({ currentUser, selectedEntity, focusDelive
         <div className="flex flex-wrap items-center gap-2.5">
           <div className="relative flex-1 min-w-[200px] max-w-[360px]">
             <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#9A9BA3]" />
-            <input data-testid="logistics-search" className="form-input !pl-8" placeholder="Cari nomor, resi, pelanggan, plat, sopir…"
+            <input data-testid="logistics-search" className="form-input !pl-8" placeholder="Cari nomor, resi, pelanggan, plat, sopir… (otomatis saat mengetik)"
               value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") load(); }} />
           </div>
+          <button data-testid="logistics-search-button" className="secondary-button" onClick={load}><Search size={13} /> Cari</button>
           <button data-testid="logistics-refresh" className="secondary-button" onClick={load}><RefreshCw size={13} /> Muat ulang</button>
           {canManage && <button data-testid="logistics-create-button" className="primary-button ml-auto" onClick={() => setShowCreate(true)}><Plus size={14} /> Buat Pengiriman</button>}
         </div>
@@ -85,12 +93,25 @@ export default function LogisticsView({ currentUser, selectedEntity, focusDelive
       {loading ? (
         <div className="section-card !p-10 text-center"><p className="text-[12px] text-[#6B6B73]" data-testid="logistics-loading">Memuat pengiriman…</p></div>
       ) : rows.length === 0 ? (
+        q ? (
+          /* L-6 — empty state khusus hasil pencarian (bukan "belum ada pengiriman") */
+          <div className="section-card !p-12 text-center" data-testid="logistics-empty-search">
+            <Search size={30} className="mx-auto text-[#C7C9CF] mb-2" />
+            <p className="text-[13px] font-semibold text-[#3A3B42]">Tidak ada hasil untuk "{q}"{status ? ` pada status "${STATUS_LABEL[status]}"` : ""}</p>
+            <p className="text-[12px] text-[#9A9BA3] mt-0.5">Coba kata kunci lain: nomor LG, nomor pesanan, resi, pelanggan, plat, atau nama sopir.</p>
+            <div className="flex justify-center gap-2 mt-3">
+              <button className="secondary-button" data-testid="logistics-clear-search" onClick={() => setQ("")}>Hapus pencarian</button>
+              {status && <button className="secondary-button" data-testid="logistics-clear-filter" onClick={() => setStatus("")}>Tampilkan semua status</button>}
+            </div>
+          </div>
+        ) : (
         <div className="section-card !p-12 text-center" data-testid="logistics-empty">
           <Truck size={30} className="mx-auto text-[#C7C9CF] mb-2" />
           <p className="text-[13px] font-semibold text-[#3A3B42]">Belum ada pengiriman{status ? ` berstatus "${STATUS_LABEL[status]}"` : ""}</p>
           <p className="text-[12px] text-[#9A9BA3] mt-0.5">{canManage ? "Buat pengiriman dari Surat Jalan yang sudah dispatch gudang." : "Pengiriman yang ditugaskan akan muncul di sini."}</p>
           {status && <button className="secondary-button mt-3" data-testid="logistics-clear-filter" onClick={() => setStatus("")}>Tampilkan semua</button>}
         </div>
+        )
       ) : (
         <DeliveryTable rows={rows} onOpen={setOpenId} canOpenOrder={canOpenOrder} />
       )}

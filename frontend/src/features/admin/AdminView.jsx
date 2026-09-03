@@ -4,6 +4,7 @@ import CategoryManager from "./CategoryManager";
 import IntegrationsPanel from "./IntegrationsPanel";
 import GeminiIntegrationPanel from "./GeminiIntegrationPanel";
 import PermissionMatrixRecords from "./PermissionMatrixRecords";
+import { auditActionLabel } from "../../config/auditLabels";   // X-2
 import KNSelect from "../../components/KNSelect";
 import FormModal from "../../components/FormModal";
 import ProductMasterForm from "./products/ProductMasterForm";
@@ -189,6 +190,8 @@ export default function AdminView({
   // `records` (dulu di atasnya → TDZ "Cannot access before initialization" yang
   // membuat seluruh halaman Produk & Harga blank di bundle produksi).
   const [productQuery, setProductQuery] = useState("");   // MD-08 — cari kode KN / kode pabrik
+  const AUDIT_PAGE = 50;   // X-2 — render bertahap, bukan 500 baris sekaligus
+  const [auditShown, setAuditShown] = useState(AUDIT_PAGE);
   const visibleRecords = useMemo(() => {
     let rows = records;
     if (tab === "products" && lineFilter) {
@@ -355,7 +358,13 @@ export default function AdminView({
           <div className="section-body">
           {tab === "permissions" && <PermissionMatrixRecords matrix={permissions.matrix} onUpdatePermissions={onUpdatePermissions} />}
           {tab === "audit" && <div data-testid="audit-history-records" className="grid gap-2">
-            {(auditLogs || []).map((log) => <button data-testid={`audit-row-${log.id}`} key={log.id} className="rounded-md border border-[#EFF0F2] bg-[#FAFBFC] interactive-card p-2.5 text-left" onClick={() => onShowDetail({ title: log.action, body: `Dicatat oleh ${log.actor} pada ${log.entity_type}.`, facts: [{ label: "Sumber Daya", value: `${log.entity_type} · ${log.entity_id}` }, { label: "Badan Usaha", value: log.scope_entity_name || log.scope_entity_id || "Tingkat grup" }, { label: "Peran", value: log.role || "—" }, { label: "Waktu", value: new Date(log.timestamp).toLocaleString("id-ID") }], target: "admin", cta: "Tetap di Audit" })}><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-[12.5px] font-semibold">{log.action}</p><p className="text-[10.5px] font-semibold text-[#0058CC]">{new Date(log.timestamp).toLocaleString("id-ID")}</p></div><p className="mt-0.5 text-[11.5px] text-[#3C3C43]">{log.actor} • {log.entity_type} • {log.entity_id}{log.scope_entity_name ? ` • ${log.scope_entity_name}` : ""}</p><p className="mt-1 line-clamp-2 text-[10.5px] text-[#3C3C43]">{JSON.stringify(log.after ?? log.details ?? {}).slice(0, 240)}</p></button>)}
+            {(auditLogs || []).slice(0, auditShown).map((log) => <button data-testid={`audit-row-${log.id}`} key={log.id} className="rounded-md border border-[#EFF0F2] bg-[#FAFBFC] interactive-card p-2.5 text-left" onClick={() => onShowDetail({ title: auditActionLabel(log.action), body: `Dicatat oleh ${log.actor} pada ${log.entity_type}. Kunci aksi: ${log.action}`, facts: [{ label: "Sumber Daya", value: `${log.entity_type} · ${log.entity_id}` }, { label: "Badan Usaha", value: log.scope_entity_name || log.scope_entity_id || "Tingkat grup" }, { label: "Peran", value: log.role || "—" }, { label: "Waktu", value: new Date(log.timestamp).toLocaleString("id-ID") }], target: "admin", cta: "Tetap di Audit" })}><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-[12.5px] font-semibold">{auditActionLabel(log.action)} <span className="text-[10px] font-mono font-normal text-[#9A9BA3]" title="kunci aksi">{log.action}</span></p><p className="text-[10.5px] font-semibold text-[#0058CC]">{new Date(log.timestamp).toLocaleString("id-ID")}</p></div><p className="mt-0.5 text-[11.5px] text-[#3C3C43]">{log.actor} • {log.entity_type} • {log.entity_id}{log.scope_entity_name ? ` • ${log.scope_entity_name}` : ""}</p><p className="mt-1 line-clamp-2 text-[10.5px] text-[#3C3C43]">{JSON.stringify(log.after ?? log.details ?? {}).slice(0, 240)}</p></button>)}
+            {(auditLogs || []).length > auditShown && (
+              <button data-testid="audit-show-more" className="secondary-button justify-self-center" onClick={() => setAuditShown((n) => n + AUDIT_PAGE)}>
+                Tampilkan {Math.min(AUDIT_PAGE, (auditLogs || []).length - auditShown)} lagi ({auditShown} dari {(auditLogs || []).length})
+              </button>
+            )}
+            {(auditLogs || []).length === 0 && <p data-testid="audit-empty" className="px-3 py-6 text-center text-[12px] text-[#6B6B73]">Tidak ada jejak audit untuk filter ini.</p>}
           </div>}
           {!['permissions', 'audit', 'integrations'].includes(tab) && <>
           <div className="grid gap-2">

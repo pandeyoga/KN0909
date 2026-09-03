@@ -25,7 +25,7 @@ export default function ConfirmHost() {
     <ConfirmModal
       open={!!req}
       title={o.title || "Konfirmasi"}
-      message={o.message}
+      message={o.message || o.description}   // 43 pemanggil memakai `description` (audit iter293)
       confirmLabel={o.confirmLabel}
       cancelLabel={o.cancelLabel}
       danger={o.danger}

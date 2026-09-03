@@ -12,6 +12,7 @@ export const updateDelivery = (id, payload) => axios.patch(`${L}/deliveries/${id
 export const addPosition = (id, payload) => axios.post(`${L}/deliveries/${id}/positions`, payload).then((r) => r.data);
 export const transitionDelivery = (id, payload) => axios.post(`${L}/deliveries/${id}/transition`, payload).then((r) => r.data);
 export const deletePhoto = (id, photoId) => axios.delete(`${L}/deliveries/${id}/photos/${photoId}`).then((r) => r.data);
+export const deletePosition = (id, posId) => axios.delete(`${L}/deliveries/${id}/positions/${posId}`).then((r) => r.data);   // L-2
 export const listDrivers = (params) => axios.get(`${L}/drivers`, { params }).then((r) => r.data);
 export const setMyRoute = (ids) => axios.post(`${L}/my-route`, { ids }).then((r) => r.data);
 export function uploadPhoto(id, file, kind, note = "") {
@@ -39,3 +40,6 @@ export const waUrl = (phone, text = "") => {
   if (p.startsWith("0")) p = `62${p.slice(1)}`;
   return `https://wa.me/${p}${text ? `?text=${encodeURIComponent(text)}` : ""}`;
 };
+
+// L-1 — "hari ini" operasional = tanggal WIB (Asia/Jakarta), bukan UTC.
+export const todayWib = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Jakarta" });

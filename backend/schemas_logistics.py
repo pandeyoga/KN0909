@@ -36,8 +36,8 @@ class DeliveryUpdateIn(BaseModel):
 class PositionIn(BaseModel):
     location: str = Field(min_length=2, max_length=200)
     note: str = ""
-    lat: Optional[float] = None
-    lng: Optional[float] = None
+    lat: Optional[float] = Field(default=None, ge=-90, le=90)      # L-2
+    lng: Optional[float] = Field(default=None, ge=-180, le=180)
 
 
 class TransitionIn(BaseModel):

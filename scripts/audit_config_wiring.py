@@ -430,6 +430,14 @@ def classify(consumers: List[str], ui: List[str]) -> str:
     return "DEAD"
 
 
+# Scope yang punya LAYAR EDITOR KHUSUS (bukan Pusat Pengaturan & bukan endpoint
+# config lama): kunci-kuncinya rahasia (API key) sehingga sengaja tidak masuk hub
+# generik. Berkas di sini dihitung sebagai UI resmi scope tersebut.
+DEDICATED_UI = {
+    "integrations": ("features/admin/IntegrationsPanel.jsx", "features/admin/GeminiIntegrationPanel.jsx"),
+}
+
+
 def build_rows(declared, be, fe_consumers, fe_editors, reg_index, wired: bool):
     """Susun satu baris hasil per kunci tersimpan.
 
@@ -455,6 +463,9 @@ def build_rows(declared, be, fe_consumers, fe_editors, reg_index, wired: bool):
         ui = list(legacy_ui)
         if hub_ui:
             ui.append("features/settings/config/SettingsHub.jsx (registry generik)")
+        for ded in DEDICATED_UI.get(scope, ()):
+            if any(k.endswith(ded) for k in fe_consumers) or any(k.endswith(ded) for k in fe_editors):
+                ui.append(f"{ded} (editor khusus scope)")
 
         if entry is not None and entry.get("status") == "not_used":
             status = "NOT_USED"

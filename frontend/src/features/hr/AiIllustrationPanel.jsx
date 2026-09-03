@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios, { API } from "../../services/apiClient";
-import { Wand2, X, FlaskConical, MessageSquare, Send } from "lucide-react";
+import { Wand2, X, FlaskConical, MessageSquare, Send, Maximize2, PowerOff, Trash2 } from "lucide-react";
+import { askConfirm } from "../../services/confirmService";
 import KNSelect from "../../components/KNSelect";
 import GalleryImage from "./GalleryImage";
 
@@ -11,7 +12,9 @@ const MODES = [
   { value: "modify", label: "Modifikasi artwork sesuai arahan" },
 ];
 
-export default function AiIllustrationPanel({ g, canManage, canComment = canManage, onChanged }) {
+export const fileUrl = (galleryId, fileId) => `${API}/design-gallery/${galleryId}/files/${fileId}`;
+
+export default function AiIllustrationPanel({ g, canManage, canComment = canManage, currentUser, onChanged }) {
   const artworks = (g.files || []).filter((f) => (f.kind || "artwork") !== "ai_illustration");
   const illus = (g.files || []).filter((f) => f.kind === "ai_illustration");
   const [status, setStatus] = useState(null);
@@ -42,8 +45,14 @@ export default function AiIllustrationPanel({ g, canManage, canComment = canMana
     finally { setBusy(false); }
   }
   async function remove(fid) {
+    const f = illus.find((x) => x.id === fid);
+    const n = (f?.comments || []).length;
+    // G-1 — konfirmasi + peringatan jumlah komentar yang ikut hilang.
+    const ok = await askConfirm({ title: "Hapus ilustrasi AI ini?", danger: true, confirmLabel: "Hapus",
+      description: n ? `${n} komentar "Diskusi arahan" pada ilustrasi ini akan ikut terhapus dan tidak bisa dikembalikan.` : "Ilustrasi akan dihapus permanen." });
+    if (!ok) return;
     setErr(""); setMsg("");
-    try { await axios.delete(`${API}/design-gallery/${g.id}/files/${fid}`); setMsg("Ilustrasi dihapus."); await onChanged(); }
+    try { await axios.delete(`${API}/design-gallery/${g.id}/files/${fid}`); if (preview === fid) setPreview(null); setMsg("Ilustrasi dihapus."); await onChanged(); }
     catch (e) { setErr(e.response?.data?.detail || "Gagal menghapus ilustrasi."); }
   }
 
@@ -55,8 +64,9 @@ export default function AiIllustrationPanel({ g, canManage, canComment = canMana
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <span className="flex items-center gap-1.5 text-[12px] font-semibold text-[#5B2EA6]"><Wand2 size={14} /> Ilustrasi AI — arahan (Gemini Nano Banana Pro)</span>
         {status && (
-          <span data-testid="gallery-ai-status" className={`px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 ${status.demo ? "bg-[#FFF3D6] text-[#8C4A00]" : "bg-[#E7F5EC] text-[#1F7A45]"}`}>
-            {status.demo ? <><FlaskConical size={10} /> MODE DEMO</> : `LIVE · ${status.model}`}
+          /* G-2 — NONAKTIF punya badge sendiri (abu), tidak lagi bertentangan dengan catatan "dinonaktifkan" */
+          <span data-testid="gallery-ai-status" className={`px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 ${status.enabled === false ? "bg-[#EDEEF1] text-[#6B6B73]" : status.demo ? "bg-[#FFF3D6] text-[#8C4A00]" : status.verified ? "bg-[#E7F5EC] text-[#1F7A45]" : "bg-[#FFF3D6] text-[#8C4A00]"}`}>
+            {status.enabled === false ? <><PowerOff size={10} /> NONAKTIF</> : status.demo ? <><FlaskConical size={10} /> MODE DEMO</> : status.verified ? `LIVE · ${status.model}` : `KEY BELUM DIUJI · ${status.model}`}
           </span>
         )}
       </div>
@@ -97,6 +107,7 @@ export default function AiIllustrationPanel({ g, canManage, canComment = canMana
                 <GalleryImage galleryId={g.id} fileId={f.id} alt={f.ai?.prompt || f.filename} />
               </button>
               <span className="absolute top-1 left-1 px-1 py-0.5 rounded bg-[#5B2EA6] text-white text-[9px] font-bold">{f.ai?.demo ? "AI · DEMO" : "AI"} · {f.ai?.mode}</span>
+              {(f.comments || []).length > 0 && <span data-testid={`gallery-ai-illus-comments-${f.id}`} className="absolute bottom-6 right-1 px-1 py-0.5 rounded bg-white/90 border border-[#C9B8EE] text-[#5B2EA6] text-[9px] font-bold flex items-center gap-0.5" title={`${f.comments.length} komentar`}><MessageSquare size={9} /> {f.comments.length}</span>}
               <span className="block text-[9.5px] text-[#6B6B73] truncate mt-0.5" title={f.ai?.prompt}>{f.ai?.prompt}</span>
               {canManage && <button data-testid={`gallery-ai-illus-del-${f.id}-button`} className="absolute -top-1.5 -right-1.5 bg-white rounded-full shadow p-0.5 text-[#C0341D]" onClick={() => remove(f.id)}><X size={12} /></button>}
             </div>
@@ -108,10 +119,13 @@ export default function AiIllustrationPanel({ g, canManage, canComment = canMana
         <div className="mt-3 rounded-md border border-[#C9B8EE] bg-white p-2" data-testid="gallery-ai-illus-preview">
           <div className="flex items-start justify-between gap-2">
             <p className="text-[11px] text-[#3A3B42]"><b>{shown.ai?.mode === "mockup" ? "Mockup" : "Modifikasi"}</b> · oleh {shown.ai?.by} · {shown.ai?.model}<br />{shown.ai?.prompt}</p>
-            <button className="icon-button" onClick={() => setPreview(null)}><X size={14} /></button>
+            <div className="flex items-center gap-1 shrink-0">
+              <a data-testid="gallery-ai-illus-open-full" className="secondary-button !py-1 !px-2 !text-[11px]" href={fileUrl(g.id, shown.id)} target="_blank" rel="noopener noreferrer" title="Buka ukuran penuh di tab baru"><Maximize2 size={12} /> Ukuran penuh</a>
+              <button className="icon-button" onClick={() => setPreview(null)}><X size={14} /></button>
+            </div>
           </div>
-          <div className="mt-1.5 max-h-[360px] rounded overflow-hidden bg-[#F2F3F5]"><GalleryImage galleryId={g.id} fileId={shown.id} alt={shown.ai?.prompt} fit="contain" /></div>
-          <IllustrationComments g={g} file={shown} canComment={canComment} onChanged={onChanged} />
+          <div className="mt-1.5 max-h-[480px] rounded overflow-hidden bg-[#F2F3F5]"><GalleryImage galleryId={g.id} fileId={shown.id} alt={shown.ai?.prompt} fit="contain" /></div>
+          <IllustrationComments g={g} file={shown} canComment={canComment} currentUser={currentUser} onChanged={onChanged} />
         </div>
       )}
     </div>
@@ -119,11 +133,18 @@ export default function AiIllustrationPanel({ g, canManage, canComment = canMana
 }
 
 // Komentar arahan ↔ balasan desainer, berurutan waktu, tersimpan pada berkas ilustrasi.
-function IllustrationComments({ g, file, canComment, onChanged }) {
+function IllustrationComments({ g, file, canComment, currentUser, onChanged }) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const comments = file.comments || [];
+  const canDelete = (c) => currentUser && (c.user_id === currentUser.id || currentUser.role === "admin");
+  async function removeComment(c) {   // G-6 — hapus komentar sendiri
+    if (!(await askConfirm({ title: "Hapus komentar ini?", description: c.text.slice(0, 120), confirmLabel: "Hapus", danger: true }))) return;
+    setErr("");
+    try { await axios.delete(`${API}/design-gallery/${g.id}/files/${file.id}/comments/${c.id}`); await onChanged(); }
+    catch (e) { setErr(e.response?.data?.detail || "Gagal menghapus komentar."); }
+  }
   async function send() {
     if (!text.trim()) return;
     setBusy(true); setErr("");
@@ -140,7 +161,8 @@ function IllustrationComments({ g, file, canComment, onChanged }) {
         {comments.length === 0 && <p className="text-[10.5px] text-[#9A9BA3]" data-testid="gallery-ai-comments-empty">Belum ada komentar. Desainer dapat membalas arahan di sini.</p>}
         {comments.map((c) => (
           <div key={c.id} data-testid={`gallery-ai-comment-${c.id}`} className={`rounded-md px-2.5 py-1.5 text-[11.5px] ${c.role === "designer" ? "bg-[#F1F5FF] border border-[#D6E2FF]" : "bg-[#FAF7FF] border border-[#E6DDF7]"}`}>
-            <p className="text-[10px] text-[#6B6B73]"><b>{c.by}</b> · {c.role === "designer" ? "Desainer" : "Atasan"} · {String(c.at).slice(0, 16).replace("T", " ")}</p>
+            <p className="text-[10px] text-[#6B6B73] flex items-center gap-1"><b>{c.by}</b> · {c.role === "designer" ? "Desainer" : "Atasan"} · {String(c.at).slice(0, 16).replace("T", " ")}
+              {canDelete(c) && <button type="button" data-testid={`gallery-ai-comment-del-${c.id}`} className="ml-auto icon-button !p-0.5 text-[#C0341D]" title="Hapus komentar saya" onClick={() => removeComment(c)}><Trash2 size={11} /></button>}</p>
             <p className="text-[#3A3B42] whitespace-pre-wrap">{c.text}</p>
           </div>
         ))}

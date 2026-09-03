@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useEscapeClose } from "../../utils/escapeLayers";
 import axios, { API } from "../../services/apiClient";
 import { Palette, Plus, Search, Upload, Trash2, Sparkles, ImageOff, Settings, X, Tag, Send, CheckCircle2, Undo2, Wand2 } from "lucide-react";
 import ErrorNotice from "../../components/ErrorNotice";
@@ -136,7 +137,7 @@ export default function DesignGalleryView({ currentUser, selectedEntity }) {
         <CreateModal params={params} onClose={() => setShowCreate(false)} onCreated={async (id) => { setShowCreate(false); await load(); const r = await axios.get(`${API}/design-gallery/${id}`); setManage(r.data); }} />
       )}
       {manage && (
-        <ManageModal g={manage} canManage={canManage} currentRole={currentUser?.role} onClose={() => { setManage(null); }} onChanged={() => refreshManage(manage.id)} />
+        <ManageModal g={manage} canManage={canManage} currentRole={currentUser?.role} currentUser={currentUser} onClose={() => { setManage(null); }} onChanged={() => refreshManage(manage.id)} />
       )}
 
       <ConfirmModal open={!!delTarget} title="Hapus Motif?" message={delTarget ? `Hapus "${delTarget.title}" beserta gambarnya?` : ""} confirmLabel="Hapus" danger onConfirm={() => doDelete(delTarget)} onCancel={() => setDelTarget(null)} testId="gallery-delete-modal" />
@@ -209,6 +210,7 @@ function CreateModal({ onClose, onCreated }) {
   const [productId, setProductId] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  useEscapeClose(true, onClose, busy);   // G-5
   async function save() {
     if (!title.trim()) { setErr("Judul motif wajib diisi."); return; }
     setBusy(true); setErr("");
@@ -246,7 +248,7 @@ function CreateModal({ onClose, onCreated }) {
 }
 
 // ─── Modal kelola (edit + files + autotag) ──────────────────────────
-function ManageModal({ g, canManage, currentRole, onClose, onChanged }) {
+function ManageModal({ g, canManage, currentRole, currentUser, onClose, onChanged }) {
   const [title, setTitle] = useState(g.title || "");
   const [story, setStory] = useState(g.story || "");
   const [tags, setTags] = useState((g.tags || []).join(", "));
@@ -260,6 +262,7 @@ function ManageModal({ g, canManage, currentRole, onClose, onChanged }) {
   const [err, setErr] = useState("");
   const [ai, setAi] = useState(null);
   const [ratingBusy, setRatingBusy] = useState(false);
+  useEscapeClose(true, onClose, busy || uploadBusy || aiBusy);   // G-5
   const files = (g.files || []).filter(isArtwork);
 
   async function doRate(stars) {
@@ -424,7 +427,7 @@ function ManageModal({ g, canManage, currentRole, onClose, onChanged }) {
         </div>
 
         {/* FB-01 — Ilustrasi AI (arahan atasan) */}
-        <AiIllustrationPanel g={g} canManage={canManage} canComment={canManage || currentRole === "designer"} onChanged={onChanged} />
+        <AiIllustrationPanel g={g} canManage={canManage} canComment={canManage || currentRole === "designer"} currentUser={currentUser} onChanged={onChanged} />
 
         {/* Rating desain (bintang 1–5, 1 nilai per penilai) */}
         <div className="mt-3 rounded-lg border border-[#F1E7CC] bg-[#FFFBF0] p-2.5" data-testid="gallery-rating-block">

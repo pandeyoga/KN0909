@@ -221,13 +221,31 @@ async def comment_illustration(gallery_id: str, file_id: str, payload: Illustrat
     return c
 
 
+@router.delete("/design-gallery/{gallery_id}/files/{file_id}/comments/{comment_id}")
+async def delete_illustration_comment(gallery_id: str, file_id: str, comment_id: str,
+                                      request: Request) -> Dict[str, Any]:
+    """G-6 — hapus komentar sendiri pada ilustrasi AI (admin: siapa pun)."""
+    actor = await _perm_manage(request)
+    ctx = await entity_ctx(request)
+    await _guard(gallery_id, ctx)
+    try:
+        res = await gallery.delete_illustration_comment(gallery_id, file_id, comment_id, actor)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    await audit(actor["name"], "design_gallery_ai_comment_delete", "design_gallery", gallery_id,
+                {"file_id": file_id, "comment_id": comment_id})
+    return res
+
+
 @router.get("/design-gallery-ai/status")
 async def ai_illustrate_status(request: Request) -> Dict[str, Any]:
-    """Status layanan ilustrasi AI untuk UI: {enabled, demo, model}."""
+    """Status layanan ilustrasi AI untuk UI: {enabled, demo, verified, model, daily_limit, cost}."""
     await _perm_view(request)
     from services import gemini_image_service as gem
     cfg = await gem.resolve_config()
-    return {"enabled": cfg["enabled"], "demo": cfg["demo"], "model": cfg["model"]}
+    return {"enabled": cfg["enabled"], "demo": cfg["demo"], "verified": cfg["verified"],
+            "model": cfg["model"], "daily_limit": cfg["daily_limit"],
+            "cost_per_image_usd": cfg["cost_per_image_usd"]}
 
 
 # ─── FASE F (PS-14) — Master desain: versi & pengesahan ──────────────────────

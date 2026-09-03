@@ -180,6 +180,7 @@ export function Sidebar({ groups = [], activeNavId, activeView, onSelect, user, 
                   className={`sidebar-item ${isActive ? "active" : ""}`}
                   onClick={() => onSelect(entry.id, entry.view)}
                   aria-current={isActive ? "page" : undefined}
+                  title={entry.label}
                 >
                   <Icon size={16} />
                   <span className="label">{entry.label}</span>
@@ -200,6 +201,7 @@ export function Sidebar({ groups = [], activeNavId, activeView, onSelect, user, 
                     onClick={() => toggleGroup(entry.groupId)}
                     aria-expanded={isOpen}
                     data-testid={`nav-group-toggle-${entry.groupId}`}
+                    title={entry.label}
                   >
                     <GroupIcon size={14} className="group-icon" />
                     <span className="group-label">{entry.label}</span>

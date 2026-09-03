@@ -23,3 +23,4 @@ class IntegrationsUpdate(BaseModel):
     gemini_clear_key: bool = False
     gemini_model: Optional[str] = None
     gemini_enabled: Optional[bool] = None
+    gemini_daily_limit: Optional[int] = None      # G-8

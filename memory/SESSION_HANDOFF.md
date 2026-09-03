@@ -1,5 +1,17 @@
 # SESSION HANDOFF — Kain Nusantara (KN10)
 
+## Session #085 — 03 Sep 2026 — BACKLOG AUDIT_TEMUAN_2026-09-02 TUNTAS (P1-1..P1-3 · L-1..L-11 · G-1..G-8 · X-1..X-5) ✅
+> Semua butir `memory/AUDIT_TEMUAN_2026-09-02.md` selesai (status di header berkas itu). Bukti: `backend/test_audit_temuan_poc.py` 34/34,
+> `test_reports/iteration_293.json` (19/19 backend, UI lulus), `backend/tests/test_iter293_audit_backlog.py` (re-runnable).
+> Endpoint baru: `DELETE /api/logistics/deliveries/{id}/positions/{pos_id}` (manage), `POST /api/admin/integrations/gemini/test`,
+> `DELETE /api/design-gallery/{gid}/files/{fid}/comments/{cid}`. Setting baru: `gemini.daily_limit` (G-8), `gemini.verified_at` (G-3).
+> Notifikasi baru: `logistics_delivered` / `logistics_failed` (sales, sales_admin), `design_ai_comment` (designer ↔ manager/admin).
+> **Sisa untuk pemilik**: butir DITUNDA di `memory/AUDIT_KN_2026-09-02_STATUS.md` (B-01 kebijakan pendapatan, F-09..F-17, D-01 penomoran atomik),
+> ETA di modal Logistik masih input tanggal native (saran iter293), WA pelanggan saat gagal/terkirim (backlog L-9).
+
+## Session #084 — 02 Sep 2026 — Klon repo avacadasa/kn + verifikasi & perbaikan AUDIT INDEPENDEN pemilik (F-01..F-08, E-01/E-02, U-01/U-02/U-04) ✅
+> Detail: `memory/AUDIT_KN_2026-09-02_STATUS.md`. Gate 246 PASS (4 invarian baru: INV-GL-DUP-01, INV-CASH-02, INV-AR-02, INV-GL-REV-01).
+
 ## Session #083 — 02 Sep 2026 — AUDIT sesi (FB-01 + FB-02 + turunannya) — temuan DITAMPUNG 📋
 > **Mulai sesi berikutnya dari `memory/AUDIT_TEMUAN_2026-09-02.md`.** Urutan: P0-1 (tab Audit blank SPA) → P1-1 (RBAC sopir hanya pengiriman miliknya) → P1-2 (chip logistik di Surat Jalan) → P1-3 (jalur balik loaded→prepared) → L-1 (tanggal WIB) → P2 lainnya. Tidak ada kode yang diubah pada sesi audit ini.
 

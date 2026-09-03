@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { ArrowUpDown, ArrowUp, ArrowDown, Camera, MapPin, ExternalLink, ChevronRight, AlertTriangle } from "lucide-react";
-import { STATUS_PILL } from "./logisticsApi";
+import { STATUS_PILL, todayWib } from "./logisticsApi";
 import { openOrderJourney } from "./logisticsDeepLink";
 
 // Tabel pengiriman: kolom bisa diurutkan, baris → detail (klik / Enter), tautan ke Pesanan,
@@ -21,7 +21,7 @@ const ACTIVE = ["prepared", "loaded", "in_transit"];
 
 export default function DeliveryTable({ rows, onOpen, canOpenOrder }) {
   const [sort, setSort] = useState({ key: "number", dir: "desc" });
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayWib();
   const sorted = useMemo(() => {
     const val = (d) => sort.key === "status" ? ORDER.indexOf(d.status) : sort.key === "eta" ? (d.eta || "9999") : String(d[sort.key] ?? "");
     return [...rows].sort((a, b) => { const x = val(a), y = val(b); return (x > y ? 1 : x < y ? -1 : 0) * (sort.dir === "asc" ? 1 : -1); });

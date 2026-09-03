@@ -242,3 +242,17 @@ tersisa action items minor).
 - DITUNDA (perlu keputusan pemilik): B-01 kebijakan pengakuan pendapatan, F-09..F-17 (retur/PPN/GR/deposit/
   kontrabon), D-01 penomoran atomik, D-02/D-03, U-03/U-05, serta backlog P1-1..P1-3/L/G/X dari
   `AUDIT_TEMUAN_2026-09-02.md`.
+
+## 2026-09-03 — Sesi #085: Backlog AUDIT_TEMUAN_2026-09-02 tuntas (P1 + seluruh P2) ✅
+- Logistik: P1-1 pagar tulis sopir (403 pada pengiriman bukan tugasnya; lihat tetap boleh), P1-2 chip `LG-xxxxx · status` +
+  "Buka di Logistik" pada baris Surat Jalan di detail pesanan, P1-3 "Bongkar" loaded→prepared (manage, alasan, konfirmasi),
+  L-1 tanggal WIB (FE `todayWib()`, BE `today_wib()`), L-2 validasi koordinat + hapus posisi, L-3 my-route hanya aktif,
+  L-4 pesan gabungan + tombol Terkirim disabled + prefill penerima, L-5 debounce + tombol Cari, L-6 empty state pencarian,
+  L-7 hint di atas tombol/caption title/tap target 40px, L-8 hanya SJ dispatched, L-9 notifikasi terkirim/gagal ke sales,
+  L-10 konfirmasi tahapan, L-11 Esc per lapisan (`useEscapeClose`).
+- Galeri AI: G-1 konfirmasi hapus + jumlah komentar, G-2 badge NONAKTIF, G-3 uji koneksi Gemini (`verified_at`, LIVE hanya setelah lulus),
+  G-4 banner demo besar + "Ukuran penuh", G-5 Esc modal galeri, G-6 badge komentar + hapus komentar sendiri + notifikasi desainer,
+  G-7 resize ≤2048/timeout 60 s/JPEG, G-8 batas harian per desain + estimasi biaya.
+- Lintas modul: X-1 label Indonesia matriks izin (`config/auditLabels.js`), X-2 label aksi audit + render bertahap 50,
+  X-3 tooltip sidebar, X-4 lencana `FB-2`, X-5 divisi Logistik.
+- Perbaikan ikutan (temuan iter293): `ConfirmHost` kini meneruskan `description`; bootstrap peran sempit tidak memanggil master tanpa izin.

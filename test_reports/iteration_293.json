@@ -1,0 +1,40 @@
+{
+  "summary": "Verified the AUDIT_TEMUAN_2026-09-02 backlog end-to-end. Backend: new pytest suite /app/backend/tests/test_iter293_audit_backlog.py (19 tests, 19 pass) covering P1-1 driver write guard vs read access, P1-3 loaded->prepared 'Bongkar' (manage + mandatory reason + loaded_at reset + timeline note), L-1 today WIB, L-2 lat/lng 422 + DELETE position (403 driver / 200 admin), L-3 my-route active-only, L-4 combined POD+NAMA PENERIMA message, L-8 non-dispatched SJ rejected, L-9 logistics_delivered notification addressed to sales users, G-3 /design-gallery-ai/status keys + gemini/test 400 without key, G-8 daily limit 1 -> 2nd illustration 400 'Batas', G-6 comment notification + delete-own-only rule, X-5 division 'logistics'/'Logistik'. Frontend (prebuilt bundle, public URL): L-5 debounced search (no Enter) + Cari button, L-6 search empty state + reset, L-7 step hint above actions, L-10 confirm dialogs (Bongkar/Berangkat), L-11 Esc closes only the askReason dialog (detail modal stays open), receiver prefilled from receiver_name_hint + Tandai Terkirim disabled without POD, logistics-pos-del for admin, P1-2 shipment-logistics chip in order detail navigating to Logistik detail modal, G-2/G-4/G-5/G-6/G-1 gallery AI flow (MODE DEMO badge, Ukuran penuh link, comment badge count, comment delete confirm, illustration delete confirm), X-1 Indonesian permission labels incl. 'Sopir / Kurir (Logistik)' + 'Logistik / Pengiriman', X-2 'Masuk (login)' label + 50 rows + 'Tampilkan 50 lagi (50 dari 186)' -> 100 rows, G-3/G-8 Gemini panel (MODE DEMO status, daily-limit input, cost estimate, no test button without key), X-3 title attributes on sidebar buttons. One real defect found: confirm dialog bodies are never rendered because ConfirmHost drops the `description` option.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/document-templates, /api/uoms", "issue": "Driver role bootstrap requests return 403 on every login (browser console errors). Pre-existing, unrelated to this backlog, but the shell should not fetch manage-only masters for `driver`."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "components/ConfirmHost.jsx", "issue": "ConfirmHost passes only `message={o.message}` to ConfirmModal, but 43 call sites (incl. AiIllustrationPanel G-1 delete, DeliveryDetailModal Bongkar/Gagal-kirim askReason, position delete) pass `description:`. Result: the dialog body/warning text is SILENTLY DROPPED everywhere. Verified live: G-1 dialog rendered only 'Hapus ilustrasi AI ini? Batal Hapus' (no comment-count warning), Bongkar dialog rendered no explanation. Fix: message={o.message || o.description} (or accept `description` in ConfirmModal) then rebuild the static bundle.", "selector": "[data-testid=\"confirm-modal\"]", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Logistik detail modal (DeliveryDetailModal)", "issues": ["ETA uses the browser-native date input (shows mm/dd/yyyy placeholder, US order) instead of the app date picker — inconsistent with Indonesian UI"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter293_audit_backlog.py",
+    "/app/test_reports/pytest/iter293.xml"
+  ],
+  "action_items": [
+    "Fix ConfirmHost.jsx so `description` reaches ConfirmModal (G-1 comment-count warning and all other dialog bodies are currently invisible), then rebuild the static bundle",
+    "Optional: stop fetching /api/document-templates and /api/uoms for role `driver` (403 console noise)",
+    "Optional: replace native date input for ETA with the app date picker"
+  ],
+  "critical_code_review_comments": [
+    "confirmService/ConfirmHost prop contract mismatch (`description` vs `message`) is a silent-data-loss class bug: consider validating unknown option keys in confirmService.request() so future typos fail loudly",
+    "logistics_service.transition() correctly resets loaded_at=None on Bongkar and writes the reason into the timeline — verified in DB response",
+    "logistics router applies _guard_driver_write on photos/positions/transition/photo-delete but NOT on DELETE positions (manage-only) — correct by design"
+  ],
+  "updated_files": ["/app/backend/tests/test_iter293_audit_backlog.py"],
+  "success_rate": {"backend": "100% (19/19)", "frontend": "~95% (all executed checks passed; 3 checks not executable, see context)"},
+  "seed_data_creation": "Left in place as demo data: KSC/LG-00007 (own_fleet, driver Joko Susilo, SJ-00001/SO-0001, status Terkirim with load+POD photos, receiver 'Bu Ani') and KSC/LG-00008 (expedition JNE/JNE123, SJ-00004/SO-0003, status Dalam Perjalanan, 1 position 'Tol Cipali KM 72'). Test notifications (logistics_delivered/design_ai_comment) and the QA AI illustration + comment were deleted. gemini_daily_limit restored to 10; shipment statuses restored to 'dispatched' after the L-8 probe.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin@kainnusantara.id / driver@kainnusantara.id / designer@kainnusantara.id — demo12345 (entity ent_ksc)",
+  "context_for_next_testing_agent": "Both free dispatched shipments in ent_ksc are now consumed by LG-00007/LG-00008, so (a) shipment-logistics-none-{id} 'Belum diangkut logistik' could NOT be exercised on screen (code present at OrderDetailPanel.jsx:413), (b) the disabled state of logistics-act-loaded for a prepared delivery without load photo was confirmed visually (greyed button + hint 'Wajib unggah foto muat...') but the DOM assertion was not re-run after data moved on, and (c) DriverTodayPanel reorder buttons (driver-task-up/down, min-h 40px in code) had no active task to render. To retest these, free a shipment: db.logistics_deliveries + reset shipments.logistics_id/logistics_number/logistics_status and status='dispatched'. test_iter293_audit_backlog.py is re-runnable: test_01 auto-releases QA deliveries (vehicle_plate 'B 1 QA' / tracking 'JNE123') before running. Orders navigation: nav-group-toggle-penjualan -> nav-sales-orders -> hub-tab-orders -> tab-list -> order-card-{id} -> 'Lihat detail & aksi' to reach the shipment chip. Gallery: nav-designer-hub -> hub-tab-cs-design-gallery.",
+  "rca_of_the_issue": "ConfirmHost.jsx forwards `message` only; confirmService callers standardised on `description` (43 usages). Because React silently ignores unknown option keys, every confirm/askReason dialog renders title + buttons with no body, which is why the G-1 requirement 'warns comment count' appears unimplemented at runtime even though AiIllustrationPanel.jsx:51-52 builds the warning string correctly."
+}

@@ -23,6 +23,13 @@ async def _guard(delivery_id: str, ctx) -> Dict[str, Any]:
     return doc
 
 
+def _guard_driver_write(doc: Dict[str, Any], actor: Dict[str, Any]) -> None:
+    """P1-1 — sopir hanya boleh MENULIS (foto/posisi/tahapan) pada pengiriman yang ditugaskan padanya.
+    Melihat daftar & detail tetap seluas entitas (keputusan pemilik 2026-09-02)."""
+    if actor.get("role") == "driver" and doc.get("driver_user_id") != actor.get("id"):
+        raise HTTPException(status_code=403, detail="Pengiriman ini bukan tugas Anda — hanya sopir yang ditugaskan yang boleh mengubahnya.")
+
+
 @router.get("/meta")
 async def logistics_meta(request: Request) -> Dict[str, Any]:
     await require_permission(request, "logistics", "view")
@@ -111,7 +118,7 @@ async def upload_photo(delivery_id: str, request: Request, kind: str = Form("oth
                        note: str = Form(""), file: UploadFile = File(...)) -> Dict[str, Any]:
     actor = await require_permission(request, "logistics", "update")
     ctx = await entity_ctx(request)
-    await _guard(delivery_id, ctx)
+    _guard_driver_write(await _guard(delivery_id, ctx), actor)
     data = await file.read()
     try:
         photo = await lg.add_photo(delivery_id, kind, file.filename or "foto.jpg",
@@ -138,7 +145,7 @@ async def get_photo(delivery_id: str, photo_id: str, request: Request):
 async def delete_photo(delivery_id: str, photo_id: str, request: Request) -> Dict[str, Any]:
     actor = await require_permission(request, "logistics", "update")
     ctx = await entity_ctx(request)
-    await _guard(delivery_id, ctx)
+    _guard_driver_write(await _guard(delivery_id, ctx), actor)
     try:
         res = await lg.delete_photo(delivery_id, photo_id, actor["name"])
     except ValueError as e:
@@ -151,7 +158,7 @@ async def delete_photo(delivery_id: str, photo_id: str, request: Request) -> Dic
 async def add_position(delivery_id: str, payload: PositionIn, request: Request) -> Dict[str, Any]:
     actor = await require_permission(request, "logistics", "update")
     ctx = await entity_ctx(request)
-    await _guard(delivery_id, ctx)
+    _guard_driver_write(await _guard(delivery_id, ctx), actor)
     try:
         doc = await lg.add_position(delivery_id, payload.model_dump(), actor["name"])
     except ValueError as e:
@@ -160,11 +167,28 @@ async def add_position(delivery_id: str, payload: PositionIn, request: Request) 
     return doc
 
 
+@router.delete("/deliveries/{delivery_id}/positions/{pos_id}")
+async def delete_position(delivery_id: str, pos_id: str, request: Request) -> Dict[str, Any]:
+    """L-2 — hapus/koreksi posisi salah (manage)."""
+    actor = await require_permission(request, "logistics", "manage")
+    ctx = await entity_ctx(request)
+    await _guard(delivery_id, ctx)
+    try:
+        res = await lg.delete_position(delivery_id, pos_id, actor["name"])
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    await audit(actor["name"], "logistics_position_delete", lg.COLL, delivery_id, {"pos_id": pos_id})
+    return res
+
+
 @router.post("/deliveries/{delivery_id}/transition")
 async def transition(delivery_id: str, payload: TransitionIn, request: Request) -> Dict[str, Any]:
     actor = await require_permission(request, "logistics", "update")
     ctx = await entity_ctx(request)
     before = await _guard(delivery_id, ctx)
+    _guard_driver_write(before, actor)
+    if payload.to == "prepared" and before.get("status") == "loaded":
+        await require_permission(request, "logistics", "manage")   # P1-3: bongkar hanya gudang/manajer/admin
     try:
         doc = await lg.transition(delivery_id, payload.model_dump(), actor["name"])
     except ValueError as e:

@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { X, Camera, MapPin, CheckCircle2, Truck, PackageCheck, Flag, AlertTriangle, RotateCcw, Save, LocateFixed, Navigation, Phone, MessageCircle, ExternalLink } from "lucide-react";
-import { askReason } from "../../services/confirmService";
+import { askConfirm, askReason } from "../../services/confirmService";
+import { useEscapeClose } from "../../utils/escapeLayers";
 import DeliveryPhoto from "./DeliveryPhoto";
 import PositionMap from "./PositionMap";
 import { openOrderJourney } from "./logisticsDeepLink";
-import { addPosition, deletePhoto, getDelivery, photoUrl, transitionDelivery, updateDelivery, uploadPhoto, STATUS_LABEL, STATUS_PILL, STEPS, mapsUrl, telUrl, waUrl } from "./logisticsApi";
+import { addPosition, deletePhoto, deletePosition, getDelivery, photoUrl, transitionDelivery, updateDelivery, uploadPhoto, STATUS_LABEL, STATUS_PILL, STEPS, mapsUrl, telUrl, waUrl } from "./logisticsApi";
 
 // FB-02 — detail pengiriman: tahapan, foto muat/POD (wajib), posisi, data ekspedisi/armada.
 export default function DeliveryDetailModal({ id, canManage, canUpdate, canOpenOrder, onClose, onChanged }) {
@@ -26,15 +27,11 @@ export default function DeliveryDetailModal({ id, canManage, canUpdate, canOpenO
   const [edit, setEdit] = useState(null);
 
   async function refresh() {
-    try { const r = await getDelivery(id); setD(r); setEdit({ courier_name: r.courier_name, tracking_no: r.tracking_no, vehicle_plate: r.vehicle_plate, driver_name: r.driver_name, eta: r.eta, destination: r.destination, receiver_phone: r.receiver_phone || "" }); }
+    try { const r = await getDelivery(id); setD(r); setReceiver((v) => v || r.receiver_name_hint || ""); setEdit({ courier_name: r.courier_name, tracking_no: r.tracking_no, vehicle_plate: r.vehicle_plate, driver_name: r.driver_name, eta: r.eta, destination: r.destination, receiver_phone: r.receiver_phone || "" }); }
     catch (e) { setErr(e.response?.data?.detail || "Gagal memuat pengiriman."); }
   }
   useEffect(() => { refresh(); }, [id]); // eslint-disable-line
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape" && !busy) onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [busy, onClose]);
+  useEscapeClose(true, onClose, !!busy);   // L-11 — Esc menutup lapisan teratas saja
 
   async function run(label, fn, ok) {
     setBusy(label); setErr(""); setMsg("");
@@ -43,6 +40,20 @@ export default function DeliveryDetailModal({ id, canManage, canUpdate, canOpenO
     finally { setBusy(""); }
   }
   const go = (to, extra = {}) => run(to, () => transitionDelivery(id, { to, ...extra }), `Status → ${STATUS_LABEL[to]}.`);
+  const CONFIRM_TEXT = {
+    loaded: ["Tandai barang sudah DIMUAT?", "Setelah ini pengiriman siap berangkat. Bila salah, gudang/manajer bisa membongkar kembali dengan alasan."],
+    in_transit: ["Kendaraan BERANGKAT sekarang?", "Status menjadi Dalam perjalanan; sopir mulai mencatat posisi."],
+    delivered: ["Tandai TERKIRIM?", "Nama penerima & foto POD tersimpan sebagai bukti dan tidak bisa diubah lagi."],
+    completed: ["SELESAIKAN pengiriman?", "Pengiriman ditutup; foto dan data tidak bisa diubah lagi."],
+  };
+  async function goConfirmed(to, extra = {}) {
+    const [title, description] = CONFIRM_TEXT[to] || [`Ubah status ke ${STATUS_LABEL[to]}?`, ""];
+    if (await askConfirm({ title, description, confirmLabel: STATUS_LABEL[to] })) go(to, extra);
+  }
+  async function unload() {
+    const reason = await askReason({ title: "Bongkar muatan — kembali ke Disiapkan?", description: "Untuk salah tekan \"Tandai Dimuat\". Alasan tersimpan di riwayat.", confirmLabel: "Bongkar", reasonPlaceholder: "Contoh: salah tekan / barang belum lengkap" });
+    if (reason) go("prepared", { reason });
+  }
   async function fail() {
     const reason = await askReason({ title: "Tandai gagal kirim?", description: "Alasan tersimpan di riwayat pengiriman.", confirmLabel: "Gagal kirim", reasonPlaceholder: "Contoh: alamat tidak ditemukan / penerima tidak ada", danger: true });
     if (reason) go("failed", { reason });
@@ -102,20 +113,24 @@ export default function DeliveryDetailModal({ id, canManage, canUpdate, canOpenO
         {/* Aksi tahapan */}
         {canUpdate && (
           <div className="flex flex-wrap items-center gap-2 mt-2" data-testid="logistics-actions">
-            {d.status === "prepared" && <button data-testid="logistics-act-loaded" className="primary-button !py-1.5" disabled={!!busy} onClick={() => go("loaded")}><Truck size={13} /> Tandai Dimuat</button>}
-            {d.status === "loaded" && <button data-testid="logistics-act-in_transit" className="primary-button !py-1.5" disabled={!!busy} onClick={() => go("in_transit")}><Flag size={13} /> Berangkat</button>}
+            {/* L-7 — syarat tahapan ditampilkan DI ATAS tombol, sebelum ditekan */}
+            <p className="w-full text-[10.5px] text-[#6B6B73] -mb-0.5" data-testid="logistics-step-hint">
+              {d.status === "prepared" ? (loadP.length ? "Foto muat sudah ada — siap ditandai Dimuat." : "Wajib unggah foto muat (barang naik kendaraan) sebelum Dimuat.")
+                : d.status === "loaded" ? (d.mode === "expedition" ? (d.tracking_no ? "No. resi terisi — siap berangkat." : "Wajib isi NO. RESI ekspedisi sebelum berangkat.") : (d.vehicle_plate && d.driver_name ? "Plat & sopir terisi — siap berangkat." : "Wajib isi PLAT KENDARAAN & NAMA SOPIR sebelum berangkat."))
+                : d.status === "in_transit" ? `Wajib foto POD${podP.length ? " ✓" : " (belum ada)"} + nama penerima${receiver.trim() ? " ✓" : " (belum diisi)"} sebelum Terkirim.` : ""}
+            </p>
+            {d.status === "prepared" && <button data-testid="logistics-act-loaded" className="primary-button !py-1.5" disabled={!!busy || !loadP.length} title={!loadP.length ? "Unggah foto muat dulu" : ""} onClick={() => goConfirmed("loaded")}><Truck size={13} /> Tandai Dimuat</button>}
+            {d.status === "loaded" && <button data-testid="logistics-act-in_transit" className="primary-button !py-1.5" disabled={!!busy} onClick={() => goConfirmed("in_transit")}><Flag size={13} /> Berangkat</button>}
+            {d.status === "loaded" && canManage && <button data-testid="logistics-act-unload" className="secondary-button !py-1.5" disabled={!!busy} onClick={unload} title="Salah tekan Dimuat? Kembalikan ke Disiapkan dengan alasan"><RotateCcw size={13} /> Bongkar (kembali ke Disiapkan)</button>}
             {d.status === "in_transit" && (
               <div className="flex flex-wrap items-center gap-2">
-                <input data-testid="logistics-receiver" className="form-input !w-[200px]" placeholder="Nama penerima *" value={receiver} onChange={(e) => setReceiver(e.target.value)} />
-                <button data-testid="logistics-act-delivered" className="primary-button !py-1.5" disabled={!!busy} onClick={() => go("delivered", { receiver_name: receiver })}><PackageCheck size={13} /> Tandai Terkirim</button>
+                <input data-testid="logistics-receiver" className={`form-input !w-[200px] ${!receiver.trim() ? "!border-[#E0A800]" : ""}`} placeholder="Nama penerima *" value={receiver} onChange={(e) => setReceiver(e.target.value)} />
+                <button data-testid="logistics-act-delivered" className="primary-button !py-1.5" disabled={!!busy || !receiver.trim() || !podP.length} title={!podP.length ? "Unggah foto POD dulu" : !receiver.trim() ? "Isi nama penerima" : ""} onClick={() => goConfirmed("delivered", { receiver_name: receiver.trim() })}><PackageCheck size={13} /> Tandai Terkirim</button>
               </div>
             )}
-            {d.status === "delivered" && <button data-testid="logistics-act-completed" className="primary-button !py-1.5" disabled={!!busy} onClick={() => go("completed")}><CheckCircle2 size={13} /> Selesaikan</button>}
+            {d.status === "delivered" && <button data-testid="logistics-act-completed" className="primary-button !py-1.5" disabled={!!busy} onClick={() => goConfirmed("completed")}><CheckCircle2 size={13} /> Selesaikan</button>}
             {active && <button data-testid="logistics-act-failed" className="secondary-button !py-1.5 text-[#C0341D]" disabled={!!busy} onClick={fail}><AlertTriangle size={13} /> Gagal kirim</button>}
             {d.status === "failed" && canManage && <button data-testid="logistics-act-prepared" className="secondary-button !py-1.5" disabled={!!busy} onClick={() => go("prepared")}><RotateCcw size={13} /> Jadwalkan ulang</button>}
-            <span className="text-[10.5px] text-[#9A9BA3]">
-              {d.status === "prepared" ? "Wajib foto muat sebelum Dimuat." : d.status === "loaded" ? (d.mode === "expedition" ? "Wajib no. resi sebelum berangkat." : "Wajib plat & sopir sebelum berangkat.") : d.status === "in_transit" ? "Wajib foto POD + nama penerima sebelum Terkirim." : ""}
-            </span>
           </div>
         )}
 
@@ -142,7 +157,8 @@ export default function DeliveryDetailModal({ id, canManage, canUpdate, canOpenO
           <div className="mt-2"><PositionMap positions={d.positions || []} /></div>
           <div className="mt-2 divide-y divide-[#F0F1F3]">
             {(d.positions || []).slice().reverse().map((p) => (
-              <div key={p.id} className="py-1.5 text-[11.5px]" data-testid={`logistics-pos-${p.id}`}><b>{p.location}</b>{p.note ? ` — ${p.note}` : ""}{p.lat != null && p.lng != null && <span className="ml-1.5 text-[10px] text-[#0058CC] font-mono" data-testid={`logistics-pos-gps-${p.id}`}>⌖ {p.lat}, {p.lng}</span>}<span className="text-[10px] text-[#9A9BA3] ml-2">{String(p.at).slice(0, 16).replace("T", " ")} · {p.by}</span></div>
+              <div key={p.id} className="py-1.5 text-[11.5px] flex items-center gap-1" data-testid={`logistics-pos-${p.id}`}><span className="flex-1 min-w-0"><b>{p.location}</b>{p.note ? ` — ${p.note}` : ""}{p.lat != null && p.lng != null && <span className="ml-1.5 text-[10px] text-[#0058CC] font-mono" data-testid={`logistics-pos-gps-${p.id}`}>⌖ {p.lat}, {p.lng}</span>}<span className="text-[10px] text-[#9A9BA3] ml-2">{String(p.at).slice(0, 16).replace("T", " ")} · {p.by}</span></span>
+                {canManage && !["delivered", "completed"].includes(d.status) && <button type="button" data-testid={`logistics-pos-del-${p.id}`} className="icon-button !p-1 text-[#C0341D]" title="Hapus posisi yang salah" onClick={async () => { if (await askConfirm({ title: "Hapus posisi ini?", description: `${p.location} — penghapusan tercatat di riwayat.`, confirmLabel: "Hapus", danger: true })) run("delpos", () => deletePosition(id, p.id), "Posisi dihapus."); }}><X size={12} /></button>}</div>
             ))}
             {(d.positions || []).length === 0 && <p className="text-[10.5px] text-[#9A9BA3] py-1">Belum ada posisi tercatat.</p>}
           </div>
@@ -191,7 +207,7 @@ function PhotoBlock({ title, hint, kind, list, d, canUpdate, onPick, onDel, busy
         {list.map((p) => (
           <div key={p.id} className="relative w-[88px]" data-testid={`logistics-photo-${p.id}`}>
             <div className="aspect-square rounded-md overflow-hidden bg-[#F2F3F5] border border-[#EFF0F2]"><DeliveryPhoto url={photoUrl(d.id, p.id)} alt={title} /></div>
-            <span className="block text-[9px] text-[#9A9BA3] truncate mt-0.5">{String(p.at).slice(5, 16).replace("T", " ")} · {p.by}</span>
+            <span className="block text-[9px] text-[#9A9BA3] truncate mt-0.5" title={`${String(p.at).slice(0, 16).replace("T", " ")} · ${p.by}${p.note ? ` · ${p.note}` : ""}`}>{String(p.at).slice(5, 16).replace("T", " ")} · {p.by}</span>
             {canUpdate && !locked && <button data-testid={`logistics-photo-del-${p.id}`} className="absolute -top-1.5 -right-1.5 bg-white rounded-full shadow p-0.5 text-[#C0341D]" onClick={() => onDel(p.id)}><X size={12} /></button>}
           </div>
         ))}

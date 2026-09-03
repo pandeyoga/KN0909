@@ -1,6 +1,15 @@
 # AUDIT TEMUAN — Sesi 2026-09-02 (FB-01 AI Galeri + FB-02 Logistik & turunannya)
 
-> **Status: DITAMPUNG — BELUM DIKERJAKAN.** Keputusan pemilik: temuan dikumpulkan dulu, diselesaikan di sesi berikutnya.
+> **Status: ✅ SELESAI (sesi #085, 2026-09-03)** — seluruh P0/P1/P2 di berkas ini dikerjakan & diverifikasi
+> (POC `backend/test_audit_temuan_poc.py` 34/34; testing agent `test_reports/iteration_293.json` 19/19 backend + UI).
+> Keputusan pemilik: P1-1 = sopir hanya MENULIS pada tugasnya (daftar/detail tetap seluas entitas);
+> P1-3 = transisi balik `loaded→prepared` (manage, wajib alasan) + dialog konfirmasi. X-6 = konfirmasi saja (tidak diubah).
+> Catatan implementasi: L-9/G-6 notifikasi in-app ke peran `sales`/`sales_admin` & `designer` per entitas (WA pelanggan tetap backlog);
+> X-2 paginasi dilakukan bertahap di klien (50 baris) di atas endpoint yang sudah mendukung `page/page_size`.
+> Temuan tambahan iter293 yang ikut diperbaiki: `ConfirmHost` membuang `description` (badan semua dialog konfirmasi kosong);
+> bootstrap sopir tidak lagi memanggil `/document-templates` & `/uoms` (403 di console).
+>
+> ~~Status lama: DITAMPUNG — BELUM DIKERJAKAN.~~
 > Sumber: testing agent iteration_291 (audit eksploratif, tanpa mengubah kode) + tinjauan kode mandiri.
 > Sudah dikonfirmasi dan TIDAK perlu diulang: 403 bootstrap `/uoms` & `/document-templates` peran sempit; input ETA native;
 > foto seed hitam; Gemini MODE DEMO (menunggu API key).
@@ -64,3 +73,7 @@
 ## Data uji tersisa (bersihkan saat pengerjaan)
 - Posisi `TEST_GPS Cikampek`, `TEST_GPS Tanpa Koordinat`, `Uji GPS Playwright`, `probe` pada KSC/LG-00007 (tidak ada API hapus posisi → via Mongo).
 - Pengiriman uji KSC/LG-00004/00005/00006 (SJ-TEST01/02) boleh dipertahankan sebagai data demo.
+
+> Catatan gate (sesi #085): `audit_config_wiring.py` kini mengenal `DEDICATED_UI` — scope `integrations` (API key Gemini/Anthropic,
+> model, `daily_limit`) diedit lewat panel Integrasi AI, bukan Pusat Pengaturan; sebelumnya menyimpan konfigurasi Gemini dari UI
+> membuat INV-CFG-01 merah (kunci dilaporkan HIDDEN). Self-test guardrail tetap PASS.

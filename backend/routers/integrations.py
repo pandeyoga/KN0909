@@ -36,3 +36,26 @@ async def update_integrations(payload: IntegrationsUpdate, request: Request) -> 
                  "model": res["anthropic"]["model"], "enabled": res["anthropic"]["enabled"],
                  "gemini_model": res["gemini"]["model"], "gemini_enabled": res["gemini"]["enabled"]})
     return res
+
+
+@router.post("/admin/integrations/gemini/test")
+async def test_gemini(request: Request) -> Dict[str, Any]:
+    """G-3 — uji koneksi key Gemini (panggilan ringan). Lulus → `verified_at` diisi → status LIVE."""
+    actor = await require_permission(request, "hr", "manage_settings")
+    from services import gemini_image_service as gem
+    from core_utils import now_iso
+    cfg = await gem.resolve_config()
+    if not cfg["api_key"]:
+        raise HTTPException(status_code=400, detail="API key Gemini belum diisi.")
+    try:
+        res = await gem.test_connection(cfg["api_key"])
+    except ValueError as e:
+        await integ.update_integrations({"gemini_verified_at": ""})
+        await audit(actor["name"], "integrations_gemini_test", "system_settings", "integrations",
+                    {"ok": False, "error": str(e)[:200]})
+        raise HTTPException(status_code=400, detail=str(e))
+    ts = now_iso()
+    await integ.update_integrations({"gemini_verified_at": ts})
+    await audit(actor["name"], "integrations_gemini_test", "system_settings", "integrations",
+                {"ok": True, "models_seen": res.get("models_seen")})
+    return {"ok": True, "verified_at": ts, "model": cfg["model"], **res}

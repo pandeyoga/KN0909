@@ -86,7 +86,7 @@ export const ROLE_REGISTRY = {
     crossEntity: false,
     scopeHint: "1 badan usaha",
     order: 8,
-    newIn: "FB2",
+    newIn: "FB-2",
   },
 };
 

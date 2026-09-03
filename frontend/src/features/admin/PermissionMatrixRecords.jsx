@@ -1,5 +1,7 @@
 // Editor matriks permission (records) untuk AdminView, dipisah agar file utama di
 // bawah batas guardrail. Menerima matrix + handler simpan dari parent.
+import { ROLE_REGISTRY } from "../../config/roles";
+import { moduleLabel, actionLabel } from "../../config/auditLabels";   // X-1: label Indonesia, bukan raw key
 
 const ALL_ACTIONS = {
   product: ["view", "create", "update", "delete", "import", "export"],
@@ -37,13 +39,13 @@ export default function PermissionMatrixRecords({ matrix, onUpdatePermissions })
     <div data-testid="permission-matrix-records" className="grid gap-4 overflow-auto">
       {roles.map(([role, modules]) => (
         <div key={role} className="rounded-xl border border-[#EFF0F2] bg-[#FAFBFC] p-3">
-          <h4 className="text-[13px] font-bold capitalize mb-2">{role}</h4>
+          <h4 className="text-[13px] font-bold mb-2" data-testid={`permission-role-${role}`}>{ROLE_REGISTRY[role]?.longLabel || ROLE_REGISTRY[role]?.label || role} <span className="text-[10px] font-mono font-normal text-[#9A9BA3]">{role}</span></h4>
           <div className="grid gap-2">
             {Object.entries(modules).map(([module, actions]) => {
               const availableActions = ALL_ACTIONS[module] || Array.from(new Set([...Object.values(ALL_ACTIONS).flat()]));
               return (
                 <div key={module} data-testid={`permission-row-${role}-${module}`} className="rounded-md border border-[#EFF0F2] bg-white p-2">
-                  <p className="text-[11.5px] font-bold capitalize">{module}</p>
+                  <p className="text-[11.5px] font-bold" title={module}>{moduleLabel(module)} <span className="text-[9.5px] font-mono font-normal text-[#9A9BA3]">{module}</span></p>
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {availableActions.map((action) => (
                       <label key={action} data-testid={`permission-cell-${role}-${module}-${action}`}
@@ -59,7 +61,7 @@ export default function PermissionMatrixRecords({ matrix, onUpdatePermissions })
                             next[role][module] = Array.from(current);
                             onUpdatePermissions(next, false);
                           }} />
-                        {action}
+                        <span title={action}>{actionLabel(action)}</span>
                       </label>
                     ))}
                   </div>

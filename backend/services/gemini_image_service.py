@@ -26,11 +26,72 @@ MODES = {
 }
 
 
+MAX_SIDE = 2048          # G-7: susutkan gambar sumber sebelum dikirim (artwork bisa 10 MB)
+CALL_TIMEOUT_S = 60      # G-7: batas waktu panggilan Gemini
+JPEG_QUALITY = 90
+
+
 async def resolve_config() -> Dict[str, Any]:
     cfg = (await integ.get_integrations()).get("gemini", {})
     key = (cfg.get("api_key") or os.environ.get("GEMINI_API_KEY") or "").strip()
     return {"api_key": key, "model": cfg.get("model") or integ.GEMINI_DEFAULT_MODEL,
-            "enabled": bool(cfg.get("enabled", True)), "demo": not key}
+            "enabled": bool(cfg.get("enabled", True)), "demo": not key,
+            "verified": bool(cfg.get("verified_at")),
+            "daily_limit": int(cfg.get("daily_limit") or integ.GEMINI_DEFAULT_DAILY_LIMIT),
+            "cost_per_image_usd": float(cfg.get("cost_per_image_usd") or integ.GEMINI_DEFAULT_COST_USD)}
+
+
+def _test_key_sync(api_key: str) -> Dict[str, Any]:
+    """G-3 — uji koneksi ringan: daftar model (tidak menghasilkan gambar, tanpa biaya berarti)."""
+    from google import genai
+    client = genai.Client(api_key=api_key)
+    names = []
+    for m in client.models.list():
+        names.append(getattr(m, "name", "") or "")
+        if len(names) >= 50:
+            break
+    return {"ok": True, "models_seen": len(names)}
+
+
+async def test_connection(api_key: str) -> Dict[str, Any]:
+    try:
+        return await asyncio.wait_for(asyncio.to_thread(_test_key_sync, api_key), timeout=30)
+    except asyncio.TimeoutError:
+        raise ValueError("Uji koneksi Gemini melewati batas waktu 30 detik.")
+    except Exception as e:  # noqa: BLE001
+        raise ValueError(f"Gemini menolak key / gagal terhubung: {e}")
+
+
+def _shrink(image: bytes, mime: str) -> Tuple[bytes, str]:
+    """G-7 — sisi terpanjang ≤ MAX_SIDE; simpan JPEG bila tidak transparan."""
+    from PIL import Image
+    try:
+        im = Image.open(io.BytesIO(image))
+    except Exception:  # noqa: BLE001
+        return image, mime
+    if max(im.size) <= MAX_SIDE and len(image) < 4 * 1024 * 1024:
+        return image, mime
+    im.thumbnail((MAX_SIDE, MAX_SIDE))
+    out = io.BytesIO()
+    if im.mode in ("RGBA", "LA", "P"):
+        im.save(out, format="PNG", optimize=True)
+        return out.getvalue(), "image/png"
+    im.convert("RGB").save(out, format="JPEG", quality=JPEG_QUALITY, optimize=True)
+    return out.getvalue(), "image/jpeg"
+
+
+def _compact_output(data: bytes, mime: str) -> Tuple[bytes, str]:
+    """G-7 — hasil AI disimpan JPEG kecuali ada transparansi."""
+    from PIL import Image
+    try:
+        im = Image.open(io.BytesIO(data))
+    except Exception:  # noqa: BLE001
+        return data, mime
+    if im.mode in ("RGBA", "LA", "P") or "png" not in (mime or "").lower():
+        return data, mime
+    out = io.BytesIO()
+    im.convert("RGB").save(out, format="JPEG", quality=JPEG_QUALITY, optimize=True)
+    return out.getvalue(), "image/jpeg"
 
 
 def _call_gemini_sync(api_key: str, model: str, prompt: str,
@@ -94,10 +155,10 @@ def _demo_render(image: Optional[bytes], mode: str, prompt: str) -> Tuple[bytes,
         canvas.paste(right, (534, 150))
         draw.text((50, 605), "ASLI", fill=(90, 90, 90), font=_font(18))
         draw.text((534, 605), "USULAN AI (DEMO)", fill=(90, 90, 90), font=_font(18))
-    draw.rectangle([0, 0, W, 70], fill=(0, 88, 204))
-    font = _font(26)
-    draw.text((24, 12), "ILUSTRASI AI - MODE DEMO (Nano Banana Pro belum terhubung)", fill="white", font=font)
-    draw.text((24, 44), f"Mode: {mode}", fill=(200, 220, 255), font=_font(18))
+    # G-4 — banner demo lebih besar & terbaca pada pratinjau kecil.
+    draw.rectangle([0, 0, W, 96], fill=(0, 88, 204))
+    draw.text((24, 14), "ILUSTRASI AI - MODE DEMO", fill="white", font=_font(40))
+    draw.text((24, 62), f"Nano Banana Pro belum terhubung · Mode: {mode}", fill=(200, 220, 255), font=_font(22))
     draw.rectangle([0, H - 70, W, H], fill=(255, 255, 255))
     draw.text((24, H - 60), "\n".join(textwrap.wrap(f"Arahan: {prompt}", 90)[:2]), fill=(60, 60, 60), font=_font(18))
     out = io.BytesIO()
@@ -117,10 +178,16 @@ async def illustrate(image: Optional[bytes], mime: str, mode: str,
     if cfg["demo"]:
         data, ct = await asyncio.to_thread(_demo_render, image, mode, prompt)
         return {"data": data, "content_type": ct, "model": "demo-local", "demo": True}
+    if image:
+        image, mime = await asyncio.to_thread(_shrink, image, mime)
     try:
-        data, ct = await asyncio.to_thread(
-            _call_gemini_sync, cfg["api_key"], cfg["model"], full_prompt, image, mime)
+        data, ct = await asyncio.wait_for(asyncio.to_thread(
+            _call_gemini_sync, cfg["api_key"], cfg["model"], full_prompt, image, mime),
+            timeout=CALL_TIMEOUT_S)
+    except asyncio.TimeoutError:
+        raise ValueError(f"Gemini tidak merespons dalam {CALL_TIMEOUT_S} detik — coba lagi.")
     except Exception as e:  # noqa: BLE001
         logger.warning("[gemini_image] gagal: %s", e)
         raise ValueError(f"Gemini gagal membuat ilustrasi: {e}")
+    data, ct = await asyncio.to_thread(_compact_output, data, ct)
     return {"data": data, "content_type": ct, "model": cfg["model"], "demo": False}

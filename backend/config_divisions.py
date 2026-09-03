@@ -36,6 +36,8 @@ RND_DIVISIONS: List[Dict[str, str]] = [
      "desc": "Administrasi penjualan & order."},
     {"id": "finance", "name": "Finance",
      "desc": "Keuangan & pembayaran."},
+    {"id": "logistics", "name": "Logistik",
+     "desc": "Pengiriman, armada & sopir (FB-02)."},   # X-5 (audit 2026-09-02)
 ]
 
 DIVISION_BY_ID: Dict[str, Dict[str, str]] = {d["id"]: d for d in RND_DIVISIONS}

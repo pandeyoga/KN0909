@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Route, ArrowUp, ArrowDown, MapPin, Clock, CheckCircle2, AlertTriangle, Navigation, Phone, MessageCircle } from "lucide-react";
-import { listDeliveries, setMyRoute, STATUS_LABEL, STATUS_PILL, mapsUrl, telUrl, waUrl } from "./logisticsApi";
+import { listDeliveries, setMyRoute, STATUS_LABEL, STATUS_PILL, mapsUrl, telUrl, waUrl, todayWib } from "./logisticsApi";
 
 // Tugas sopir hari ini: pengiriman milik sopir yang login, berurutan tujuan (bisa disusun ulang).
 const ACTIVE = ["prepared", "loaded", "in_transit"];
@@ -9,7 +9,7 @@ export default function DriverTodayPanel({ params, onOpen, refreshKey }) {
   const [rows, setRows] = useState([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayWib();
 
   async function load() {
     try { setRows(await listDeliveries({ ...params, mine: true })); setErr(""); }
@@ -81,8 +81,8 @@ export default function DriverTodayPanel({ params, onOpen, refreshKey }) {
                     </a>
                   )}
                   <div className="flex flex-col justify-center gap-0.5">
-                    <button type="button" data-testid={`driver-task-up-${d.id}`} className="icon-button !p-1" disabled={busy || i === 0} onClick={() => move(i, -1)} title="Naikkan urutan"><ArrowUp size={13} /></button>
-                    <button type="button" data-testid={`driver-task-down-${d.id}`} className="icon-button !p-1" disabled={busy || i === tasks.length - 1} onClick={() => move(i, 1)} title="Turunkan urutan"><ArrowDown size={13} /></button>
+                    <button type="button" data-testid={`driver-task-up-${d.id}`} className="icon-button !p-2 sm:!p-1 min-h-[40px] min-w-[40px] sm:min-h-0 sm:min-w-0" disabled={busy || i === 0} onClick={() => move(i, -1)} title="Naikkan urutan" aria-label="Naikkan urutan"><ArrowUp size={15} /></button>
+                    <button type="button" data-testid={`driver-task-down-${d.id}`} className="icon-button !p-2 sm:!p-1 min-h-[40px] min-w-[40px] sm:min-h-0 sm:min-w-0" disabled={busy || i === tasks.length - 1} onClick={() => move(i, 1)} title="Turunkan urutan" aria-label="Turunkan urutan"><ArrowDown size={15} /></button>
                   </div>
                 </div>
               </li>

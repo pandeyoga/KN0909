@@ -10,6 +10,8 @@ import ProcessTimeline from "../documents/ProcessTimeline";
 import DocumentActionsBar from "../documents/DocumentActionsBar";
 import RelatedDocsPanel from "../documents/RelatedDocsPanel";
 import DocRefsPanel from "../documents/trace/DocRefsPanel";
+import { openLogistics } from "../logistics/logisticsDeepLink";
+import { STATUS_LABEL as LG_LABEL, STATUS_PILL as LG_PILL } from "../logistics/logisticsApi";
 import SoPaymentPanel from "../finance/payments/SoPaymentPanel";
 import SoApprovalsPanel from "./SoApprovalsPanel";
 import OrderFulfillmentBadges from "./OrderFulfillmentBadges";
@@ -400,6 +402,16 @@ export function OrderDetailPanel({
                         {s.is_partial && <span className="ml-1 rounded bg-[#FFF1EA] px-1 py-0.5 text-[8.5px] font-bold uppercase text-[#B23B14]">Parsial</span>}
                       </p>
                       <p className="text-[10px] text-[#6B6B73] truncate">{s.product_name} · {s.warehouse_name}</p>
+                      {/* P1-2 — SJ sudah diangkut pengiriman logistik? tampilkan chip + tautan */}
+                      {s.logistics_id ? (
+                        <button type="button" data-testid={`shipment-logistics-${s.id}`} title="Buka di Logistik (foto muat/POD, posisi)"
+                          className={`status-pill ${LG_PILL[s.logistics_status] || "pill-muted"} !text-[9.5px] mt-0.5 inline-flex items-center gap-1 hover:underline`}
+                          onClick={(e) => { e.stopPropagation(); openLogistics({ deliveryId: s.logistics_id }); }}>
+                          <Truck size={9} /> {s.logistics_number} · {LG_LABEL[s.logistics_status] || s.logistics_status}
+                        </button>
+                      ) : (
+                        <span data-testid={`shipment-logistics-none-${s.id}`} className="text-[9.5px] text-[#9A9BA3]">Belum diangkut logistik</span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-[11px] font-semibold tabular-nums">{formatQty(s.qty)} {s.unit}</span>

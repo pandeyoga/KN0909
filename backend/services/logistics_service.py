@@ -5,7 +5,9 @@ Tahapan: prepared → loaded (WAJIB foto muat) → in_transit (posisi) → deliv
 (WAJIB foto POD + nama penerima) → completed; loaded/in_transit → failed (alasan).
 Sumber data manual: ekspedisi (resi) ATAU armada sendiri (plat + sopir).
 """
+from datetime import datetime
 from typing import Any, Dict, List, Optional
+from zoneinfo import ZoneInfo
 
 from db import db
 from core_utils import new_id, now_iso, safe_doc, next_doc_number
@@ -19,12 +21,22 @@ STATUS_LABEL = {"prepared": "Disiapkan", "loaded": "Dimuat", "in_transit": "Dala
 PHOTO_KINDS = {"load": "Foto muat", "pod": "Bukti terima (POD)", "other": "Lainnya"}
 TRANSITIONS = {
     "prepared": {"loaded"},
-    "loaded": {"in_transit", "failed"},
+    "loaded": {"in_transit", "failed", "prepared"},   # P1-3: salah tekan "Dimuat" → bongkar (manage, alasan)
     "in_transit": {"delivered", "failed"},
     "delivered": {"completed"},
     "failed": {"prepared"},
     "completed": set(),
 }
+
+
+ACTIVE_STATUSES = ("prepared", "loaded", "in_transit")
+SHIPMENT_DISPATCHABLE = {"dispatched"}   # L-8: hanya SJ yang sudah keluar gudang boleh diangkut
+WIB = ZoneInfo("Asia/Jakarta")
+
+
+def today_wib() -> str:
+    """L-1 — 'hari ini' operasional = tanggal Asia/Jakarta, bukan UTC."""
+    return datetime.now(WIB).strftime("%Y-%m-%d")
 
 
 def meta() -> Dict[str, Any]:
@@ -101,6 +113,9 @@ async def create_delivery(payload: Dict[str, Any], actor: Dict[str, Any], entity
             raise ValueError(f"Surat Jalan {s.get('shipment_no')} milik badan usaha lain.")
         if s.get("logistics_id"):
             raise ValueError(f"Surat Jalan {s.get('shipment_no')} sudah diangkut pengiriman lain.")
+        if (s.get("status") or "") not in SHIPMENT_DISPATCHABLE:
+            raise ValueError(f"Surat Jalan {s.get('shipment_no')} berstatus '{s.get('status') or '-'}' — "
+                             f"hanya SJ yang sudah dispatch gudang yang bisa diangkut.")
     orders = {s.get("order_id") for s in ships}
     if len(orders) > 1:
         raise ValueError("Satu pengiriman hanya untuk Surat Jalan dari SATU pesanan.")
@@ -181,10 +196,10 @@ async def summary(scope: Dict[str, Any]) -> Dict[str, Any]:
     counts = {s: 0 for s in STATUSES}
     async for r in db[COLL].find(scope, {"_id": 0, "status": 1, "eta": 1}):
         counts[r.get("status", "prepared")] = counts.get(r.get("status", "prepared"), 0) + 1
-    today = now_iso()[:10]
+    today = today_wib()
     late = await db[COLL].count_documents({**scope, "status": {"$in": ["prepared", "loaded", "in_transit"]},
                                            "eta": {"$ne": "", "$lt": today}})
-    return {"counts": counts, "late": late, "total": sum(counts.values())}
+    return {"counts": counts, "late": late, "total": sum(counts.values()), "today": today}
 
 
 UPDATABLE = ("mode", "courier_name", "service_level", "tracking_no", "vehicle_plate",
@@ -251,12 +266,30 @@ async def add_position(delivery_id: str, payload: Dict[str, Any], actor_name: st
     doc = await _get(delivery_id)
     if doc.get("status") not in ("loaded", "in_transit"):
         raise ValueError("Posisi hanya bisa dicatat saat barang sudah dimuat / dalam perjalanan.")
+    lat, lng = payload.get("lat"), payload.get("lng")
+    if (lat is None) != (lng is None):
+        raise ValueError("Koordinat harus lengkap: lat dan lng bersama-sama.")
+    if lat is not None and not (-90 <= float(lat) <= 90 and -180 <= float(lng) <= 180):
+        raise ValueError("Koordinat di luar rentang (lat -90..90, lng -180..180).")
     pos = {"id": new_id("pos"), "location": payload["location"].strip(), "note": (payload.get("note") or "").strip(),
-           "lat": payload.get("lat"), "lng": payload.get("lng"), "by": actor_name, "at": now_iso()}
+           "lat": lat, "lng": lng, "by": actor_name, "at": now_iso()}
     await db[COLL].update_one({"id": delivery_id}, {
         "$push": {"positions": pos, "timeline": _event("position", actor_name, pos["location"])},
         "$set": {"updated_at": now_iso()}})
     return await get_delivery(delivery_id)
+
+
+async def delete_position(delivery_id: str, pos_id: str, actor_name: str) -> Dict[str, Any]:
+    """L-2 — koreksi posisi salah (manage). Tercatat di riwayat."""
+    doc = await _get(delivery_id)
+    p = next((x for x in (doc.get("positions") or []) if x.get("id") == pos_id), None)
+    if not p:
+        raise ValueError("Posisi tidak ditemukan.")
+    await db[COLL].update_one({"id": delivery_id}, {
+        "$pull": {"positions": {"id": pos_id}},
+        "$push": {"timeline": _event("position_deleted", actor_name, p.get("location", ""))},
+        "$set": {"updated_at": now_iso()}})
+    return {"id": pos_id, "deleted": True}
 
 
 async def transition(delivery_id: str, payload: Dict[str, Any], actor_name: str) -> Dict[str, Any]:
@@ -278,11 +311,15 @@ async def transition(delivery_id: str, payload: Dict[str, Any], actor_name: str)
             raise ValueError("Isi PLAT KENDARAAN & NAMA SOPIR sebelum berangkat.")
         upd["departed_at"] = now_iso()
     elif to == "delivered":
+        # L-4 — satu pesan lengkap: sebut SEMUA yang kurang.
+        missing = []
         if not any(p.get("kind") == "pod" for p in photos):
-            raise ValueError("Wajib unggah FOTO BUKTI TERIMA (POD) sebelum menandai Terkirim.")
+            missing.append("FOTO BUKTI TERIMA (POD)")
         receiver = (payload.get("receiver_name") or "").strip()
         if not receiver:
-            raise ValueError("Nama penerima wajib diisi.")
+            missing.append("NAMA PENERIMA")
+        if missing:
+            raise ValueError(f"Sebelum menandai Terkirim wajib: {' + '.join(missing)}.")
         upd["pod"] = {"receiver_name": receiver, "received_at": (payload.get("received_at") or now_iso()),
                       "note": note, "by": actor_name, "at": now_iso()}
         upd["delivered_at"] = now_iso()
@@ -294,6 +331,12 @@ async def transition(delivery_id: str, payload: Dict[str, Any], actor_name: str)
         note = reason
     elif to == "completed":
         upd["completed_at"] = now_iso()
+    elif to == "prepared" and cur == "loaded":
+        reason = (payload.get("reason") or note or "").strip()
+        if len(reason) < 3:
+            raise ValueError("Alasan bongkar muatan (kembali ke Disiapkan) wajib diisi.")
+        upd["loaded_at"] = None
+        note = f"Dibongkar / kembali ke Disiapkan: {reason}"
     elif to == "prepared":
         upd["fail_reason"] = ""
         note = note or "Dijadwalkan ulang setelah gagal kirim"
@@ -301,14 +344,34 @@ async def transition(delivery_id: str, payload: Dict[str, Any], actor_name: str)
         "$set": upd, "$push": {"timeline": _event("status", actor_name, note, from_status=cur, to_status=to)}})
     await db.shipments.update_many({"id": {"$in": doc.get("shipment_ids") or []}},
                                    {"$set": {"logistics_status": to}})
+    if to in ("delivered", "failed"):
+        await _notify_sales(doc, to, note, actor_name)
     return await get_delivery(delivery_id)
+
+
+async def _notify_sales(doc: Dict[str, Any], to: str, note: str, actor_name: str) -> None:
+    """L-9 — sales / admin sales tahu saat kiriman TERKIRIM atau GAGAL tanpa membuka Logistik."""
+    try:
+        from services import notification_service as notif
+        label = "TERKIRIM" if to == "delivered" else "GAGAL KIRIM"
+        body = (f"{doc.get('number')} · {doc.get('order_number')} · {doc.get('customer_name')}"
+                + (f" — {note}" if note else "") + f" (oleh {actor_name})")
+        await notif.create_addressed(
+            roles=("sales", "sales_admin"), entity_id=doc.get("entity_id"),
+            notif_type=f"logistics_{to}", title=f"Pengiriman {label}: {doc.get('order_number')}",
+            body=body, severity="success" if to == "delivered" else "warning",
+            link="orders", ref=f"{doc.get('id')}:{to}")
+    except Exception as exc:  # noqa: BLE001
+        print(f"[logistics] notifikasi {to} gagal: {exc}")
 
 
 async def set_my_route(ids: List[str], actor_id: str) -> int:
     """Sopir menyusun urutan tujuan miliknya sendiri: route_order = 1..n sesuai daftar."""
     n = 0
     for i, did in enumerate([x for x in ids if x], start=1):
-        res = await db[COLL].update_one({"id": did, "driver_user_id": actor_id},
+        # L-3 — hanya pengiriman AKTIF; data mati (terkirim/selesai) tidak disentuh.
+        res = await db[COLL].update_one({"id": did, "driver_user_id": actor_id,
+                                         "status": {"$in": list(ACTIVE_STATUSES)}},
                                         {"$set": {"route_order": i, "updated_at": now_iso()}})
         n += res.matched_count
     return n

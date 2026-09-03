@@ -127,8 +127,11 @@ export function useAppActions(state) {
       const [dash, tpls, uomResp, entResp, notifResp, unreadResp, setResp, termResp,
              rndResp] = await Promise.all([
         axios.get(`${API}/dashboard${eq}`).catch(() => ({ data: { products: [], customers: [], orders: [], warehouses: [], metrics: {} } })),
-        axios.get(`${API}/document-templates`).catch(() => ({ data: [] })),
-        axios.get(`${API}/uoms`).catch(() => ({ data: [] })),
+        // Master hanya untuk peran yang berizin — peran sempit (sopir) tidak lagi memicu 403 di console.
+        can(user?.permissions, "template", "view")
+          ? axios.get(`${API}/document-templates`).catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+        can(user?.permissions, "uom", "view")
+          ? axios.get(`${API}/uoms`).catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
         axios.get(`${API}/entities`).catch(() => ({ data: [] })),
         axios.get(`${API}/notifications`, { params: { page: 1, page_size: 20, ...(selectedEntity && selectedEntity !== "all" ? { entity_id: selectedEntity } : {}) } }).catch(() => ({ data: { items: [], total: 0, has_more: false } })),
         axios.get(`${API}/notifications/unread-count${eq}`).catch(() => ({ data: { count: 0 } })),

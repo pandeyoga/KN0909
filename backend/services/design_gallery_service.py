@@ -399,13 +399,23 @@ async def add_ai_illustration(gallery_id: str, payload: Dict[str, Any],
         raise ValueError("Berkas acuan tidak ditemukan.")
     if mode == "modify" and not src:
         raise ValueError("Modifikasi butuh minimal 1 artwork acuan — unggah artwork dulu.")
+    # G-8 — batas ilustrasi per desain per hari (saat LIVE setiap klik = biaya API).
+    cfg = await gem.resolve_config()
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    today = datetime.now(ZoneInfo("Asia/Jakarta")).strftime("%Y-%m-%d")
+    made_today = sum(1 for f in (doc.get("files") or [])
+                     if f.get("kind") == AI_KIND and _wib_date((f.get("ai") or {}).get("at", "")) == today)
+    if made_today >= cfg["daily_limit"]:
+        raise ValueError(f"Batas {cfg['daily_limit']} ilustrasi AI per desain per hari tercapai "
+                         f"({made_today} hari ini). Coba lagi besok atau ubah batas di Pengaturan → Integrasi AI.")
     img_bytes, img_ct = (None, "")
     if src:
         img_bytes, ct0 = await storage.get_object(src["path"])
         img_ct = src.get("content_type") or ct0
     res = await gem.illustrate(img_bytes, img_ct, mode, prompt,
                                context=f"Judul desain: {doc.get('title', '')}.")
-    ext = "png" if "png" in res["content_type"] else "jpg"
+    ext = "png" if "png" in res["content_type"] else ("webp" if "webp" in res["content_type"] else "jpg")
     path = storage.build_path("design_gallery_ai", ext)
     await storage.put_object(path, res["data"], res["content_type"])
     fmeta = {
@@ -419,6 +429,38 @@ async def add_ai_illustration(gallery_id: str, payload: Dict[str, Any],
         {"id": gallery_id},
         {"$push": {"files": fmeta}, "$set": {"updated_at": now_iso()}})
     return safe_doc(fmeta)
+
+
+def _wib_date(iso: str) -> str:
+    from datetime import datetime, timezone
+    from zoneinfo import ZoneInfo
+    try:
+        dt = datetime.fromisoformat(str(iso).replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(ZoneInfo("Asia/Jakarta")).strftime("%Y-%m-%d")
+    except Exception:  # noqa: BLE001
+        return str(iso)[:10]
+
+
+async def delete_illustration_comment(gallery_id: str, file_id: str, comment_id: str,
+                                      actor: Dict[str, Any]) -> Dict[str, Any]:
+    """G-6 — hapus komentar sendiri (admin boleh menghapus siapa pun)."""
+    doc = await db.design_gallery.find_one({"id": gallery_id}, {"_id": 0})
+    if not doc:
+        raise ValueError("Entri galeri tidak ditemukan.")
+    f = _find_file(doc, file_id)
+    if not f or is_artwork(f):
+        raise ValueError("Ilustrasi AI tidak ditemukan.")
+    c = next((x for x in (f.get("comments") or []) if x.get("id") == comment_id), None)
+    if not c:
+        raise ValueError("Komentar tidak ditemukan.")
+    if c.get("user_id") != actor.get("id") and actor.get("role") != "admin":
+        raise ValueError("Hanya penulis komentar (atau admin) yang boleh menghapusnya.")
+    await db.design_gallery.update_one(
+        {"id": gallery_id, "files.id": file_id},
+        {"$pull": {"files.$.comments": {"id": comment_id}}, "$set": {"updated_at": now_iso()}})
+    return {"id": comment_id, "deleted": True}
 
 
 async def add_illustration_comment(gallery_id: str, file_id: str, actor: Dict[str, Any],
@@ -435,6 +477,18 @@ async def add_illustration_comment(gallery_id: str, file_id: str, actor: Dict[st
     await db.design_gallery.update_one(
         {"id": gallery_id, "files.id": file_id},
         {"$push": {"files.$.comments": comment}, "$set": {"updated_at": now_iso()}})
+    # G-6 — desainer diberi tahu saat atasan menulis arahan (dan sebaliknya).
+    try:
+        from services import notification_service as notif
+        target_roles = ("designer",) if actor.get("role") != "designer" else ("manager", "admin")
+        await notif.create_addressed(
+            roles=target_roles, entity_id=doc.get("entity_id"),
+            notif_type="design_ai_comment",
+            title=f"Arahan ilustrasi AI: {doc.get('title', '')}",
+            body=f"{actor.get('name', '')}: {text.strip()[:160]}",
+            severity="info", link="design-gallery", ref=f"{file_id}:{comment['id']}")
+    except Exception as exc:  # noqa: BLE001
+        print(f"[design_gallery] notifikasi komentar gagal: {exc}")
     return comment
 
 
