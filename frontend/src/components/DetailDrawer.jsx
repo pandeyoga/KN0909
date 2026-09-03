@@ -1,6 +1,8 @@
 import { XCircle } from "lucide-react";
+import { useEscapeClose } from "@/utils/escapeLayers";
 
 export default function DetailDrawer({ detail, onClose, onNavigate }) {
+  useEscapeClose(!!detail, onClose, false);   // Esc menutup drawer agar tidak menghalangi baris di belakangnya
   if (!detail) return null;
   return (
     <aside data-testid="interactive-detail-drawer" className="fixed right-4 top-16 z-50 w-[min(380px,calc(100vw-32px))] rounded-[14px] border border-[#E5E5EA] bg-white/95 p-4 shadow-[0_16px_40px_rgba(20,28,45,0.18)] backdrop-blur-xl no-print" role="dialog" aria-label="Detail insight">

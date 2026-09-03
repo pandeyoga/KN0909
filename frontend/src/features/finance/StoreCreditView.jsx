@@ -5,6 +5,7 @@
  *          POST /store-credit/redeem, /store-credit/adjust.
  * Akses admin/manager/sales (redeem); adjust admin/manager.
  */
+import MoneyInput from "../../components/MoneyInput";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   RefreshCw, Search, Wallet, Users, X, Gift, ArrowDownCircle, Loader2, Plus, Minus,
@@ -328,7 +329,7 @@ function RedeemModal({ row, onClose, onDone }) {
         <div>
           <label className="text-[11px] font-semibold text-[#6B6B73]">Jumlah dipakai</label>
           <div className="flex items-center gap-2 mt-1">
-            <input data-testid="sc-redeem-amount" type="number" className="field w-full" placeholder="0" value={amount} onChange={(e) => setAmount(e.target.value)} />
+            <div className="w-full"><MoneyInput testId="sc-redeem-amount" className="field w-full" placeholder="0" value={amount} onChange={setAmount} /></div>
             <button data-testid="sc-redeem-max" type="button" className="secondary-button py-1.5 px-2 text-[11px] whitespace-nowrap" onClick={() => setAmount(String(Math.round(maxRedeem)))} disabled={maxRedeem <= 0}>Maks</button>
           </div>
           {target && <p className="text-[10.5px] text-[#9A9BA3] mt-1">Maks utk pesanan ini: {formatCurrency(maxRedeem)}</p>}
@@ -375,7 +376,7 @@ function AdjustModal({ row, onClose, onDone }) {
         </div>
         <div>
           <label className="text-[11px] font-semibold text-[#6B6B73]">Jumlah</label>
-          <input data-testid="sc-adjust-amount" type="number" className="field w-full mt-1" placeholder="0" value={amount} onChange={(e) => setAmount(e.target.value)} />
+          <MoneyInput testId="sc-adjust-amount" className="field w-full mt-1" placeholder="0" value={amount} onChange={setAmount} />
         </div>
         <div>
           <label className="text-[11px] font-semibold text-[#6B6B73]">Alasan / catatan</label>

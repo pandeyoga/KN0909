@@ -360,7 +360,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 # ── S-10: redaksi field biaya/HPP untuk role non-cost ────────────────────────
 COST_FIELDS = {
-    "unit_cost", "base_unit_cost", "harga_pokok", "landed_cost_total",
+    "unit_cost", "base_unit_cost", "harga_pokok", "hpp", "hpp_source", "landed_cost_total",
     "landed_cost_refs", "cogs_amount", "cogs", "wac", "margin", "margin_pct",
 }
 COST_SAFE_ROLES = {"admin", "manager"}

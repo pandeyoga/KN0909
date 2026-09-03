@@ -3,6 +3,7 @@
  * Saldo suspense harus NOL sebelum tutup buku. Sumber: /api/gl/suspense (+ /reclass).
  * Dipakai sebagai tab di GeneralLedger.
  */
+import MoneyInput from "../../components/MoneyInput";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCw, AlertTriangle, CheckCircle2, ArrowLeftRight } from "lucide-react";
 import axios, { API } from "../../services/apiClient";
@@ -114,8 +115,8 @@ export default function SuspensePanel({ refreshKey, accounts = [], entities = []
                 options={[{ value: "credit", label: "Kredit (mis. kas masuk tak dikenal)" }, { value: "debit", label: "Debit (mis. kas keluar tak dikenal)" }]} />
             </Field>
             <Field label="Nominal">
-              <input data-testid="suspense-amount" type="number" min="0" className="field py-1.5 text-[12px] w-full" value={form.amount}
-                onChange={(e) => setF("amount", e.target.value)} placeholder="0" />
+              <MoneyInput testId="suspense-amount" className="field py-1.5 text-[12px] w-full" value={form.amount}
+                onChange={(v) => setF("amount", v)} placeholder="0" />
             </Field>
             <Field label="Akun Tujuan">
               <KNSelect data-testid="suspense-target" className="field py-1.5 text-[12px]" value={form.target_account}

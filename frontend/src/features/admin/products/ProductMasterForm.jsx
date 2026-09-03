@@ -11,6 +11,8 @@
  * Props: product, setProduct, editingProductId, productError, saving,
  *        categoryOptions, onSave, onCancel, addConv, updateConv, removeConv
  */
+import MoneyInput from "../../../components/MoneyInput";
+import { formatCurrency } from "../../../utils/formatters";
 import { AlertTriangle, CheckCircle2, Info, Plus, Save, XCircle } from "lucide-react";
 import DecimalInput from "../../../components/DecimalInput";
 import KNSelect from "../../../components/KNSelect";
@@ -26,8 +28,9 @@ const TEXT_FIELDS = [
 ];
 const MONEY_FIELDS = [
   ["price", "Harga jual dasar (per satuan dasar)", "Harga acuan untuk pesanan/penawaran BARU. Pesanan yang sudah dibuat tetap memakai harga saat dibuat. Harga per badan usaha & per pelanggan diatur di tab Harga."],
-  ["harga_pokok", "Harga pokok (HPP) acuan", "Dipakai sebagai cadangan bila roll belum punya cost aktual; HPP jurnal memakai cost roll/WAC."],
 ];
+const HPP_SOURCE_LABEL = { roll: "rata-rata tertimbang roll (dari PO/penerimaan)", roll_partial: "rata-rata roll (sebagian roll belum ber-cost)",
+  harga_pokok: "cadangan HPP lama — belum ada penerimaan PO", price: "belum ada PO — sementara memakai harga jual", none: "belum ada penerimaan PO" };
 
 export default function ProductMasterForm({
   product, setProduct, editingProductId, productError, saving = false,
@@ -95,10 +98,20 @@ export default function ProductMasterForm({
           <span className="text-[10px] font-normal text-[#8E8E93]">Satuan kendali stok, PO, SO & POS untuk produk ini.</span></label>
         {MONEY_FIELDS.map(([key, ph, hint]) => (
           <label key={key} className="grid gap-1 text-[11px] font-semibold text-[#3C3C43]"><span>{ph}</span>
-            <DecimalInput data-testid={`admin-product-${key}-input`} placeholder="0"
-              value={product[key] ?? ""} min={0} onChange={(v) => set({ [key]: v })} />
+            <MoneyInput testId={`admin-product-${key}-input`} placeholder="0"
+              value={product[key] ?? ""} onChange={(v) => set({ [key]: v })} />
             <span className="text-[10px] font-normal text-[#8E8E93]">{hint}</span></label>
         ))}
+        <div className="grid gap-1 text-[11px] font-semibold text-[#3C3C43]" data-testid="admin-product-hpp-readonly">
+          <span>Harga pokok (HPP) — otomatis dari pembelian</span>
+          <div className="field flex items-center justify-between bg-[#F7F8FA] text-[#1C1C1E]" aria-readonly="true">
+            <span data-testid="admin-product-hpp-value">{Number(product.hpp) > 0 ? formatCurrency(product.hpp) : "Belum ada penerimaan PO"}</span>
+            <span className="text-[10px] font-normal text-[#8E8E93]">{HPP_SOURCE_LABEL[product.hpp_source] || ""}</span>
+          </div>
+          <span className="text-[10px] font-normal text-[#8E8E93]">
+            Tidak bisa diisi manual. HPP terbentuk dari harga PO pembelian nyata + landed cost saat barang diterima (rata-rata tertimbang per roll); jurnal HPP memakai cost roll aktual.
+          </span>
+        </div>
       </div>
 
       {/* ── Panel domain tekstil (Fase A) ─────────────────────────────────── */}
@@ -404,7 +417,7 @@ export default function ProductMasterForm({
       <div className="flex gap-2">
         <button data-testid="admin-create-product-button" className="primary-button"
           disabled={saving} onClick={onSave}>
-          <Save size={14} /> {saving ? "Menyimpan…" : editingProductId ? "Update Product" : "Simpan Product"}
+          <Save size={14} /> {saving ? "Menyimpan…" : editingProductId ? "Simpan Perubahan" : "Simpan Produk"}
         </button>
         {editingProductId && (
           <button data-testid="admin-cancel-edit-product-button" className="secondary-button" onClick={onCancel}>

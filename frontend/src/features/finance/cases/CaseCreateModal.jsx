@@ -4,6 +4,7 @@
  * Jenis kasus dipilih dari playbook yang DIKIRIM BACKEND, sehingga layar tidak pernah
  * menawarkan jenis yang tidak punya mesin penyelesaian.
  */
+import MoneyInput from "../../../components/MoneyInput";
 import { useMemo, useState } from "react";
 import { X, Plus } from "lucide-react";
 import axios, { API } from "../../../services/apiClient";
@@ -91,9 +92,7 @@ export default function CaseCreateModal({ playbooks, customers, suppliers, onClo
             <label className="mb-1 block text-[11px] font-semibold text-[#6B6B73]">
               Nominal yang dipertaruhkan (Rp)
             </label>
-            <input data-testid="case-create-amount" type="number" min={0}
-              className="input-field w-full" value={amount}
-              onChange={(e) => setAmount(e.target.value)} placeholder="0" />
+            <MoneyInput testId="case-create-amount" className="input-field w-full" value={amount} onChange={setAmount} placeholder="0" />
             <p className="mt-1 text-[10px] text-[#8E8E93]">
               Nominal menentukan batas waktu penyelesaian & apakah perlu persetujuan.
             </p>

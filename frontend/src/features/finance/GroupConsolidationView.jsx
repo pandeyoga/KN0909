@@ -306,7 +306,7 @@ function EliminationsPanel({ elims, onAdd, onDetect, onDelete, onSyncG6, onSyncP
                     HPP TAKSIRAN
                   </span>
                 )}
-                <span className="text-[11px] text-[#6B6B73] ml-auto tabular-nums">Rp {Number(el.total_debit || 0).toLocaleString("id-ID")}</span>
+                <span className="text-[11px] text-[#6B6B73] ml-auto tabular-nums">{formatCurrency(el.total_debit || 0)}</span>
                 {el.source_g6_pair_id ? (
                   <span className="text-[10px] text-[#9A9BA3]" title="Dikelola sistem: ikut transaksi antar-PT-nya (batalkan transaksinya bila ingin hilang)">
                     dikelola sistem

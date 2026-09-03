@@ -2,6 +2,7 @@
  * R6.2 — FixedAssetsParts — komponen pendukung FixedAssetsView (dipisah agar file < 500 baris).
  * Berisi: AssetStatusPill, FaKpi, AddAssetDialog, ScheduleDialog, DisposeDialog.
  */
+import MoneyInput from "../../components/MoneyInput";
 import { useState } from "react";
 import {
   X, Plus, RefreshCw, PackageMinus, CalendarClock, TrendingUp, TrendingDown,
@@ -129,9 +130,8 @@ export function AddAssetDialog({ meta, entities = [], selectedEntity, busy, onCa
           <div className="grid grid-cols-2 gap-3">
             <label className="grid gap-1">
               <span className="text-[11px] font-semibold text-[#3C3C43]">Harga Perolehan (Rp) *</span>
-              <input data-testid="asset-cost-input" className="field tabular-nums" type="number" min={0}
-                value={form.acquisition_cost} placeholder="12000000"
-                onChange={(e) => set("acquisition_cost", e.target.value)} />
+              <MoneyInput testId="asset-cost-input" className="field" value={form.acquisition_cost} placeholder="12000000"
+                onChange={(v) => set("acquisition_cost", v)} />
             </label>
             <label className="grid gap-1">
               <span className="text-[11px] font-semibold text-[#3C3C43]">Tanggal Perolehan</span>
@@ -148,9 +148,8 @@ export function AddAssetDialog({ meta, entities = [], selectedEntity, busy, onCa
             </label>
             <label className="grid gap-1">
               <span className="text-[11px] font-semibold text-[#3C3C43]">Nilai Residu (Rp)</span>
-              <input data-testid="asset-salvage-input" className="field tabular-nums" type="number" min={0}
-                value={form.salvage_value} placeholder="0"
-                onChange={(e) => set("salvage_value", e.target.value)} />
+              <MoneyInput testId="asset-salvage-input" className="field" value={form.salvage_value} placeholder="0"
+                onChange={(v) => set("salvage_value", v)} />
             </label>
           </div>
 

@@ -596,10 +596,10 @@ async def backfill_costing_data() -> None:
     for p in prods:
         hpp = float(p.get("harga_pokok") or 0)
         if hpp <= 0:
+            # S#096 — proxy HANYA untuk roll demo yang lahir tanpa PO; TIDAK lagi ditulis ke
+            # products.harga_pokok (HPP produk harus datang dari PO/penerimaan nyata).
             ratio = _HPP_RATIO.get(p.get("category"), 0.66)
             hpp = round(float(p.get("price", 0) or 0) * ratio, -2)  # bulat ratusan
-            if hpp > 0:
-                await db.products.update_one({"id": p["id"]}, {"$set": {"harga_pokok": hpp}})
         pmap[p["id"]] = hpp
 
     belum_dinilai = {
@@ -628,6 +628,7 @@ async def backfill_costing_data() -> None:
         await db.inventory_rolls.update_one(
             {"id": r["id"]},
             {"$set": {"base_unit_cost": base, "unit_cost": round(base + landed, 4),
+                      "cost_basis": "proxy_demo",   # transparan: bukan biaya PO nyata
                       "cost_backfilled_at": now_iso()}})
 
 

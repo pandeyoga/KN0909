@@ -9,6 +9,7 @@
  * Bunga TIDAK diakru sistem (pemilik tidak memintanya) — kolom catatan bunga ada supaya
  * kesepakatannya terbaca, bukan supaya angkanya dikarang.
  */
+import MoneyInput from "../../../components/MoneyInput";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Banknote, Plus, RefreshCw, HandCoins, Ban, CheckCircle2 } from "lucide-react";
 import axios, { API } from "../../../services/apiClient";
@@ -188,8 +189,7 @@ export default function IntercoLoansPanel({ entities = [], entityId = "", canWri
               dari {repayFor.borrower_entity_name} ke {repayFor.lender_entity_name}, dan
               jurnalnya terbit di kedua buku.
             </p>
-            <input data-testid="loan-repay-amount" type="number" className="field mt-2"
-              value={repayAmt} onChange={(e) => setRepayAmt(e.target.value)} />
+            <MoneyInput testId="loan-repay-amount" className="field mt-2" value={repayAmt} onChange={setRepayAmt} />
             <div className="modal-actions">
               <button className="btn-secondary" onClick={() => setRepayFor(null)}>Batal</button>
               <button data-testid="loan-repay-confirm" className="btn-primary"

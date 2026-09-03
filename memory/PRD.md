@@ -375,3 +375,14 @@ tersisa action items minor).
 ## 2026-09-03 — Sesi #095: Kolom nilai meja selalu berformat ✅ (self-test Playwright 3 meja)
 - DeskQueueCard: `value_kind` money → `formatCurrency` (Rp, dipaksa Number); qty → angka + satuan; count → kosong per baris & ringkasan "n dokumen"
   (sebelumnya count dirender "Rp 0"). Baris outbound Meja Gudang kini membawa `unit` (yard) sehingga tampil "40 yard".
+
+## 2026-09-03 — Sesi #096: HPP dari PO nyata · MoneyInput · audit format angka ✅
+- **HPP tidak diinput manual**: `GET /api/products` & `/api/dashboard` mengembalikan `hpp` (WAC roll via `costing_service.wac_for_product`) +
+  `hpp_source`; PATCH mengabaikan `harga_pokok`; POST memaksa 0; bootstrap `backfill_costing_data` tidak lagi menulis products.harga_pokok
+  (proxy demo hanya di roll, `cost_basis: proxy_demo`). `COST_FIELDS` += hpp/hpp_source; dashboard kini `strip_cost_fields` per peran (bocor lama ditutup).
+  Form produk: blok read-only `admin-product-hpp-readonly` (+ sumber & penjelasan); fakta "HPP (dari pembelian)"; simpan sukses → modal tertutup.
+- `components/MoneyInput.jsx` (awalan Rp + pratinjau `{testId}-preview`) dipakai: harga jual produk, loan-repay, case-create, sc-redeem/adjust,
+  budget, suspense, asset-cost/salvage; Konsolidasi Grup → formatCurrency. Audit testing agent: tabel/kartu Keuangan-Pembelian-Gudang sudah seragam.
+- Label tombol form produk di-Indonesiakan; DetailDrawer menutup dengan Esc.
+- Bukti: iteration_305 (temuan) → iteration_306 (BE 100%, FE 100%); pytest test_iter305_hpp_money.py, test_iter306_hpp_redaction_bootstrap.py.
+- Backlog kecil: Aset Tetap tanggal perolehan/periode → KNDatePicker; validasi residu < perolehan; 39 input `type=number` nominal lain → MoneyInput bertahap.

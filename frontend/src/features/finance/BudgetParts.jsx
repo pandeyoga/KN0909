@@ -2,6 +2,7 @@
  * BudgetParts (R6.3) — komponen pendukung BudgetView (dipisah agar file < 500 baris).
  * Berisi: DIM_TABS, BudgetFormRow, BudgetTable, BudgetRulesPanel, AlertsStrip, UnbudgetedPanel.
  */
+import MoneyInput from "../../components/MoneyInput";
 import { useState } from "react";
 import {
   Save, Trash2, X, AlertTriangle, ShieldAlert, ShieldCheck, ShieldOff, ClipboardList, Pencil,
@@ -61,9 +62,8 @@ export function BudgetFormRow({ dimension, keys, onSubmit, onCancel }) {
         </div>
         <div>
           <label className="block text-[10px] font-bold uppercase text-[#8E8E93] mb-1">Nominal (Rp)</label>
-          <input type="number" data-testid="budget-form-amount" className="field py-1.5 text-[12px]"
-            value={form.amount} placeholder="0"
-            onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} />
+          <MoneyInput testId="budget-form-amount" className="field py-1.5 text-[12px]" value={form.amount} placeholder="0"
+            onChange={(v) => setForm((f) => ({ ...f, amount: v }))} />
         </div>
         <div className="flex items-center gap-2">
           <button data-testid="budget-form-submit" onClick={() => onSubmit(form)}

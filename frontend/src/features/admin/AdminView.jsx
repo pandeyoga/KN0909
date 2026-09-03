@@ -84,7 +84,7 @@ export default function AdminView({
     : ["Batik", "Tenun", "Lurik", "Songket", "Ulos", "Jumputan", "Endek"].map((n) => ({ name: n })))
     .map((c) => ({ value: c.name, label: c.name }));
   // Fase A (PS-01/02/03/09) — field domain tekstil wajib ada di state form.
-  const [product, setProduct] = useState({ sku: "", name: "", category: "Batik", variant: "Regular", color: "", color_code: "", color_name: "", color_hex: "", stage: "finished", fabric_type: "woven", line_code: "", yarn_count: "", yarn_count_system: "", motif: "", grade: "A", supplier: "", base_unit: "meter", price: 0, harga_pokok: 0, gramasi: 0, lebar: 0, image: "", description: "", uom_conversions: [] });
+  const [product, setProduct] = useState({ sku: "", name: "", category: "Batik", variant: "Regular", color: "", color_code: "", color_name: "", color_hex: "", stage: "finished", fabric_type: "woven", line_code: "", yarn_count: "", yarn_count_system: "", motif: "", grade: "A", supplier: "", base_unit: "meter", price: 0, gramasi: 0, lebar: 0, image: "", description: "", uom_conversions: [] });
   const [savingProduct, setSavingProduct] = useState(false);
   const [editingProductId, setEditingProductId] = useState(null);
   const [productError, setProductError] = useState("");
@@ -108,7 +108,7 @@ export default function AdminView({
   const [importLoading, setImportLoading] = useState(false);
 
   // Sub-fase 1.13 — helper form produk (uom_conversions + create/edit)
-  const emptyProduct = { sku: "", name: "", category: "Batik", variant: "Regular", color: "", color_code: "", color_name: "", color_hex: "", stage: "finished", fabric_type: "woven", line_code: "", yarn_count: "", yarn_count_system: "", motif: "", grade: "A", supplier: "", base_unit: "meter", price: 0, harga_pokok: 0, gramasi: 0, lebar: 0, image: "", description: "", uom_conversions: [], exclusivity: "umum", owner_sales_ids: [] };
+  const emptyProduct = { sku: "", name: "", category: "Batik", variant: "Regular", color: "", color_code: "", color_name: "", color_hex: "", stage: "finished", fabric_type: "woven", line_code: "", yarn_count: "", yarn_count_system: "", motif: "", grade: "A", supplier: "", base_unit: "meter", price: 0, gramasi: 0, lebar: 0, image: "", description: "", uom_conversions: [], exclusivity: "umum", owner_sales_ids: [] };
   const resetProductForm = () => { setProduct(emptyProduct); setEditingProductId(null); setProductError(""); };
   const updateConv = (idx, key, val) => setProduct({
     ...product,
@@ -141,6 +141,7 @@ export default function AdminView({
     setSavingProduct(false);
     if (res && res.ok === false) { setProductError(res.error || "Gagal menyimpan produk."); return; }
     resetProductForm();
+    setShowCreateForm(false);   // sukses → modal ditutup (bukan berpindah diam-diam ke mode Buat)
   };
   const loadProductForEdit = (row) => {
     setProduct({
@@ -150,7 +151,7 @@ export default function AdminView({
       line_code: row.line_code || "",          // FASE L — lini kerja MD
       yarn_count: row.yarn_count || "", yarn_count_system: row.yarn_count_system || "",
       motif: row.motif || "", grade: row.grade || "", supplier: row.supplier || "",
-      base_unit: row.base_unit || "meter", price: Number(row.price || 0), harga_pokok: Number(row.harga_pokok || 0),
+      base_unit: row.base_unit || "meter", price: Number(row.price || 0), hpp: Number(row.hpp || 0), hpp_source: row.hpp_source || "",
       gramasi: Number(row.gramasi || 0), lebar: Number(row.lebar || 0), image: row.image || "", description: row.description || "", uom_conversions: row.uom_conversions || [],
       exclusivity: row.exclusivity || "umum", owner_sales_ids: row.owner_sales_ids || [],
     });
@@ -420,7 +421,7 @@ export default function AdminView({
                     body: `${row.sku || "SKU —"}${row.category ? ` · ${row.category}` : ""}${row.variant ? ` · ${row.variant}` : ""}${row.description ? ` — ${row.description}` : ""}`,
                     facts: [
                       { label: "Harga Jual", value: Number(row.price) > 0 ? `${formatCurrency(row.price)} / ${row.base_unit || "unit"}` : "Belum diisi" },
-                      { label: "HPP (Harga Pokok)", value: Number(row.harga_pokok) > 0 ? formatCurrency(row.harga_pokok) : "Belum diisi" },
+                      { label: "HPP (dari pembelian)", value: Number(row.hpp) > 0 ? `${formatCurrency(row.hpp)} / ${row.base_unit || "unit"}` : "Belum ada penerimaan PO" },
                       { label: "Lini · Grade", value: `${row.line_code ? `Lini ${row.line_code}` : "Lini belum diisi"} · Grade ${row.grade || "—"}` },
                       { label: "Spesifikasi", value: row.stage === "yarn"
                         ? [row.yarn_count ? `${row.yarn_count}${row.yarn_count_system ? ` ${row.yarn_count_system}` : ""}` : null, row.yarn_material, row.yarn_ply ? `${row.yarn_ply} ply` : null, row.yarn_twist ? `puntiran ${row.yarn_twist}` : null, row.yarn_dye_status].filter(Boolean).join(" · ") || "benang —"

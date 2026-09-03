@@ -53,7 +53,17 @@ async def list_products(request: Request, orderable_only: bool = False,
         if info.get("source") == "entity":
             product["price"] = info["price"]
         product["price_source"] = info.get("source", "global")
-    # S-10 — harga_pokok (HPP) hanya untuk admin/manager
+    # S#096 — HPP bukan isian manual: turunan biaya PO/penerimaan (WAC roll) ditampilkan
+    # sebagai `hpp` + `hpp_source`; `harga_pokok` lama hanya cadangan bila belum ada roll.
+    from services import costing_service as _cs
+    for product in products:
+        try:
+            w = await _cs.wac_for_product(product["id"], product=product)
+            product["hpp"] = float(w.get("wac") or 0)
+            product["hpp_source"] = w.get("source", "")
+        except Exception:  # noqa: BLE001
+            product["hpp"] = float(product.get("harga_pokok") or 0)
+            product["hpp_source"] = "harga_pokok"
     return strip_cost_fields(products, role)
 
 
@@ -77,6 +87,7 @@ async def create_product(payload: ProductPayload, request: Request) -> Dict[str,
     if await db.products.find_one({"sku": payload.sku}, {"_id": 0}):
         raise HTTPException(status_code=409, detail="SKU sudah digunakan")
     product = payload.model_dump()
+    product["harga_pokok"] = 0.0   # S#096 — HPP tidak diisi manual; terbentuk dari PO/penerimaan (WAC roll)
     # FASE G-0 — `inventory.default_uom` DULU tidak dibaca kode mana pun. Sekarang benar-benar
     # menjadi satuan dasar bawaan produk baru bila pengguna tidak mengisinya.
     if not (product.get("base_unit") or "").strip():
@@ -116,7 +127,8 @@ async def update_product(product_id: str, payload: GenericPatch, request: Reques
     actor = await require_permission(request, "product", "update")
     allowed = ["sku", "name", "category", "variant", "color", "motif", "supplier",
                "color_code", "color_name", "color_hex",
-               "base_unit", "price", "image", "description", "status", "uom_conversions", "harga_pokok",
+               "base_unit", "price", "image", "description", "status", "uom_conversions",
+               # "harga_pokok" SENGAJA tidak boleh di-PATCH: HPP datang dari PO/penerimaan (S#096)
                "kg_per_meter", "reorder_point", "reorder_qty", "template_id", "variant_attrs",
                "lifecycle", "spec_id", "design_id", "design_version"] \
         + dr.PRODUCT_DOMAIN_FIELDS   # Fase A — stage/fabric_type/grade/gramasi/lebar/yarn_count*
@@ -134,7 +146,7 @@ async def update_product(product_id: str, payload: GenericPatch, request: Reques
     if not existing:
         raise HTTPException(status_code=404, detail="Produk tidak ditemukan")
     # PS-15/R5 — angka boleh dikirim sebagai teks berkoma ("10,5").
-    for num_field in ("price", "harga_pokok", "gramasi", "lebar", "kg_per_meter",
+    for num_field in ("price", "gramasi", "lebar", "kg_per_meter",
                       "reorder_point", "reorder_qty"):
         if num_field in data:
             try:

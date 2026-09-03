@@ -35,6 +35,14 @@ async def dashboard(request: Request, entity_id: str = None) -> Dict[str, Any]:
     # admin/warehouse tetap melihat keseluruhan pesanan seperti sebelumnya.
     order_scope = sales_ownership.apply_scope(scope, actor)
     products_raw = await db.products.find({}, {"_id": 0}).to_list(100)
+    # S#096 — HPP turunan pembelian (WAC roll) untuk layar Master Produk; diredaksi strip_cost_fields per peran.
+    from services import costing_service as _cs
+    for _p in products_raw:
+        try:
+            _w = await _cs.wac_for_product(_p["id"], product=_p)
+            _p["hpp"], _p["hpp_source"] = float(_w.get("wac") or 0), _w.get("source", "")
+        except Exception:  # noqa: BLE001
+            _p["hpp"], _p["hpp_source"] = 0.0, "none"
     orders_raw = await db.sales_orders.find(order_scope, {"_id": 0}).sort("created_at", -1).to_list(20)
     # FASE E-4 (E4.1) — gudang KHUSUS badan usaha lain tidak ikut ke dasbor:
     # kalau ikut, angka "Gudang Aktif" & pemilih gudang di layar menawarkan
@@ -43,7 +51,8 @@ async def dashboard(request: Request, entity_id: str = None) -> Dict[str, Any]:
     wh_filter = whscope.usable_query(ctx.active_entity_id)
     warehouses_raw = await db.warehouses.find(wh_filter, {"_id": 0}).to_list(100)
     customers_raw = await db.customers.find(scope, {"_id": 0}).to_list(100)
-    products = [safe_doc(p) for p in products_raw if p]
+    from core_utils import strip_cost_fields as _strip_cost
+    products = _strip_cost([safe_doc(p) for p in products_raw if p], actor.get("role"))
     orders = [safe_doc(o) for o in orders_raw if o]
     wh_names = await whscope.entity_name_map()
     warehouses = [whscope.decorate(safe_doc(w), wh_names, ctx.active_entity_id)

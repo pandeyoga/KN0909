@@ -1,0 +1,52 @@
+{
+  "summary": "RETEST iterasi 305 (S#096). SEMUA 4 perbaikan TERVERIFIKASI. Backend: dibuat /app/backend/tests/test_iter306_hpp_redaction_bootstrap.py (6 test, 6 lulus) — GET /api/dashboard kini membawa hpp=122387.0 + hpp_source='roll' untuk BTK-MEGA-001 dan nilainya identik dengan GET /api/products; untuk sales@ TIDAK ada satu pun field biaya (hpp/hpp_source/harga_pokok/unit_cost/base_unit_cost/landed_cost_total/wac/margin) baik di /api/dashboard maupun /api/products; tanpa kebocoran _id; PATCH /api/products/prod_batik_mega {harga_pokok:999} tetap diabaikan (harga_pokok tetap 122100, hpp tetap 122387). Bootstrap: dicatat harga_pokok sebelum restart (BTK-MEGA-001 122100; 3 produk ber-harga_pokok 0 termasuk sisa uji iter305) → `sudo supervisorctl restart backend` → semua nilai TIDAK berubah dan yang 0 TIDAK diisi ulang; roll uji tanpa cost yang saya sisipkan (TEST_ROLL_306) di-backfill dengan cost_basis='proxy_demo' (transparan) lalu SAYA HAPUS kembali. Frontend (admin@, KSC): Master Produk → Ubah BTK-MEGA-001 → `admin-product-hpp-value` = 'Rp 122.387' dengan sumber 'rata-rata tertimbang roll (dari PO/penerimaan)'; kartu detail baris menampilkan fakta 'HPP (DARI PEMBELIAN) Rp 122.387 / yard'; MoneyInput `admin-product-price-input`: span 'Rp' z-index 10, padding-left 34px, bounding box SPAN BERADA DI DALAM bounding box input dan terlihat di tangkapan layar, ketik 1250000 → preview 'Rp 1.250.000'; Simpan tanpa perubahan → modal Ubah Data Master TERTUTUP, toast 'products berhasil diupdate.', TIDAK ada peringatan merah/`admin-product-error`; Aset Tetap → Tambah Aset: `asset-cost-input` dan `asset-salvage-input` keduanya type=text + awalan Rp di dalam kotak + preview 'Rp 12.000.000', Batal menutup modal. Regresi: test_iter301_rbac_pricing_uom.py + test_iter305_hpp_from_po.py = 30 lulus, 1 skip. Meja Finance memuat (14 antrean, tanpa NaN, tanpa error konsol). Data uji dikembalikan (price BTK-MEGA-001 tetap 185000).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "seluruh /api/products",
+        "issue": "Sampah data uji dari iterasi sebelumnya masih ada: produk `TEST_HPP_305_1788451183` (prod_a1c92ac810d7, harga_pokok 0) belum dibersihkan. Bukan cacat kode, tapi mengotori daftar Master Produk demo — hapus."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Master Produk — form produk",
+        "issues": ["Label tombol simpan masih Inggris: 'Update Product' / 'Create Product' padahal seluruh aplikasi berbahasa Indonesia (bandingkan 'Simpan Satuan', 'Simpan Aset')"]
+      },
+      {
+        "screen": "Aset Tetap (Penyusutan & Disposal)",
+        "issues": ["'Tanggal Perolehan' dan 'PERIODE (YYYY-MM)' memakai date/month picker bawaan peramban (bukan komponen kalender aplikasi) — tidak konsisten dengan pemilih tanggal di layar lain", "Form Tambah Aset tidak memvalidasi Nilai Residu >= Harga Perolehan (residu 12jt = perolehan 12jt diterima, estimasi penyusutan Rp 0)"]
+      },
+      {
+        "screen": "Drawer 'Detail Insight' (kartu record)",
+        "issues": ["Tombol Escape tidak menutup drawer; drawer tetap mengambang di kanan dan MENGHALANGI klik tombol 'Ubah' pada baris di belakangnya (Playwright: 'interactive-detail-drawer subtree intercepts pointer events'). Harus ditutup manual via detail-drawer-close-button."]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter306_hpp_redaction_bootstrap.py",
+    "/app/test_reports/pytest/iter306_results.xml"
+  ],
+  "action_items": [
+    "Bersihkan produk sampah uji TEST_HPP_305_1788451183 dari test_database",
+    "Terjemahkan label tombol 'Update Product'/'Create Product' pada form Master Produk",
+    "Drawer Detail Insight: tambahkan penutup via Escape/klik luar agar tidak menghalangi tombol baris",
+    "Validasi Nilai Residu < Harga Perolehan pada Tambah Aset Tetap"
+  ],
+  "critical_code_review_comments": [
+    "routers/dashboard.py: enrich HPP memanggil costing_service.wac_for_product() dalam loop per produk (100 produk = 100 query WAC) di endpoint yang dipanggil SEKALI untuk seluruh aplikasi; pertimbangkan batch/agregasi agar dashboard tidak melambat saat master produk tumbuh.",
+    "routers/products.py: parse_decimal(harga_pokok) pada jalur PATCH masih ada padahal field-nya sudah tidak diizinkan (kode mati yang menyesatkan) — temuan iter305 belum ditindak."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter306_hpp_redaction_bootstrap.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "Sisipkan sementara inventory_rolls TEST_ROLL_306 (produk prod_batik_mega) untuk menguji tanda cost_basis='proxy_demo' pada backfill startup — SUDAH DIHAPUS setelah verifikasi. Tidak ada perubahan data lain (PATCH produk hanya menyimpan nilai yang sama).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin@kainnusantara.id / sales@kainnusantara.id — demo12345",
+  "context_for_next_testing_agent": "Semua temuan iter305 (kebocoran hpp/hpp_source ke sales, dashboard tanpa hpp, bootstrap menulis harga_pokok, awalan Rp MoneyInput tak terlihat, modal produk tidak tertutup) sudah TUTUP dan terverifikasi lewat API + layar. Catatan metode: jangan pakai document.elementFromPoint untuk membuktikan span 'Rp' tertutup — span-nya `pointer-events-none`, jadi elementFromPoint SELALU mengembalikan <input>; pakai perbandingan bounding box + tangkapan layar (itulah sumber laporan bug iter305 yang kini terbukti sudah beres). Jalur layar: nav-group-penjualan → nav-products-pricing → hub-tab-md-products → admin-edit-products-{id}-button; tombol simpan produk = admin-create-product-button. Aset: nav-group-kas-aset → nav-fixed-assets → tombol 'Tambah Aset' (tanpa data-testid).",
+  "rca_of_the_issue": "Tidak ada cacat baru. Perbaikan yang diverifikasi: (1) dashboard.py menambah hpp/hpp_source lalu strip_cost_fields per peran + COST_FIELDS kini memuat hpp/hpp_source; (2) bootstrap.backfill_costing_data memakai proxy HPP hanya di memori untuk menilai roll dan menandainya cost_basis='proxy_demo', tidak lagi menulis products.harga_pokok; (3) MoneyInput memberi input padding-left 34px dan span 'Rp' z-10 sehingga awalan terlihat di dalam kotak; (4) saveProduct memanggil setShowCreateForm(false) setelah sukses sehingga modal tertutup, bukan berpindah ke mode Buat."
+}
