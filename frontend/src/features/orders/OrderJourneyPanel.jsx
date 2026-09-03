@@ -111,6 +111,13 @@ export default function OrderJourneyPanel({ orderId, orderNumber }) {
             <Money label="Sisa Tagihan" value={data.outstanding}
                    tone={data.outstanding > 0 ? "#C0392B" : "#1B7F4B"} testId="journey-outstanding" />
           </div>
+          {data.revenue_recognized_pct > 0 && data.revenue_recognized_pct < 100 && (
+            <p data-testid="journey-revenue-prorata"
+               className="mx-3 mb-2 rounded-lg border border-[#F5D9A8] bg-[#FFF9EF] px-3 py-2 text-[11px] text-[#7A4B00]">
+              Pendapatan diakui pro-rata <span className="font-semibold">{formatCurrency(data.revenue_recognized_total)}</span>
+              {" "}({data.revenue_recognized_pct}%) sesuai barang yang sudah keluar lewat surat jalan.
+            </p>
+          )}
           {data.advance_unrecognized > 0 && (
             <p data-testid="journey-advance-note"
                className="mx-3 mb-3 rounded-lg border border-[#CFE0FF] bg-[#EFF4FF] px-3 py-2 text-[11px] text-[#0B3D91]">

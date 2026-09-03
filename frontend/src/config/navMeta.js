@@ -122,6 +122,7 @@ export const PAGE_META = {
   "fixed-assets":         { kicker: "Kas & Aset",     title: "Aset Tetap \u00b7 Penyusutan & Disposal" },
   "cs-pajak":             { kicker: "Keuangan \u00b7 Pajak", title: "PPh & Rekap Pajak" },
   "ar-aging":             { kicker: "Keuangan",       title: "AR / Piutang & Umur" },
+  "advance-report":       { kicker: "Keuangan",       title: "Uang Muka Pelanggan" },
   "store-credit":         { kicker: "Keuangan",       title: "Store Credit / Saldo Pelanggan" },
   "consolidation":        { kicker: "Keuangan",       title: "Konsolidasi Grup · Eliminasi Intercompany" },
   "closing":              { kicker: "Keuangan",       title: "Tutup Buku · Closing Bulanan & Tahunan" },

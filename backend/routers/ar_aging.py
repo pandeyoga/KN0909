@@ -18,7 +18,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 
 from dependencies import audit, require_any_permission, require_permission
 from entity_scope import entity_ctx, resolve_scope_ids, scope_value
-from services import ar_aging_service
+from services import ar_aging_service, advance_report_service
 
 router = APIRouter(prefix="/api")
 
@@ -90,3 +90,14 @@ async def ar_aging_detail(customer_id: str, request: Request,
     if detail is None:
         raise HTTPException(status_code=404, detail="Customer tidak ditemukan untuk entitas ini")
     return detail
+
+
+@router.get("/ar/advance-report")
+async def ar_advance_report(request: Request, entity_id: Optional[str] = Query(None),
+                            q: str = Query("")) -> Dict[str, Any]:
+    """KEB-PDPT (S#090) — Laporan Uang Muka Pelanggan: saldo 2-1400 per pelanggan
+    (uang muka pesanan belum dikirim + deposit), umur, dan pesanan terkait."""
+    await require_any_permission(request, AGING_READ)   # sales (ar_receipt.view) sengaja TIDAK termasuk
+    ctx = await entity_ctx(request)
+    scope = scope_value(ctx, entity_id)
+    return await advance_report_service.advance_report(entity_id=scope, q=q)

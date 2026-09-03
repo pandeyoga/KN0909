@@ -65,10 +65,11 @@ def _cleanup():
 
 
 async def _purge():
-    for coll in (db.sales_orders, db.ar_receipts, db.cash_transactions):
+    for coll in (db.sales_orders, db.ar_receipts, db.cash_transactions, db.shipments):
         await coll.delete_many({TAG: True})
     await db.journal_entries.delete_many({"source_label": {"$regex": r"^TEST/"}})
-    await db.journal_entries.delete_many({"source_id": {"$regex": r"^(so|rcp|cash)_kebpdpt_"}})
+    await db.journal_entries.delete_many({"source_id": {"$regex": r"^(so|rcp|cash|shp)_kebpdpt_"}})
+    await db.journal_entries.delete_many({"ref.order_id": {"$regex": r"^so_kebpdpt_"}})
 
 
 def _ids():
@@ -147,3 +148,82 @@ class TestAdvancePolicy:
         o = run(db.sales_orders.find_one({"id": oid}, {"_id": 0}))
         assert run(gl.post_advance_reclass(o)) is None
         assert run(gl.post_advance_reclass_reversal(o, rid, 200000)) is None
+
+
+def _shipment(shid, oid, qty, created_at):
+    return {"id": shid, "shipment_no": f"TEST/SJ-{shid[-6:]}", "entity_id": ENT, "order_id": oid,
+            "product_id": "prd_test", "qty": qty, "unit": "yard", "status": "dispatched",
+            "created_at": created_at, TAG: True}
+
+
+class TestProRataPerShipment:
+    """Tahap 2 — pendapatan per surat jalan sebanding barang yang keluar."""
+
+    def test_two_shipments_prorata_then_closing_remainder(self):
+        oid, rid, cid = _ids()
+        u = oid.split("_")[-1]
+        run(db.sales_orders.insert_one(_order(oid, "confirmed", 500000,
+            [{"id": "pay1", "amount": 500000, "receipt_id": rid}])))
+        run(db.ar_receipts.insert_one(_receipt(rid, oid, 500000)))
+        run(db.cash_transactions.insert_one(_cash(cid, rid, 500000)))
+        run(gl.post_cash_transaction(run(db.cash_transactions.find_one({"id": cid}, {"_id": 0}))))
+
+        # SJ-1: 4 dari 10 yard (40%) → pesanan partially_shipped
+        sh1 = f"shp_kebpdpt_{u}a"
+        run(db.shipments.insert_one(_shipment(sh1, oid, 4, "2026-09-03T01:00:00+00:00")))
+        run(db.sales_orders.update_one({"id": oid}, {"$set": {"status": "partially_shipped"}}))
+        res = run(gl.post_order_revenue_and_cogs(oid))
+        assert res["revenue"] is not None and res["revenue"]["source_type"] == "shipment_revenue"
+        ls = _lines(res["revenue"])
+        assert (gl.ACC_PIUTANG, 444000.0, 0.0) in ls, ls          # 40% × 1.110.000
+        assert (gl.ACC_PENDAPATAN, 0.0, 400000.0) in ls            # 40% × 1.000.000
+        assert (gl.ACC_PPN_OUT, 0.0, 44000.0) in ls                # 40% × 110.000
+        assert res["cogs"] is not None and _lines(res["cogs"]) == {
+            (gl.ACC_HPP, 240000.0, 0.0), (gl.ACC_PERSEDIAAN, 0.0, 240000.0)}  # 4 × 60.000
+        # reklas uang muka pro-rata: min(500.000, AR 444.000)
+        assert _lines(res["advance_reclass"]) == {
+            (gl.ACC_UANG_MUKA_PELANGGAN, 444000.0, 0.0), (gl.ACC_PIUTANG, 0.0, 444000.0)}
+        o = run(db.sales_orders.find_one({"id": oid}, {"_id": 0}))
+        assert run(gl.order_advance_unrecognized(o)) == 56000.0
+        # tidak ada jurnal per-pesanan (legacy) yang ikut lahir
+        assert not run(gl._already_posted("sales_order", oid))
+        # idempotent
+        again = run(gl.post_order_revenue_and_cogs(oid))
+        assert again["revenue"] is None and again["advance_reclass"] is None
+
+        # SJ-2 penutup: 6 yard → shipped → sisa (bukan 60% mentah) supaya total = grand
+        sh2 = f"shp_kebpdpt_{u}b"
+        run(db.shipments.insert_one(_shipment(sh2, oid, 6, "2026-09-03T02:00:00+00:00")))
+        run(db.sales_orders.update_one({"id": oid}, {"$set": {"status": "shipped"}}))
+        res2 = run(gl.post_order_revenue_and_cogs(oid))
+        rev2 = next(x["revenue"] for x in res2["shipments"] if x["shipment_id"] == sh2)
+        ls2 = _lines(rev2)
+        assert (gl.ACC_PIUTANG, 666000.0, 0.0) in ls2
+        assert (gl.ACC_PENDAPATAN, 0.0, 600000.0) in ls2
+        assert (gl.ACC_PPN_OUT, 0.0, 66000.0) in ls2
+        tot = run(gl.order_revenue_recognized(oid))
+        assert tot == {"revenue": 1000000.0, "ppn": 110000.0, "ar": 1110000.0}
+        assert _lines(res2["advance_reclass"]) == {
+            (gl.ACC_UANG_MUKA_PELANGGAN, 56000.0, 0.0), (gl.ACC_PIUTANG, 0.0, 56000.0)}
+        o = run(db.sales_orders.find_one({"id": oid}, {"_id": 0}))
+        assert run(gl.order_advance_unrecognized(o)) == 0.0
+        assert run(gl.order_advance_reclassed(oid)) == 500000.0
+
+        # void kwitansi uang muka setelah reklas penuh → pembalik 500.000
+        rv = run(gl.post_advance_reclass_reversal(o, rid, 500000, label="void uji"))
+        assert _lines(rv) == {(gl.ACC_PIUTANG, 500000.0, 0.0), (gl.ACC_UANG_MUKA_PELANGGAN, 0.0, 500000.0)}
+        assert run(gl.order_advance_reclassed(oid)) == 0.0
+
+    def test_cancel_reverses_shipment_journals(self):
+        oid, _, _ = _ids()
+        u = oid.split("_")[-1]
+        run(db.sales_orders.insert_one(_order(oid, "shipped", 0, [])))
+        run(db.shipments.insert_one(_shipment(f"shp_kebpdpt_{u}c", oid, 10, "2026-09-03T01:00:00+00:00")))
+        res = run(gl.post_order_revenue_and_cogs(oid))
+        assert res["revenue"]["source_type"] == "shipment_revenue"
+        revs = run(gl.reverse_order_journals(oid, reason="uji batal"))
+        types = sorted(r["source_type"] for r in revs)
+        assert types == ["shipment_cogs_reversal", "shipment_revenue_reversal"]
+        rl = _lines(next(r for r in revs if r["source_type"] == "shipment_revenue_reversal"))
+        assert (gl.ACC_PIUTANG, 0.0, 1110000.0) in rl and (gl.ACC_PENDAPATAN, 1000000.0, 0.0) in rl
+        assert run(gl.reverse_order_journals(oid)) == []   # idempotent

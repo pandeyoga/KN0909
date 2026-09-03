@@ -221,6 +221,8 @@ export const NAV_STRUCTURE = [
       { id: "finance-tower", label: "Dasbor Keuangan",     icon: PieChart,     roles: ["admin", "manager"] },
       { id: "cash-bank",   label: "Kas & Bank",            icon: CreditCard,   roles: ["admin", "manager"], hub: "cash-bank" },
       { id: "ar-aging",    label: "AR / Piutang & Umur",  icon: TrendingDown, roles: ["admin", "manager"] },
+      // KEB-PDPT (S#090) — saldo 2-1400 per pelanggan: uang muka pesanan belum dikirim + deposit.
+      { id: "advance-report", label: "Uang Muka Pelanggan", icon: Wallet,      roles: ["admin", "manager"] },
       { id: "payment-plans", label: "Rencana Bayar & Denda", icon: CalendarClock, roles: ["admin", "manager"] },
       // FASE G-9 — antrean uang yang nyangkut. Sales ikut dilibatkan: mereka yang paling
       // sering menerima kabar "sudah transfer kok" dari pelanggan, jadi boleh MELAPOR &

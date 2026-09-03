@@ -37,6 +37,9 @@ def purge():
     db.ar_receipts.delete_many({"_test_kebpdpt_fe": True})
     db.cash_transactions.delete_many({"id": {"$in": cids}})
     print("purged", oids, rids)
+    import subprocess, sys as _sys
+    subprocess.run([_sys.executable, "/app/backend/tests/iter299_restore_orphan_rolls.py"],
+                   check=False, capture_output=True, timeout=120)
 
 
 def seed():

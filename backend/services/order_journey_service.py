@@ -160,7 +160,8 @@ async def journey(order: Dict[str, Any]) -> Dict[str, Any]:
     # KEB-PDPT — kebijakan pendapatan: uang muka yang masih kewajiban vs sudah diakui.
     from services import gl_service as _gl
     pendapatan_diakui = await _gl.order_revenue_posted(oid)
-    uang_muka_tertahan = 0.0 if pendapatan_diakui else _gl.order_advance_total(order)
+    uang_muka_tertahan = await _gl.order_advance_unrecognized(order)
+    diakui_rp = (await _gl.order_revenue_recognized(oid))["ar"] if pendapatan_diakui else 0.0
 
     selesai_task = [t for t in tasks if t.get("status") in ("completed", "done", "picked")]
     terkirim = [s for s in kirim if s.get("status") in ("dispatched", "delivered", "shipped")]
@@ -232,6 +233,8 @@ async def journey(order: Dict[str, Any]) -> Dict[str, Any]:
         "paid_total": dibayar,
         "outstanding": sisa,
         "revenue_recognized": pendapatan_diakui,
+        "revenue_recognized_total": round(diakui_rp, 2),
+        "revenue_recognized_pct": round(100.0 * diakui_rp / grand, 1) if grand > 0 else 0.0,
         "advance_unrecognized": uang_muka_tertahan,
         "progress": {"done": len(tercapai), "total": len(steps),
                      "percent": round(100.0 * len(tercapai) / len(steps), 1)},

@@ -25,6 +25,7 @@ const DocumentsView = lazy(() => import("./features/documents/DocumentsView"));
 const AdminView = lazy(() => import("./features/admin/AdminView"));
 const CostingView = lazy(() => import("./features/costing/CostingView"));
 const ARAgingView = lazy(() => import("./features/finance/ARAgingView"));
+const AdvanceReportView = lazy(() => import("./features/finance/AdvanceReportView"));
 const StoreCreditView = lazy(() => import("./features/finance/StoreCreditView"));
 const BankAccountsView = lazy(() => import("./features/finance/BankAccountsView"));
 const BankReconciliationView = lazy(() => import("./features/finance/BankReconciliationView"));
@@ -259,6 +260,7 @@ export default function AppViewRouter(props) {
       {activeView === "reports" && <ManagerDashboard token={token} selectedEntity={selectedEntity} />}
       {activeView === "costing" && <CostingView selectedEntity={selectedEntity} />}
       {activeView === "ar-aging" && <ARAgingView selectedEntity={selectedEntity} currentUser={user} />}
+      {activeView === "advance-report" && <AdvanceReportView selectedEntity={selectedEntity} onOpenDocument={openDocument} />}
       {activeView === "payment-plans" && <PaymentPlansView currentUser={user} selectedEntity={selectedEntity} onOpenDocument={openDocument} />}
       {activeView === "store-credit" && <StoreCreditView selectedEntity={selectedEntity} currentUser={user} />}
       {activeView === "bank-accounts" && <BankAccountsView selectedEntity={selectedEntity} />}

@@ -58,8 +58,15 @@ def fin_hdr():
 
 
 def _je(source_type, source_id):
-    return list(db.journal_entries.find({"source_type": source_type, "source_id": source_id},
-                                        {"_id": 0}))
+    """JE per dokumen. Untuk pesanan: jurnal per pesanan (legacy) ATAU per surat jalan
+    (KEB-PDPT tahap 2, `ref.order_id`) dianggap satu keluarga sumber."""
+    ALIAS = {"sales_order": "shipment_revenue", "sales_cogs": "shipment_cogs"}
+    flt = {"status": {"$ne": "void"},
+           "$or": [{"source_type": source_type, "source_id": source_id},
+                   {"source_type": source_type, "ref.order_id": source_id}]}
+    if source_type in ALIAS:
+        flt["$or"].append({"source_type": ALIAS[source_type], "ref.order_id": source_id})
+    return list(db.journal_entries.find(flt, {"_id": 0}))
 
 
 def _lines(je):
@@ -120,7 +127,8 @@ def flow(hdr):
     rids = [d["id"] for d in db.ar_receipts.find({"_test_kebpdpt_e2e": True}, {"_id": 0, "id": 1})]
     cids = [d["id"] for d in db.cash_transactions.find({"ref_type": "ar_receipt",
                                                         "ref_id": {"$in": rids}}, {"_id": 0, "id": 1})]
-    db.journal_entries.delete_many({"$or": [{"source_id": {"$in": oids + rids + cids}}]
+    db.journal_entries.delete_many({"$or": [{"source_id": {"$in": oids + rids + cids}},
+                                            {"ref.order_id": {"$in": oids}}]
                                            + [{"source_id": {"$regex": f"^{o}:"}} for o in oids]})
     db.sales_orders.delete_many({"_test_kebpdpt_e2e": True})
     db.ar_receipts.delete_many({"_test_kebpdpt_e2e": True})
@@ -128,6 +136,10 @@ def flow(hdr):
     db.wms_tasks.delete_many({"order_id": {"$in": oids}})
     db.shipments.delete_many({"order_id": {"$in": oids}})
     print("cleanup: orders", oids, "receipts", rids)
+    # Pulangkan roll yang masih terikat ke SO uji (stok demo tidak terkuras).
+    import subprocess, sys as _sys
+    subprocess.run([_sys.executable, "/app/backend/tests/iter299_restore_orphan_rolls.py"],
+                   check=False, capture_output=True, timeout=120)
 
 
 # ================================================================ 1. advance

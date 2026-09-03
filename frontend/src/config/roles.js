@@ -215,7 +215,7 @@ export const ROLE_NAV = {
       "penjualan", "sales-orders", "orders", "returns",
       "customers-crm",
       // Keuangan: uang masuk, piutang, denda, kas, pajak keluaran
-      "keuangan", "finance-tower", "ar-aging", "payment-plans", "finance-cases",
+      "keuangan", "finance-tower", "ar-aging", "advance-report", "payment-plans", "finance-cases",
       "cash-bank", "cash-management",
       "tax-hub", "tax-invoices",
       "store-credit",

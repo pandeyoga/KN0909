@@ -1,0 +1,66 @@
+{
+  "summary": "Iterasi 299 — uji penuh PRO-RATA per surat jalan + Laporan Uang Muka Pelanggan. Backend: 21 kasus baru (test_iter299_prorata_advance_report.py) → 20 lulus, 1 gagal (RBAC laporan uang muka: sales@ dapat 200, bukan 403). Regresi iter297 (5) + iter298 (15) = 20/20 lulus. Frontend: layar advance-report (admin & finance), metrik/bucket, toggle pelanggan, baris pesanan, pencarian, muat ulang, link buka pesanan, journey-revenue-prorata 40% + journey-advance-note pada pesanan parsial, tidak tampil pada pesanan dikirim penuh, Meja Finance antrean uang muka memakai advance_unrecognized — SEMUA lulus. Trial balance ent_ksc seimbang (diff 0.00) setelah semua data uji dibersihkan.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "GET /api/ar/advance-report",
+        "issue": "Peran `sales` MENDAPAT 200 (spesifikasi menuntut 403). Router memakai AGING_READ + ('ar_receipt','view'), dan permissions_config.py baris 131 memberi `ar_receipt: [view]` ke peran sales → seluruh saldo uang muka per pelanggan terbuka untuk sales. Perbaikan: buang ('ar_receipt','view') dari izin endpoint ini (cukup accounting.view / penalty.issue), atau perbarui spesifikasi."
+      },
+      {
+        "endpoint": "GET /api/ar/advance-report?q=",
+        "issue": "Filter `q` diterapkan SETELAH totals dihitung: totals.advance_orders / liability / buckets tetap nilai TANPA filter, sedangkan totals.customers & totals.orders mengikuti hasil filter → metrik di layar tidak konsisten dengan tabel saat pencarian aktif (terlihat juga di UI: pencarian 'ZZZ' → tabel kosong tapi kartu metrik tetap Rp 2.863.440)."
+      },
+      {
+        "endpoint": "POST /api/outbound/tasks/{id}/dispatch (kebersihan data uji)",
+        "issue": "KEBOCORAN STOK data uji: fixture iter298/iter299 menghapus SO/shipment/wms_tasks tetapi TIDAK memulangkan inventory_rolls — 26 roll prod_endek_bali tertinggal berstatus reserved/in_transit_sales dengan reserved_ref ke SO yang sudah dihapus, sehingga stok tersisa 2 roll dan SO baru 20 yard mulai ditolak 409 MIXED_LOT_CONFIRMATION_REQUIRED. Sudah dipulihkan dengan /app/backend/tests/iter299_restore_orphan_rolls.py (status→available + roll_service.rebuild_balance); sebaiknya panggilan pemulihan ini ditambahkan ke fixture pembersihan tiap suite E2E pengiriman."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Uang Muka Pelanggan (advance-report)",
+        "issues": [
+          "Kolom 'UMUR TERTUA' pada baris pelanggan menampilkan '—' bila oldest_days = 0, padahal baris pesanan menampilkan '0 hari · sejak 03 Sep 2026' — sebaiknya 'hari ini' agar tidak terbaca seperti data hilang.",
+          "Saat pencarian tidak menemukan apa pun, kartu metrik & bucket tetap menampilkan angka total (lihat isu backend filter q) sehingga tampak kontradiktif dengan tabel kosong."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter299_prorata_advance_report.py",
+    "/app/backend/tests/seed_iter299_frontend.py",
+    "/app/test_reports/pytest/pytest_results.xml",
+    "/app/backend/tests/iter299_restore_orphan_rolls.py"
+  ],
+  "action_items": [
+    "Putuskan RBAC GET /api/ar/advance-report: buang ('ar_receipt','view') supaya sales@ 403 (sesuai spesifikasi) atau ubah spesifikasi.",
+    "Hitung totals SETELAH filter q pada advance_report_service.advance_report (totals.advance_orders/liability/buckets).",
+    "Kosmetik: tampilkan 'hari ini' bukan '—' untuk oldest_days = 0 di kolom Umur Tertua.",
+    "Tambahkan pemulihan roll (status→available + rebuild_balance) ke fixture pembersihan suite E2E pengiriman, atau pakai backend/tests/iter299_restore_orphan_rolls.py sesudah menjalankannya."
+  ],
+  "critical_code_review_comments": [
+    "gl_service.post_shipment_revenue/_is_closing_shipment terbukti tepat: Σ 2 surat jalan = grand total PERSIS (Dr 1-1200 6.216.000, Cr 4-1000 5.600.000, Cr 2-1200 616.000) dan idempotent terhadap POST /api/gl/sync berulang (tetap 2 JE per source_id).",
+    "post_advance_reclass bertahap benar: JE#1 source_id = order_id (min(uang muka, AR 40%) = 2.486.400), JE#2 source_id '{order_id}:rc2' (sisa 621.600) → Σ = uang muka; void kwitansi menerbitkan advance_reclass_reversal penuh dan netto 2-1400 = 0.",
+    "Pesanan legacy ber-JE 'sales_order' tidak mendapat JE shipment_revenue tambahan setelah gl/sync (diperiksa langsung di DB).",
+    "advance_report_service memakai order_advance_unrecognized per pesanan (O(n) query GL per pesanan) — aman pada volume demo, tapi berpotensi lambat bila ribuan pesanan uang muka; pertimbangkan agregasi."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter299_prorata_advance_report.py",
+    "/app/backend/tests/seed_iter299_frontend.py",
+    "/app/backend/tests/iter299_restore_orphan_rolls.py"
+  ],
+  "success_rate": {
+    "backend": "98% (40/41: 20/21 suite baru + 20/20 regresi; 1 gagal = keputusan RBAC)",
+    "frontend": "100%"
+  },
+  "seed_data_creation": "Dokumen uji yang terpakai lalu DIHAPUS SEMUA: SO KSC/SO-00137, 00138, 00139 (pytest), KSC/SO-00141 (parsial 8/20) & KSC/SO-00142 (belum kirim, seed frontend); kwitansi KSC/AR-00021…00026; surat jalan KSC/SJ-00017/00018 (shp_*). Verifikasi pasca-bersih: 0 SO bertanda uji, 0 JE shipment_*, trial balance ent_ksc debit=credit=1.564.338.432,90 (diff 0). Seed frontend dapat dibuat ulang: `python backend/tests/seed_iter299_frontend.py` (hapus dengan `--purge`).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "demo12345 — admin@ / finance@ / sales@ kainnusantara.id, X-Entity-Id ent_ksc",
+  "context_for_next_testing_agent": "Dispatch parsial memakai QUERY PARAM `ship_qty` (bukan body): POST /api/outbound/tasks/{id}/dispatch?ship_qty=8 setelah scan-pick penuh (?actual_qty=qty). Pesanan penutup = dispatch tanpa ship_qty. Suite baru /app/backend/tests/test_iter299_prorata_advance_report.py membersihkan sendiri (tanda `_test_iter299`), termasuk JE ber-ref.order_id dan source_id '{oid}:rc*'. Satu-satunya kegagalan yang tersisa adalah test_18_sales_role_forbidden (keputusan RBAC, bukan bug kode uji). PENTING: setelah menjalankan suite E2E pengiriman, jalankan `cd /app/backend && python tests/iter299_restore_orphan_rolls.py` agar roll prod_endek_bali tidak menggantung (kalau tidak, SO 20 yard ditolak 409 MIXED_LOT). Keadaan saat laporan ini ditulis: 24 roll prod_endek_bali available, TB ent_ksc diff 0, tidak ada dokumen uji tersisa.",
+  "rca_of_the_issue": "sales@ bisa membuka Laporan Uang Muka karena routers/ar_aging.py:100 menerima izin ('ar_receipt','view') sementara permissions_config.py memberi izin itu ke peran `sales` (baris 131, sengaja untuk panel riwayat uang masuk di Worklist Penagihan). Akibatnya endpoint agregat kewajiban 2-1400 lintas pelanggan ikut terbuka. Reproduksi: login sales@ → GET /api/ar/advance-report?entity_id=ent_ksc → 200 dengan seluruh baris pelanggan. Mitigasi: batasi endpoint ke AGING_READ saja (accounting.view / penalty.issue) atau tambahkan izin khusus mis. ('advance_report','view')."
+}

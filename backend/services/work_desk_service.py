@@ -396,7 +396,7 @@ async def finance_desk(actor: Dict[str, Any], scope: Dict[str, Any],
     # sebelum kebijakan berlaku ditandai "diakui (historis)" — putuskan per kasus.
     from services import gl_service as _gl
     belum_kirim = await db.sales_orders.find(
-        _q(scope, {"status": {"$nin": list(_gl.REVENUE_STATUSES | set(_gl.DEAD_STATUSES))},
+        _q(scope, {"status": {"$nin": list(_gl.FULLY_SHIPPED_STATUSES | set(_gl.DEAD_STATUSES))},
                    "paid_total": {"$gt": 0}}),
         {"_id": 0, "id": 1, "number": 1, "customer_name": 1, "paid_total": 1, "payments": 1,
          "grand_total": 1, "total_amount": 1, "status": 1, "created_at": 1}
@@ -406,18 +406,22 @@ async def finance_desk(actor: Dict[str, Any], scope: Dict[str, Any],
          "source_id": {"$in": [o["id"] for o in belum_kirim]}}, {"_id": 0, "source_id": 1})}
     um_rows = []
     for o in belum_kirim:
-        diakui = o["id"] in diakui_ids
+        diakui = o["id"] in diakui_ids   # legacy: jurnal per pesanan lahir sebelum kirim
+        tertahan = await _gl.order_advance_unrecognized(o)
+        if not diakui and tertahan <= 0.01:
+            continue   # uang muka sudah seluruhnya direklas (pro-rata) → bukan kewajiban lagi
         um_rows.append(_row(
             ref_type="sales_order", ref_id=o["id"], number=o.get("number", "—"),
             title=o.get("customer_name", "—"),
             subtitle=(("PENDAPATAN SUDAH DIAKUI sebelum kirim (historis) · "
                        if diakui else "tertahan di 2-1400 Uang Muka Pelanggan · ")
                       + f"status {o.get('status', '')}"),
-            value=o.get("paid_total") or 0, age_days=_age_days(o.get("created_at")),
+            value=(o.get("paid_total") or 0) if diakui else tertahan,
+            age_days=_age_days(o.get("created_at")),
             badge="diakui (historis)" if diakui else "kewajiban",
             action="Buka", action_kind="open",
             extra={"revenue_recognized": diakui,
-                   "advance_total": _gl.order_advance_total(o)}))
+                   "advance_total": _gl.order_advance_total(o), "advance_unrecognized": tertahan}))
     queues.append(_queue(
         "uang_muka_belum_kirim", "Uang muka pesanan belum dikirim",
         "Kas sudah masuk, barang belum keluar: kewajiban sampai dikirim. Lencana merah = "

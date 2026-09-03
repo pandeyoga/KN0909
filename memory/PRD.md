@@ -307,3 +307,16 @@ tersisa action items minor).
 - Bukti: `test_reports/iteration_298.json` (BE 18/18, FE 100%), pytest `test_iter297_revenue_policy.py` (layanan) &
   `test_iter298_kebpdpt_e2e.py` (E2E HTTP, mutating + self-clean). Efek: lubang penomoran SO-00131..133, AR-00010..14, FKT-00003 (terbit tak sengaja saat uji).
 - **Tahap 2 (backlog):** pro-rata pendapatan untuk `partially_shipped` (per surat jalan). `test_fb02_logistics.py` 5 gagal karena seed drift (bukan regresi).
+
+## 2026-09-03 — Sesi #090: KEB-PDPT tahap 2 (PRO-RATA per surat jalan) · Laporan Uang Muka ✅
+- Pendapatan & HPP per SURAT JALAN: `post_shipment_revenue` / `post_shipment_cogs` (source_id = shipment id, `ref.order_id`),
+  porsi = line_total × qty_kirim/qty_baris ÷ total nilai pesanan; SJ penutup (shipped/done) mengambil SISA → total tepat = grand.
+  Reklas uang muka bertahap (`post_advance_reclass` posting selisih; source_id order_id lalu `{oid}:rc{n}`); pembalik = min(kwitansi, reklas netto).
+  `post_sales_order`/`post_order_cogs` (per pesanan) hanya untuk pesanan TANPA surat jalan; pesanan lama ber-JE `sales_order` tidak disentuh.
+  `reverse_order_journals` membalik juga shipment_*/advance_reclass. `_insert_entry(ref=...)` menyimpan tautan dokumen induk.
+- Laporan Uang Muka Pelanggan: `services/advance_report_service.py`, `GET /api/ar/advance-report?entity_id=&q=` (izin accounting.view /
+  penalty.issue — sales 403), view `advance-report` (menu Keuangan, `features/finance/AdvanceReportView.jsx`), totals mengikuti filter q.
+- Journey: `revenue_recognized_total/pct` → `journey-revenue-prorata`. Meja Finance antrean uang muka: value = sisa uang muka (incl. partially_shipped).
+- FKT-00003 sudah tidak ada (terhapus bersama SO uji); JE orphan KSC/JE-00102 (residu uji) dihapus.
+- Bukti: iteration_299 (BE 40/41 → RBAC diperbaiki, FE 100%); pytest iter297 (5), iter298 (15), iter299 (21). Fixture E2E kini memulangkan roll
+  (`tests/iter299_restore_orphan_rolls.py`). Nomor terpakai: SO-00137..142, AR-00021..26, SJ-00017/18.

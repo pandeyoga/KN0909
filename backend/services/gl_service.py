@@ -495,8 +495,10 @@ async def enforce_closed_period_guard(entity_id: str, date: str, *,
 
 async def _insert_entry(*, lines: List[Dict[str, Any]], description: str, date: str,
                         source_type: str, source_id: str, entity_id: str,
-                        created_by: str, source_label: str = "") -> Dict[str, Any]:
-    """Insert jurnal seimbang. Caller MEMASTIKAN balance (helper auto-post)."""
+                        created_by: str, source_label: str = "",
+                        ref: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Insert jurnal seimbang. Caller MEMASTIKAN balance (helper auto-post).
+    `ref` (opsional) = tautan dokumen induk, mis. {"order_id": ...} untuk jurnal per surat jalan."""
     names = await _account_names([l["account_code"] for l in lines])
     norm = _norm_lines(lines, names)
     total_debit = round(sum(l["debit"] for l in norm), 2)
@@ -520,6 +522,8 @@ async def _insert_entry(*, lines: List[Dict[str, Any]], description: str, date: 
         "created_at": now_iso(),
         "updated_at": now_iso(),
     }
+    if ref:
+        doc["ref"] = ref
     # FASE G-5 — hard-lock periode tertutup + tandai jurnal mundur ber-unlock.
     plu = await enforce_closed_period_guard(
         doc["entity_id"], doc["date"], source_type=source_type, can_backdate=True)
@@ -703,38 +707,82 @@ async def any_posting_for(source_id: str) -> bool:
 
 
 async def post_order_revenue_and_cogs(order_id: str) -> Dict[str, Any]:
-    """F-01 — posting pendapatan + HPP pada PERISTIWA bisnis (dispatch / kwitansi AR),
-    bukan menunggu backfill saat restart. Idempotent (source_type sales_order/sales_cogs).
-    KEB-PDPT — uang muka yang tertahan di 2-1400 direklas ke Piutang saat pendapatan lahir."""
+    """F-01 — posting pendapatan + HPP pada PERISTIWA bisnis (dispatch), bukan menunggu
+    backfill. KEB-PDPT tahap 2 (pro-rata): bila pesanan punya surat jalan, pendapatan & HPP
+    diakui PER SURAT JALAN sebanding nilai barang yang keluar (`shipment_revenue` /
+    `shipment_cogs`); pesanan tanpa surat jalan (jalur lama) memakai jurnal per pesanan.
+    Uang muka yang tertahan di 2-1400 direklas ke Piutang sebesar yang sudah berpendapatan."""
     fresh = await db.sales_orders.find_one({"id": order_id}, {"_id": 0})
     if not fresh:
-        return {"revenue": None, "cogs": None, "advance_reclass": None}
-    rev = await post_sales_order(fresh)
-    cogs = await post_order_cogs(fresh)
-    reclass = await post_advance_reclass(fresh)
-    return {"revenue": rev, "cogs": cogs, "advance_reclass": reclass}
+        return {"revenue": None, "cogs": None, "advance_reclass": None, "shipments": []}
+    out: Dict[str, Any] = {"revenue": None, "cogs": None, "advance_reclass": None, "shipments": []}
+    ships = await _order_shipments(order_id)
+    if ships and not await _already_posted("sales_order", order_id):
+        for sh in ships:
+            rev = await post_shipment_revenue(sh, fresh)
+            cogs = await post_shipment_cogs(sh, fresh)
+            out["shipments"].append({"shipment_id": sh.get("id"), "revenue": rev, "cogs": cogs})
+        out["revenue"] = next((x["revenue"] for x in out["shipments"] if x["revenue"]), None)
+        out["cogs"] = next((x["cogs"] for x in out["shipments"] if x["cogs"]), None)
+    else:
+        out["revenue"] = await post_sales_order(fresh)
+        out["cogs"] = await post_order_cogs(fresh)
+    out["advance_reclass"] = await post_advance_reclass(fresh)
+    return out
 
 
-# ─── KEB-PDPT — kebijakan pengakuan pendapatan (Sesi #089) ───────────────────
-# Pendapatan & HPP HANYA diakui saat barang DIKIRIM (shipped/partially_shipped/done).
-# Pembayaran (uang muka/DP) TIDAK memicu pengakuan: kas yang masuk untuk pesanan yang
-# belum dikirim dibukukan Cr 2-1400 Uang Muka Pelanggan (kewajiban) dan direklas ke
-# Piutang saat pengiriman. Jurnal historis yang pernah diakui karena pembayaran
-# dibiarkan (prospektif); daftarnya muncul di Meja Finance.
+# ─── KEB-PDPT — kebijakan pengakuan pendapatan (Sesi #089/#090) ──────────────
+# Pendapatan & HPP HANYA diakui saat barang DIKIRIM. Pembayaran (uang muka/DP) TIDAK
+# memicu pengakuan: kas yang masuk untuk pesanan yang belum dikirim dibukukan Cr 2-1400
+# Uang Muka Pelanggan (kewajiban) dan direklas ke Piutang sebesar pendapatan yang lahir.
+# Tahap 2 — PRO-RATA: tiap surat jalan mengakui porsi nilai barangnya; surat jalan
+# penutup (pesanan shipped/done) mengambil SISA supaya total tepat sama grand total.
+# Jurnal historis per pesanan (`sales_order`) dibiarkan (prospektif).
 REVENUE_STATUSES = {"shipped", "partially_shipped", "done"}
+FULLY_SHIPPED_STATUSES = {"shipped", "done"}
 ADVANCE_BUCKET = "advance"
+SHIPMENT_DEAD = {"cancelled", "void"}
 
 
 def _revenue_eligible(order: Dict[str, Any]) -> bool:
     return order.get("status") in REVENUE_STATUSES
 
 
+async def _order_shipments(order_id: str) -> List[Dict[str, Any]]:
+    return await db.shipments.find(
+        {"order_id": order_id, "status": {"$nin": list(SHIPMENT_DEAD)}}, {"_id": 0}
+    ).sort("created_at", 1).to_list(500)
+
+
+async def _sum_lines(flt: Dict[str, Any], account: str, side: str) -> float:
+    """Σ debit/credit satu akun dari JE non-void yang cocok filter."""
+    total = 0.0
+    async for je in db.journal_entries.find({**flt, "status": {"$ne": "void"}}, {"_id": 0, "lines": 1}):
+        total += sum(float(l.get(side) or 0) for l in je.get("lines") or [] if l.get("account_code") == account)
+    return round(total, 2)
+
+
 async def order_revenue_posted(order_id: str) -> bool:
-    return await _already_posted("sales_order", order_id)
+    """Sudah ada pendapatan yang lahir (per pesanan ATAU per surat jalan)?"""
+    if await _already_posted("sales_order", order_id):
+        return True
+    return bool(await db.journal_entries.find_one(
+        {"source_type": "shipment_revenue", "ref.order_id": order_id, "status": {"$ne": "void"}},
+        {"_id": 0, "id": 1}))
+
+
+async def order_revenue_recognized(order_id: str) -> Dict[str, float]:
+    """{revenue, ppn, ar} yang sudah diakui untuk pesanan (legacy + per surat jalan)."""
+    flt = {"$or": [{"source_type": "sales_order", "source_id": order_id},
+                   {"source_type": "shipment_revenue", "ref.order_id": order_id}]}
+    rev = await _sum_lines(flt, ACC_PENDAPATAN, "credit")
+    ppn = await _sum_lines(flt, ACC_PPN_OUT, "credit")
+    ar = await _sum_lines(flt, ACC_PIUTANG, "debit") + await _sum_lines(flt, ACC_KAS_BESAR, "debit")
+    return {"revenue": rev, "ppn": ppn, "ar": round(ar, 2)}
 
 
 def order_advance_total(order: Dict[str, Any]) -> float:
-    """Σ pembayaran ber-`gl_bucket=advance` (kas yang masih tertahan di 2-1400)."""
+    """Σ pembayaran ber-`gl_bucket=advance` (kas yang masuk lewat 2-1400)."""
     return round(sum(float(p.get("amount") or 0) for p in (order.get("payments") or [])
                      if p.get("gl_bucket") == ADVANCE_BUCKET), 2)
 
@@ -746,41 +794,65 @@ async def tag_advance_payment(order_id: str, receipt_id: str) -> None:
         {"$set": {"payments.$.gl_bucket": ADVANCE_BUCKET}})
 
 
+async def order_advance_reclassed(order_id: str) -> float:
+    """Netto uang muka yang sudah direklas ke Piutang (reklas − pembalik)."""
+    flt = {"source_type": {"$in": ["advance_reclass", "advance_reclass_reversal"]},
+           "$or": [{"ref.order_id": order_id}, {"source_id": order_id},
+                   {"source_id": {"$regex": f"^{re.escape(order_id)}:"}}]}
+    plus = await _sum_lines(flt, ACC_UANG_MUKA_PELANGGAN, "debit")
+    minus = await _sum_lines(flt, ACC_UANG_MUKA_PELANGGAN, "credit")
+    return round(plus - minus, 2)
+
+
 async def order_advance_unrecognized(order: Dict[str, Any]) -> float:
-    """Uang muka yang MASIH kewajiban: ada bucket advance dan pendapatannya belum lahir."""
+    """Uang muka yang MASIH kewajiban di 2-1400 (belum direklas karena barang belum keluar)."""
     adv = order_advance_total(order)
-    if adv <= EPS or await order_revenue_posted(order.get("id", "")):
+    if adv <= EPS:
         return 0.0
-    return adv
+    return round(max(0.0, adv - await order_advance_reclassed(order.get("id", ""))), 2)
 
 
 async def post_advance_reclass(order: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    """Saat pendapatan lahir: Dr 2-1400 Uang Muka Pelanggan / Cr 1-1200 Piutang sebesar
-    uang muka yang sudah diterima. Idempotent per order (source_type advance_reclass)."""
+    """Dr 2-1400 Uang Muka Pelanggan / Cr 1-1200 Piutang sebesar uang muka yang SUDAH
+    berpendapatan (pro-rata mengikuti surat jalan) dan belum direklas. Berulang aman:
+    memposting selisihnya saja. source_id: order_id (pertama), lalu `{order_id}:rc{n}`."""
     sid = order.get("id")
     adv = order_advance_total(order)
-    if not sid or adv <= EPS or not await order_revenue_posted(sid):
+    if not sid or adv <= EPS:
         return None
-    if await _already_posted("advance_reclass", sid):
+    ar = (await order_revenue_recognized(sid))["ar"]
+    if ar <= EPS:
         return None
+    target = round(min(adv, ar), 2)
+    done = await order_advance_reclassed(sid)
+    delta = round(target - done, 2)
+    if delta <= EPS:
+        return None
+    n = await db.journal_entries.count_documents(
+        {"source_type": "advance_reclass", "$or": [{"ref.order_id": sid}, {"source_id": sid}]})
+    src = sid if n == 0 else f"{sid}:rc{n + 1}"
     num = order.get("number", sid)
-    lines = _balanced_pair(ACC_UANG_MUKA_PELANGGAN, ACC_PIUTANG, adv,
+    lines = _balanced_pair(ACC_UANG_MUKA_PELANGGAN, ACC_PIUTANG, delta,
                            f"Reklas uang muka → piutang {num}")
     return await _insert_entry(
         lines=lines, description=f"Uang muka {num} diakui sebagai pelunasan piutang",
-        date=await _revenue_date(order), source_type="advance_reclass", source_id=sid,
-        entity_id=order.get("entity_id", ""), created_by="system", source_label=num)
+        date=await _revenue_date(order), source_type="advance_reclass", source_id=src,
+        entity_id=order.get("entity_id", ""), created_by="system", source_label=num,
+        ref={"order_id": sid})
 
 
 async def post_advance_reclass_reversal(order: Dict[str, Any], receipt_id: str, amount: float,
                                         *, label: str = "") -> Optional[Dict[str, Any]]:
-    """Kwitansi uang muka dibatalkan SETELAH reklas: kembalikan porsinya ke Piutang
-    (Dr 1-1200 / Cr 2-1400) supaya net bersama jurnal void kas = Dr Piutang / Cr Kas.
-    Konvensi source_id = "{order_id}:{receipt_id}" (reklas asalnya ber-source_id order_id);
-    laporan per pesanan harus memakai regex ^{order_id}(:|$) atau source_label."""
+    """Kwitansi uang muka dibatalkan SETELAH (sebagian) direklas: kembalikan porsinya ke
+    Piutang (Dr 1-1200 / Cr 2-1400) supaya net bersama jurnal void kas = Dr Piutang / Cr Kas.
+    Besarnya = min(nominal kwitansi, netto yang sudah direklas). source_id `{order_id}:{receipt_id}`."""
     sid = order.get("id", "")
     amount = round(float(amount or 0), 2)
-    if not sid or amount <= EPS or not await _already_posted("advance_reclass", sid):
+    if not sid or amount <= EPS:
+        return None
+    done = await order_advance_reclassed(sid)
+    amount = round(min(amount, done), 2)
+    if amount <= EPS:
         return None
     src = f"{sid}:{receipt_id}"
     if await _already_posted("advance_reclass_reversal", src):
@@ -791,7 +863,120 @@ async def post_advance_reclass_reversal(order: Dict[str, Any], receipt_id: str, 
     return await _insert_entry(
         lines=lines, description=f"Pembalikan reklas uang muka {num}", date=now_iso(),
         source_type="advance_reclass_reversal", source_id=src,
-        entity_id=order.get("entity_id", ""), created_by="system", source_label=num)
+        entity_id=order.get("entity_id", ""), created_by="system", source_label=num,
+        ref={"order_id": sid})
+
+
+# ─── KEB-PDPT tahap 2 — pendapatan & HPP PER SURAT JALAN (pro-rata) ──────────
+def _order_line_total(item: Dict[str, Any]) -> float:
+    lt = item.get("line_total")
+    if lt is None:
+        lt = item.get("subtotal")
+    if lt is None:
+        lt = float(item.get("quantity") or 0) * float(item.get("price") or item.get("unit_price") or 0)
+    return round(float(lt or 0), 2)
+
+
+def _order_item_for(order: Dict[str, Any], product_id: str) -> Optional[Dict[str, Any]]:
+    return next((it for it in order.get("items") or [] if it.get("product_id") == product_id), None)
+
+
+def shipment_value_share(order: Dict[str, Any], shipment: Dict[str, Any]) -> float:
+    """Porsi nilai pesanan (0..1) yang keluar lewat satu surat jalan = nilai baris × qty/qty baris."""
+    total = round(sum(_order_line_total(it) for it in order.get("items") or []), 2)
+    it = _order_item_for(order, shipment.get("product_id", ""))
+    if total <= EPS or not it:
+        return 0.0
+    line_qty = float(it.get("base_quantity") or it.get("quantity") or 0)
+    if line_qty <= 0:
+        return 0.0
+    frac = min(1.0, float(shipment.get("qty") or 0) / line_qty)
+    return max(0.0, min(1.0, _order_line_total(it) * frac / total))
+
+
+async def _is_closing_shipment(order: Dict[str, Any], shipment: Dict[str, Any]) -> bool:
+    """Surat jalan PENUTUP: pesanan sudah shipped/done dan tidak ada surat jalan lain
+    yang belum berjurnal → ambil SISA supaya total pendapatan tepat = grand total."""
+    if order.get("status") not in FULLY_SHIPPED_STATUSES:
+        return False
+    others = [s for s in await _order_shipments(order["id"]) if s.get("id") != shipment.get("id")]
+    for s in others:
+        if not await _already_posted("shipment_revenue", s.get("id", "")):
+            return False
+    return True
+
+
+async def post_shipment_revenue(shipment: Dict[str, Any],
+                                order: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    """Pendapatan pro-rata satu surat jalan: Dr 1-1200 Piutang = porsi grand total;
+    Cr 4-1000 Pendapatan = porsi (grand − PPN); Cr 2-1200 PPN Keluaran = porsi PPN.
+    Idempotent (source_type shipment_revenue, source_id shipment.id, ref.order_id)."""
+    shid, oid = shipment.get("id"), shipment.get("order_id")
+    if not shid or not oid or shipment.get("status") in SHIPMENT_DEAD:
+        return None
+    order = order or await db.sales_orders.find_one({"id": oid}, {"_id": 0})
+    if not order or order.get("status") in DEAD_STATUSES:
+        return None
+    if await _already_posted("sales_order", oid):      # jalur lama per pesanan — jangan dobel
+        return None
+    if await _already_posted("shipment_revenue", shid):
+        return None
+    grand = round(order_grand_total(order), 2)
+    ppn_total = round(float(order.get("ppn_amount", order.get("tax", 0)) or 0), 2)
+    rev_total = round(grand - ppn_total, 2)
+    if grand <= EPS:
+        return None
+    done = await order_revenue_recognized(oid)
+    if await _is_closing_shipment(order, shipment):
+        rev = round(rev_total - done["revenue"], 2)
+        ppn = round(ppn_total - done["ppn"], 2)
+    else:
+        share = shipment_value_share(order, shipment)
+        rev = round(min(rev_total * share, rev_total - done["revenue"]), 2)
+        ppn = round(min(ppn_total * share, ppn_total - done["ppn"]), 2)
+    if rev <= EPS and ppn <= EPS:
+        return None
+    num, sj = order.get("number", oid), shipment.get("shipment_no", shid)
+    ar = round(rev + max(ppn, 0.0), 2)
+    lines = [{"account_code": ACC_PIUTANG, "debit": ar, "credit": 0.0,
+              "description": f"Piutang {num} · {sj}"},
+             {"account_code": ACC_PENDAPATAN, "debit": 0.0, "credit": rev,
+              "description": f"Penjualan {num} · {sj}"}]
+    if ppn > EPS:
+        lines.append({"account_code": ACC_PPN_OUT, "debit": 0.0, "credit": ppn,
+                      "description": f"PPN Keluaran {num} · {sj}"})
+    return await _insert_entry(
+        lines=lines, description=f"Pengakuan penjualan {num} · {sj}",
+        date=shipment.get("created_at") or now_iso(), source_type="shipment_revenue",
+        source_id=shid, entity_id=order.get("entity_id", ""), created_by="system",
+        source_label=sj, ref={"order_id": oid, "order_number": num})
+
+
+async def post_shipment_cogs(shipment: Dict[str, Any],
+                             order: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    """HPP satu surat jalan: Dr 5-1000 / Cr 1-1300 = qty keluar × cost baris (roll aktual/WAC)."""
+    shid, oid = shipment.get("id"), shipment.get("order_id")
+    if not shid or not oid or shipment.get("status") in SHIPMENT_DEAD:
+        return None
+    order = order or await db.sales_orders.find_one({"id": oid}, {"_id": 0})
+    if not order or order.get("status") in DEAD_STATUSES:
+        return None
+    if await _already_posted("sales_cogs", oid) or await _already_posted("shipment_cogs", shid):
+        return None
+    it = _order_item_for(order, shipment.get("product_id", ""))
+    qty = float(shipment.get("qty") or 0)
+    if not it or qty <= 0:
+        return None
+    cogs = round(qty * await _order_item_unit_cost(order, it), 2)
+    if cogs <= EPS:
+        return None
+    num, sj = order.get("number", oid), shipment.get("shipment_no", shid)
+    lines = _balanced_pair(ACC_HPP, ACC_PERSEDIAAN, cogs, f"HPP penjualan {num} · {sj}")
+    return await _insert_entry(
+        lines=lines, description=f"HPP penjualan {num} · {sj}",
+        date=shipment.get("created_at") or now_iso(), source_type="shipment_cogs",
+        source_id=shid, entity_id=order.get("entity_id", ""), created_by="system",
+        source_label=sj, ref={"order_id": oid, "order_number": num})
 
 
 async def _revenue_date(order: Dict[str, Any]) -> str:
@@ -824,6 +1009,9 @@ async def post_sales_order(order: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         return None
     sid = order.get("id")
     if not sid or await _already_posted("sales_order", sid):
+        return None
+    # KEB-PDPT tahap 2 — pesanan yang punya surat jalan dijurnal per surat jalan.
+    if await db.shipments.find_one({"order_id": sid, "status": {"$nin": list(SHIPMENT_DEAD)}}, {"_id": 0, "id": 1}):
         return None
     grand = round(order_grand_total(order), 2)
     if grand <= EPS:
@@ -900,6 +1088,8 @@ async def post_order_cogs(order: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         return None
     sid = order.get("id")
     if not sid or await _already_posted("sales_cogs", sid):
+        return None
+    if await db.shipments.find_one({"order_id": sid, "status": {"$nin": list(SHIPMENT_DEAD)}}, {"_id": 0, "id": 1}):
         return None
     eid = order.get("entity_id", "")
     total_cogs = 0.0
@@ -1101,11 +1291,15 @@ async def reverse_order_journals(order_id: str, reason: str = "",
     """Gelombang 1 F-1 — jurnal balik otomatis saat order batal/expired (audit trail utuh)."""
     out: List[Dict[str, Any]] = []
     entries = await db.journal_entries.find(
-        {"source_id": order_id, "source_type": {"$in": ["sales_order", "sales_cogs"]},
-         "status": {"$ne": "void"}}, {"_id": 0}).to_list(20)
+        {"$or": [{"source_id": order_id, "source_type": {"$in": ["sales_order", "sales_cogs"]}},
+                 # KEB-PDPT tahap 2 — jurnal per surat jalan & reklas uang muka ikut dibalik
+                 {"ref.order_id": order_id,
+                  "source_type": {"$in": ["shipment_revenue", "shipment_cogs", "advance_reclass"]}}],
+         "status": {"$ne": "void"}}, {"_id": 0}).to_list(200)
     for je in entries:
         rev_type = f"{je['source_type']}_reversal"
-        if await _already_posted(rev_type, order_id):
+        rev_src = order_id if je["source_type"] in ("sales_order", "sales_cogs") else je["source_id"]
+        if await _already_posted(rev_type, rev_src):
             continue
         lines = [{"account_code": l["account_code"],
                   "debit": float(l.get("credit", 0) or 0),
@@ -1115,9 +1309,9 @@ async def reverse_order_journals(order_id: str, reason: str = "",
         rev = await _insert_entry(
             lines=lines,
             description=f"Reversal {je.get('number')} — {reason or 'order dibatalkan'}",
-            date=now_iso(), source_type=rev_type, source_id=order_id,
+            date=now_iso(), source_type=rev_type, source_id=rev_src,
             entity_id=je.get("entity_id", ""), created_by=actor_name,
-            source_label=je.get("source_label", ""))
+            source_label=je.get("source_label", ""), ref=je.get("ref"))
         await db.journal_entries.update_one(
             {"id": je["id"]},
             {"$set": {"reversed": True, "reversed_at": now_iso(),
@@ -2238,10 +2432,20 @@ async def backfill_journals(entity_id: Optional[str] = None) -> Dict[str, Any]:
 
     orders = await db.sales_orders.find(ent_q, {"_id": 0}).to_list(20000)
     for o in orders:
-        if await _guarded("sales_order", o.get("id", ""), post_sales_order(o)):
+        oid = o.get("id", "")
+        ships = await _order_shipments(oid)
+        if ships and not await _already_posted("sales_order", oid):
+            # KEB-PDPT tahap 2 — pro-rata per surat jalan.
+            for sh in ships:
+                if await _guarded("shipment_revenue", sh.get("id", ""), post_shipment_revenue(sh, o)):
+                    posted_so += 1
+                if await _guarded("shipment_cogs", sh.get("id", ""), post_shipment_cogs(sh, o)):
+                    posted_cogs += 1
+            continue
+        if await _guarded("sales_order", oid, post_sales_order(o)):
             posted_so += 1
         # KN-076-COGS-ZERO (P2, INV-DATA): setiap order berpendapatan WAJIB punya jurnal HPP.
-        if await _guarded("sales_cogs", o.get("id", ""), post_order_cogs(o)):
+        if await _guarded("sales_cogs", oid, post_order_cogs(o)):
             posted_cogs += 1
     # F-04 — kas ber-gl_posted sudah berjurnal lewat dokumen induknya.
     txns = await db.cash_transactions.find(
