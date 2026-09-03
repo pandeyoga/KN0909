@@ -1,5 +1,6 @@
-import { FileText, CheckCircle, XCircle, AlertCircle, Receipt, Ban, FileEdit } from "lucide-react";
+import { FileText, CheckCircle, XCircle, AlertCircle, Receipt, Ban, FileEdit, PackageCheck } from "lucide-react";
 import { formatCurrency } from "../../../utils/formatters";
+import { can } from "../../../config/roles";
 import { getStatusBadge, lateState } from "./poUtils";
 import POTimeline from "./POTimeline";
 import POVersionHistory from "./POVersionHistory";
@@ -32,6 +33,8 @@ export default function PODetailPanel({ po, currentUser, onClose, onApprove, onC
   }
 
   const canManage = ["admin", "manager"].includes(currentUser?.role);
+  // Jembatan PO → Gudang: siapa pun yang boleh melihat WMS bisa lompat ke penerimaan PO ini.
+  const canReceive = can(currentUser?.permissions, "wms", "view") && ["pending", "receiving", "partial"].includes(po.status);
   // Testid unik saat panel dirender DI DALAM pop-up (kompak + pop-up bisa tampil bersamaan).
   const tp = embedded ? "popup-" : "";
   const goodsReceived = ["receiving", "partial", "completed", "closed_short"].includes(po.status);
@@ -280,6 +283,13 @@ export default function PODetailPanel({ po, currentUser, onClose, onApprove, onC
 
         {/* Actions */}
         <div className="flex flex-col gap-1.5">
+          {canReceive && onOpenDocument && (
+            <button data-testid={`${tp}receive-goods-button`} className="primary-button justify-center"
+              title="Buka Operasi Gudang → Barang Masuk dengan tugas penerimaan PO ini terpilih"
+              onClick={() => onOpenDocument({ view: "operations", nav_id: "wms-operations", tab: "inbound", focus_type: "purchase_order", focus_id: po.id })}>
+              <PackageCheck size={13} /> Terima Barang di Gudang
+            </button>
+          )}
           {amendable && canManage && (
             <button data-testid={`${tp}amend-po-button`} onClick={() => onAmend?.(po)} className="secondary-button justify-center">
               <FileEdit size={13} /> Revisi / Amandemen PO

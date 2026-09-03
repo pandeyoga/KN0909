@@ -5,12 +5,13 @@
  * lifecycle saja; selebihnya lewat tombol "Lihat detail lengkap" (pop-up berisi
  * `PODetailPanel` yang sama — satu sumber tampilan, bukan duplikat).
  */
-import { FileText, CheckCircle, XCircle, AlertCircle, Ban, FileEdit, Maximize2 } from "lucide-react";
+import { FileText, CheckCircle, XCircle, AlertCircle, Ban, FileEdit, Maximize2, PackageCheck } from "lucide-react";
 import { formatCurrency } from "../../../utils/formatters";
+import { can } from "../../../config/roles";
 import { getStatusBadge, lateState } from "./poUtils";
 
 export default function POCompactPanel({ po, currentUser, onClose, onOpenFull,
-  onApprove, onCancel, onCloseShort, onAmend }) {
+  onApprove, onCancel, onCloseShort, onAmend, onOpenDocument }) {
   if (!po) {
     return (
       <div className="section-card flex items-center justify-center min-h-[200px] border-dashed">
@@ -23,6 +24,7 @@ export default function POCompactPanel({ po, currentUser, onClose, onOpenFull,
   }
 
   const canManage = ["admin", "manager"].includes(currentUser?.role);
+  const canReceive = can(currentUser?.permissions, "wms", "view") && ["pending", "receiving", "partial"].includes(po.status);
   const goodsReceived = ["receiving", "partial", "completed", "closed_short"].includes(po.status);
   const amendable = ["waiting_approval", "pending", "receiving", "partial"].includes(po.status);
   const version = Number(po.version || 1);
@@ -114,6 +116,13 @@ export default function POCompactPanel({ po, currentUser, onClose, onOpenFull,
 
         {/* Tindakan sesuai lifecycle — tetap di ringkasan supaya tak perlu buka pop-up */}
         <div className="flex flex-col gap-1.5">
+          {canReceive && onOpenDocument && (
+            <button data-testid="receive-goods-button" className="primary-button justify-center"
+              title="Buka Operasi Gudang → Barang Masuk dengan tugas penerimaan PO ini terpilih"
+              onClick={() => onOpenDocument({ view: "operations", nav_id: "wms-operations", tab: "inbound", focus_type: "purchase_order", focus_id: po.id })}>
+              <PackageCheck size={13} /> Terima Barang di Gudang
+            </button>
+          )}
           {po.status === "waiting_approval" && canManage && (
             <button data-testid="approve-po-button" onClick={() => onApprove(po.id)} className="primary-button justify-center">
               <CheckCircle size={13} /> Setujui PO

@@ -25,6 +25,7 @@ import { usePagedList } from "../../hooks/usePagedList";
 import { EmptyState } from "../finance/financeShared";
 import DesignRequestCreateModal from "./DesignRequestCreateModal";
 import DesignRequestDetailPanel from "./DesignRequestDetailPanel";
+import { formatDateId } from "../../components/KNDatePicker";
 import DesignerReportPanel from "./DesignerReportPanel";
 import MyDesignerReportPanel from "./MyDesignerReportPanel";
 import {
@@ -46,7 +47,7 @@ const CSV_COLUMNS = [
   { key: "brief", header: "Brief" },
 ];
 
-export default function DesignRequestsView({ currentUser, selectedEntity = "all" }) {
+export default function DesignRequestsView({ currentUser, selectedEntity = "all", focusDoc, onClearFocus }) {
   const [meta, setMeta] = useState({ designers: [], target_types: [], sources: [], role: "" });
   const [tab, setTab] = useState("board");
   const [statusFilter, setStatusFilter] = useState("");
@@ -58,7 +59,7 @@ export default function DesignRequestsView({ currentUser, selectedEntity = "all"
   const [error, setError] = useState("");
 
   const role = meta.role || currentUser?.role || "";
-  const canCreate = ["admin", "manager", "sales_admin"].includes(role);
+  const canCreate = ["admin", "manager", "sales_admin", "md"].includes(role);
   const canReport = ["admin", "manager"].includes(role);
   // FASE D — desainer TIDAK melihat rapor rekan (itu wewenang atasan), tetapi ia
   // berhak melihat angkanya SENDIRI. Tanpa cabang ini tab rapor hanya bisa 403 untuk
@@ -105,6 +106,14 @@ export default function DesignRequestsView({ currentUser, selectedEntity = "all"
     try { setDetail(await getDesignRequest(id)); }
     catch (e) { setError(apiText(e, "Gagal memuat rincian permintaan.")); }
   }, []);
+
+  // Deep-link (Meja MD / dokumen terkait) → langsung buka rinciannya.
+  useEffect(() => {
+    if (focusDoc?.focus_type === "design_request" && focusDoc.focus_id) {
+      openDetail(focusDoc.focus_id);
+      onClearFocus?.();
+    }
+  }, [focusDoc?.focus_id]); // eslint-disable-line
 
   const grouped = useMemo(() => {
     const out = {};
@@ -227,7 +236,7 @@ export default function DesignRequestsView({ currentUser, selectedEntity = "all"
                         {r.assigned_name || "Belum ditugaskan"}
                         {r.due_date && (
                           <span className={r.is_overdue ? "text-[#A8221A] font-semibold" : ""}>
-                            · <CalendarClock size={9} className="inline" /> {r.due_date}
+                            · <CalendarClock size={9} className="inline" /> {formatDateId(r.due_date, "dd MMM yyyy")}
                           </span>
                         )}
                       </p>
@@ -268,7 +277,7 @@ export default function DesignRequestsView({ currentUser, selectedEntity = "all"
                     <td className="px-2 py-1.5 text-[#3C3C43]"><span className="line-clamp-1">{r.brief}</span></td>
                     <td className="px-2 py-1.5">{r.assigned_name || "—"}</td>
                     <td className={`px-2 py-1.5 ${r.is_overdue ? "font-semibold text-[#A8221A]" : ""}`}>
-                      {r.due_date || "—"}
+                      {r.due_date ? formatDateId(r.due_date, "dd MMM yyyy") : "—"}
                     </td>
                     <td className="px-2 py-1.5">
                       <span className={`status-pill ${DSR_STATUS_CLASS[r.status] || "pill-muted"}`}>

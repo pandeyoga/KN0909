@@ -449,6 +449,7 @@ export default function PurchaseOrderManagement({ user, selectedEntity, onApprov
           onCancel={handleCancelPO}
           onCloseShort={handleCloseShort}
           onAmend={(po) => { setError(""); setAmendPO(po); }}
+          onOpenDocument={onOpenDocument}
         />
       </div>
 

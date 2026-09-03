@@ -14,9 +14,10 @@ import { formatQty } from "../../utils/formatters";
 import { Badge, MiniBar } from "./OutboundScanBadges";
 import LoadingCheckPanel from "./LoadingCheckPanel";
 
-export default function OutboundScanInterface({ user }) {
+export default function OutboundScanInterface({ user, focusTaskId = "", onFocusConsumed }) {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [fetched, setFetched] = useState(false);
   const [error, setError] = useState("");
   const [selectedTask, setSelectedTask] = useState(null);
   const [filterStatus, setFilterStatus] = useState("all");
@@ -36,6 +37,17 @@ export default function OutboundScanInterface({ user }) {
 
   useEffect(() => { fetchTasks(); }, [filterStatus]);
 
+  // Deep-link dari Meja Admin Gudang ("Buka WMS") — sorot & buka tugas yang diklik.
+  useEffect(() => {
+    if (!focusTaskId || loading || !fetched) return;
+    const t = tasks.find((x) => x.id === focusTaskId);
+    if (t) {
+      setSelectedTask(t);
+      setTimeout(() => document.querySelector(`[data-testid="outbound-task-${t.id}"]`)?.scrollIntoView({ block: "center" }), 50);
+    }
+    onFocusConsumed?.();
+  }, [focusTaskId, tasks, loading, fetched]); // eslint-disable-line
+
   const fetchTasks = async () => {
     setLoading(true);
     try {
@@ -44,7 +56,7 @@ export default function OutboundScanInterface({ user }) {
       setTasks(res.data);
       setError("");
     } catch (e) { setError(e.response?.data?.detail || "Gagal memuat outbound task."); }
-    finally { setLoading(false); }
+    finally { setLoading(false); setFetched(true); }
   };
 
   const startCamera = async () => {

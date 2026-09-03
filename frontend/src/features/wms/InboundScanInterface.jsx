@@ -24,9 +24,10 @@ function MiniBar({ pct, status }) {
 const EMPTY_SCAN = { doc_uom: "", doc_qty: "", batch: "", lot: "", dye_lot: "",
                      grade: "A", roll_id: "", bin_id: "" };
 
-export default function InboundScanInterface({ user }) {
+export default function InboundScanInterface({ user, focusPoId = "", onFocusConsumed }) {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [fetched, setFetched] = useState(false);
   const [error, setError] = useState("");
   const [selectedTask, setSelectedTask] = useState(null);
   const [filterStatus, setFilterStatus] = useState("all");
@@ -66,6 +67,21 @@ export default function InboundScanInterface({ user }) {
 
   useEffect(() => { fetchTasks(); }, [filterStatus]);
 
+  // Jembatan PO → Gudang ("Terima Barang" di detail PO): pilih tugas penerimaan PO itu
+  // yang masih terbuka (bila semua selesai, tugas terbaru) lalu gulir ke barisnya.
+  useEffect(() => {
+    if (!focusPoId || loading || !fetched) return;
+    const mine = tasks.filter((x) => x.po_id === focusPoId);
+    const t = mine.find((x) => !["completed", "put_away"].includes(x.status)) || mine[0];
+    if (t) {
+      selectTask(t);
+      setTimeout(() => document.querySelector(`[data-testid="inbound-task-${t.id}"]`)?.scrollIntoView({ block: "center" }), 50);
+    } else if (tasks.length) {
+      setError("Belum ada tugas penerimaan untuk PO ini — PO mungkin belum disetujui.");
+    }
+    onFocusConsumed?.();
+  }, [focusPoId, tasks, loading, fetched]); // eslint-disable-line
+
   // FASE C — kebijakan penegakan lot (warn/block) ditarik sekali untuk form GR
   useEffect(() => {
     axios.get(`${API}/lots/settings`).then((r) => setLotSettings(r.data))
@@ -93,7 +109,7 @@ export default function InboundScanInterface({ user }) {
       setTasks(res.data);
       setError("");
     } catch (e) { setError(e.response?.data?.detail || "Gagal memuat inbound task."); }
-    finally { setLoading(false); }
+    finally { setLoading(false); setFetched(true); }
   };
 
   const selectTask = (task) => {

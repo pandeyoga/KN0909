@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import ErrorNotice from "../../components/ErrorNotice";
 import KNSelect from "../../components/KNSelect";
+import KNDatePicker, { formatDateId } from "../../components/KNDatePicker";
 import { ColorChip } from "../../components/PantoneFinder";
 import { askReason } from "../../services/confirmService";
 import { notifySuccess } from "../../utils/feedback";
@@ -116,7 +117,7 @@ export default function DesignRequestDetailPanel({ doc, meta, onChanged, onClose
         <Row label="Diminta oleh" testId="dsr-detail-requester">{doc.requested_by || "—"}</Row>
         <Row label="Desainer" testId="dsr-detail-assignee">{doc.assigned_name || "Belum ditugaskan"}</Row>
         <Row label="Tenggat" testId="dsr-detail-due">
-          {doc.due_date || "—"}{doc.is_overdue ? " · lewat tenggat" : ""}
+          {doc.due_date ? formatDateId(doc.due_date) : "—"}{doc.is_overdue ? " · lewat tenggat" : ""}
         </Row>
         <Row label="Versi diserahkan" testId="dsr-detail-versions">{doc.versions || 0}</Row>
         <Row label="Putaran revisi" testId="dsr-detail-revisions">{doc.revision_count || 0}</Row>
@@ -133,7 +134,7 @@ export default function DesignRequestDetailPanel({ doc, meta, onChanged, onClose
         <p className="text-[11px] font-bold uppercase tracking-wide text-[#9A9BA3]">Tindakan</p>
 
         {canAssign && !["approved", "cancelled"].includes(doc.status) && (
-          <div className="grid gap-2 sm:grid-cols-[1fr_140px_auto] sm:items-end">
+          <div className="grid gap-2 sm:grid-cols-[1fr_190px_auto] sm:items-end">
             <label className="block">
               <span className="field-label">Tugaskan ke desainer</span>
               <KNSelect data-testid="dsr-assign-select" value={assignee}
@@ -146,8 +147,7 @@ export default function DesignRequestDetailPanel({ doc, meta, onChanged, onClose
             </label>
             <label className="block">
               <span className="field-label">Tenggat</span>
-              <input data-testid="dsr-assign-due" type="date" className="field"
-                value={due} onChange={(e) => setDue(e.target.value)} />
+              <KNDatePicker data-testid="dsr-assign-due" value={due} onChange={setDue} placeholder="Pilih tenggat" />
             </label>
             <button data-testid="dsr-assign-button" className="primary-button"
               disabled={busy || !assignee}

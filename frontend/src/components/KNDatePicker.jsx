@@ -19,18 +19,20 @@ export default function KNDatePicker({ value, onChange, placeholder = "Pilih tan
   const selected = value ? parseISO(String(value).slice(0, 10)) : undefined;
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button type="button" disabled={disabled} data-testid={testId}
-          className={`form-input flex items-center gap-2 text-left ${!value ? "text-[#9A9BA3]" : ""} ${className}`}>
-          <CalendarDays size={14} className="shrink-0 text-[#0058CC]" />
-          <span className="flex-1 truncate">{value ? formatDateId(value) : placeholder}</span>
-          {clearable && value && !disabled && (
-            <span role="button" aria-label="Hapus tanggal" data-testid={testId ? `${testId}-clear` : undefined}
-              className="rounded p-0.5 text-[#9A9BA3] hover:bg-[#F2F3F5] hover:text-[#C0341D]"
-              onClick={(e) => { e.stopPropagation(); onChange(""); }}><X size={12} /></span>
-          )}
-        </button>
-      </PopoverTrigger>
+      <div className={`relative ${className}`}>
+        <PopoverTrigger asChild>
+          <button type="button" disabled={disabled} data-testid={testId}
+            className={`form-input flex w-full items-center gap-2 text-left ${!value ? "text-[#9A9BA3]" : ""} ${clearable && value && !disabled ? "pr-7" : ""}`}>
+            <CalendarDays size={14} className="shrink-0 text-[#0058CC]" />
+            <span className="flex-1 truncate">{value ? formatDateId(value) : placeholder}</span>
+          </button>
+        </PopoverTrigger>
+        {clearable && value && !disabled && (
+          <button type="button" aria-label="Hapus tanggal" data-testid={testId ? `${testId}-clear` : undefined}
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-[#9A9BA3] hover:bg-[#F2F3F5] hover:text-[#C0341D]"
+            onClick={(e) => { e.preventDefault(); onChange(""); setOpen(false); }}><X size={12} /></button>
+        )}
+      </div>
       <PopoverContent className="w-auto p-0" align="start" data-testid={testId ? `${testId}-popover` : undefined}>
         <Calendar mode="single" locale={localeId} selected={isValid(selected) ? selected : undefined}
           defaultMonth={isValid(selected) ? selected : undefined} initialFocus

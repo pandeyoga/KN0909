@@ -279,5 +279,16 @@ tersisa action items minor).
   `openDocument` kini meneruskan `link.tab` → "Buka WMS" dari meja mendarat di tab Barang Keluar/Transfer/Stock Opname.
 - Bukti: `test_reports/iteration_295.json` (BE 8/9 → 9/9 setelah fix, FE 100%), pytest `backend/tests/test_iter295_role_desks_bridge.py`.
 - Data uji tersisa (boleh dihapus manual): KSC/SJ-00007, KSC/LG-00009..00011 (plat 'TEST …').
-- **Backlog (opsional):** `dsr-assign-due` & `dsr-due-input` masih `<input type=date>` native → ganti KNDatePicker; "Buka WMS" belum
-  memilih tugas otomatis (hanya tab); tinjau integrasi Pembelian → WMS Inbound seperti pola Outbound→Logistik.
+- **Backlog (opsional):** tinjau integrasi Pembelian → WMS Inbound seperti pola Outbound→Logistik.
+
+## 2026-09-03 — Sesi #088: Tenggat DSR Indonesia · Pilih tugas otomatis · Jembatan PO→Gudang ✅
+- DSR: `dsr-due-input` (modal Buat) & `dsr-assign-due` (Tugaskan) → `KNDatePicker`; tenggat detail/daftar/kanban via `formatDateId`;
+  `DesignRequestsView` menerima `focusDoc` (auto-buka rincian dari Meja MD) dan `canCreate` += `md`.
+- WMS: `OperationsView` menerima `focusDoc/onClearFocus` → `OutboundScanInterface.focusTaskId` (sorot + buka tugas, scroll) dan
+  `InboundScanInterface.focusPoId` (pilih tugas penerimaan PO yang belum selesai). `openDocument` meneruskan `link.tab`.
+- PO: tombol **Terima Barang di Gudang** (`receive-goods-button` di POCompactPanel, `popup-receive-goods-button` di PODetailPanel) untuk
+  status pending/receiving/partial bila `wms.view` → Operasi Gudang tab Barang Masuk dengan tugas PO terpilih.
+- KNDatePicker: tombol clear dipindah ke luar `PopoverTrigger` + `preventDefault` (akar masalah: pembungkus `<label>` meneruskan klik
+  clear ke trigger → popover terbuka lalu tertutup di klik berikutnya). Kolom Tenggat di blok Tugaskan 140→190px.
+- Bukti: `test_reports/iteration_296.json` FE 7/7 alur lulus; bug minor clear KNDatePicker diperbaiki & diverifikasi Playwright.
+- Catatan state demo: KSC/DSR-00001 kini ditugaskan ke Sari Melati (efek uji); KSC/DSR-00005 dibatalkan (data uji).

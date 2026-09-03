@@ -1,0 +1,29 @@
+{
+  "summary": "Frontend-only E2E (Playwright, 1920x1080) untuk 3 fitur iterasi 296 pada bundle statis publik: (1) Tenggat Desain Indonesia (KNDatePicker di modal Buat & blok Tugaskan), (2) Pilih Tugas Otomatis dari Meja Admin Gudang ke tab Barang Keluar, (3) Jembatan PO -> Gudang (receive-goods-button & popup-receive-goods-button), plus bonus deep-link Meja MD dan regresi Logistik ETA. SEMUA skenario utama LULUS. Tidak ada console error maupun respons API >=400 di seluruh alur. Ditemukan 1 bug minor UX pada KNDatePicker (butuh dua klik untuk membuka kembali popover setelah tombol clear) dan 1 catatan desain (label tanggal terpotong pada kolom Tugaskan yang sempit).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "KNDatePicker", "issue": "Setelah menekan tombol clear ({id}-clear), klik pertama pada trigger TIDAK membuka popover kalender; butuh klik kedua. Terbukti berulang pada dsr-due-input (stopPropagation di span clear membuat state Radix Popover tidak sinkron). Reopen setelah memilih tanggal (tanpa clear) normal.", "selector": "[data-testid='dsr-due-input'] / [data-testid='dsr-due-input-clear']", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Rincian DSR - blok Tugaskan", "issues": ["Kolom Tenggat sempit sehingga label KNDatePicker terpotong ('Jum, 25 S...'); pertimbangkan pola lebih pendek (dd MMM yy) atau lebar kolom lebih besar"]}
+    ]
+  },
+  "test_report_links": ["/app/test_reports/iteration_296.json"],
+  "action_items": [
+    "OPSIONAL (minor): perbaiki KNDatePicker agar klik pertama sesudah clear langsung membuka popover (mis. panggil setOpen(false) eksplisit / gunakan onPointerDown + preventDefault pada tombol clear, atau pindahkan tombol clear ke luar PopoverTrigger).",
+    "OPSIONAL (kosmetik): cegah pemotongan label tenggat pada kolom Tugaskan di rincian DSR."
+  ],
+  "critical_code_review_comments": [
+    "KNDatePicker menempatkan elemen clear (span role=button) DI DALAM PopoverTrigger asChild; stopPropagation di sana menghasilkan satu klik 'hilang' pada trigger berikutnya — nested interactive juga kurang baik untuk aksesibilitas (button di dalam button)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (frontend-only request)", "frontend": "100% skenario utama (7/7 alur lulus); 1 bug minor UX"},
+  "seed_data_creation": "KSC/DSR-00005 dibuat lewat UI (brief 'TEST_QA296...', due 2026-09-22) lalu DIBATALKAN sebagai pembersihan (status Dibatalkan, alasan 'TEST_QA296 pembersihan data uji otomatis'). PERUBAHAN STATE DEMO: KSC/DSR-00001 kini DITUGASKAN ke Sari Melati dengan tenggat 2026-09-25 (sebelumnya submitted/belum ditugaskan) — konsekuensi uji tombol dsr-assign-button. Bila iterasi lain butuh DSR submitted tanpa penugasan, jalankan ulang seed_realistic.py.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "demo12345 untuk semua akun (manager@, admin@, wh.admin@, md@, warehouse@ kainnusantara.id)",
+  "context_for_next_testing_agent": "Hasil detail: FE1 — dsr-due-input adalah BUTTON (bukan input[type=date]); popover dsr-due-input-popover memuat kalender Indonesia (Sen/Sel/Rab..., 'September 2026'); label 'Sel, 15 Sep 2026'; clear mengosongkan ke 'Pilih tenggat'; simpan membuat KSC/DSR-00005 dengan riwayat ISO. NOL input[type=date] pada layar Permintaan Desain (daftar, modal buat, rincian) dan pada modal Buat Pengiriman logistik. Papan DSR menampilkan 'dd MMM yyyy' (22 Sep 2026 dsb). FE1b — dsr-detail-due 'Rab, 09 Sep 2026'; dsr-assign-due KNDatePicker; penugasan sukses (toast 'Permintaan ditugaskan.', riwayat 'tenggat 2026-09-25'); opsi desainer kanonik dsr-assign-select-option-user_designer_01. FE2 — wh.admin: 2 baris 'Buka WMS' (wms_255e4d4f7cb1, wms_1d91e545eff5); keduanya membuka tab wms-tab-outbound aktif (border-[#007AFF]), tugas tersorot bg-[#FFF4E0]+border-[#FF9500], panel scan-task-{id} terbuka dengan SO benar (SO-0003 & SO-0005); klik tugas manual tetap berfungsi. FE3 — admin: receive-goods-button tampil untuk PO-00015 (pending) & PO-00009 (pending), TIDAK tampil untuk PO-00001 (completed) & PO-00010 (waiting_approval); klik -> wms-tab-inbound aktif, tugas KSC/PO-00015 tersorot bg-[#EFF4FF] dan Scan Receive menampilkan PO/SKU benar. Jalur pop-up: 'Lihat detail lengkap' -> po-detail-popup -> popup-receive-goods-button (PO-00012 receiving) -> tab Barang Masuk + tugas KSC/PO-00012 tersorot, pop-up tertutup rapi. FE3b — warehouse@ TIDAK punya menu nav-purchase-orders (hanya-lihat, sesuai catatan) sehingga tombol tak bisa diuji dari peran itu; warehouse@ juga LANGSUNG masuk tanpa pita scope-pick (auto-scope) — skrip login harus tolerir ketiadaan scope-pick-ent_ksc. BONUS — md@: md-desk ada, md-desk-action-dsr_* membuka dsr-detail-modal (KSC/DSR-00002) otomatis, dsr-create-button tampil, tanpa 403. REGRESI — logistics-eta di modal Buat Pengiriman adalah KNDatePicker dan berfungsi ('Min, 20 Sep 2026').",
+  "rca_of_the_issue": "Bug minor: pada KNDatePicker.jsx tombol clear adalah <span role=button> di dalam <button> PopoverTrigger dengan e.stopPropagation(). Radix Popover men-toggle via handler pada trigger; interaksi pointer pada span clear membuat siklus open/close berikutnya butuh dua klik. Reproduksi: buka modal Buat Permintaan Desain -> pilih tanggal -> klik dsr-due-input-clear -> klik dsr-due-input (popover tidak muncul) -> klik lagi (muncul)."
+}

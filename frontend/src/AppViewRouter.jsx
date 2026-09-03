@@ -382,14 +382,14 @@ export default function AppViewRouter(props) {
       {activeView === "contra-bons" && <ContraBonsView currentUser={user} selectedEntity={selectedEntity} entities={entities} />}
       {activeView === "interco-transactions" && <IntercoView currentUser={user} selectedEntity={selectedEntity} entities={entities} />}
       {activeView === "internal-requests" && <InternalRequestsView currentUser={user} selectedEntity={selectedEntity} />}
-      {activeView === "design-requests" && <DesignRequestsView currentUser={user} selectedEntity={selectedEntity} />}
+      {activeView === "design-requests" && <DesignRequestsView currentUser={user} selectedEntity={selectedEntity} focusDoc={focusDoc} onClearFocus={() => setFocusDoc(null)} />}
       {activeView === "logistics" && <LogisticsView currentUser={user} selectedEntity={selectedEntity} focusDelivery={logisticsFocus} onFocusConsumed={onLogisticsFocusConsumed} />}
       {activeView === "landed-cost" && <LandedCostView currentUser={user} selectedEntity={selectedEntity} />}
       {activeView === "input-tax" && <InputTaxView currentUser={user} selectedEntity={selectedEntity} />}
       {activeView === "rfq" && <RFQView currentUser={user} selectedEntity={selectedEntity} />}
       {activeView === "purchase-requisitions" && <PurchaseRequisitions currentUser={user} selectedEntity={selectedEntity} />}
       {activeView === "reorder" && <ReorderSuggestions currentUser={user} selectedEntity={selectedEntity} />}
-      {activeView === "operations" && <OperationsView data={data} movements={movements} tasks={tasks} entities={entities} selectedEntity={selectedEntity} onGenerateLabel={generateLabel} onCreateInboundTask={createInboundTask} onCreateOutboundTasks={createOutboundTasks} onScanTask={scanTask} onAdvanceTask={advanceTask} onShowDetail={setActiveDetail} onNavigate={(target) => onNavSelect(target, target)} token={token} user={user} defaultTab={wmsInitialTab} />}
+      {activeView === "operations" && <OperationsView data={data} movements={movements} tasks={tasks} entities={entities} selectedEntity={selectedEntity} onGenerateLabel={generateLabel} onCreateInboundTask={createInboundTask} onCreateOutboundTasks={createOutboundTasks} onScanTask={scanTask} onAdvanceTask={advanceTask} onShowDetail={setActiveDetail} onNavigate={(target) => onNavSelect(target, target)} token={token} user={user} defaultTab={wmsInitialTab} focusDoc={focusDoc} onClearFocus={() => setFocusDoc(null)} />}
       {activeView === "qc-inspection" && <QCInspection currentUser={user} selectedEntity={selectedEntity} />}
       {activeView === "inspections" && <InspectionsView currentUser={user} selectedEntity={selectedEntity} />}
       {activeView === "hr-employees" && <EmployeesView currentUser={user} selectedEntity={selectedEntity} />}

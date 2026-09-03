@@ -9,6 +9,7 @@ import { useState } from "react";
 import { Palette } from "lucide-react";
 import FormModal from "../../components/FormModal";
 import KNSelect from "../../components/KNSelect";
+import KNDatePicker from "../../components/KNDatePicker";
 import PantoneFinder, { ColorChip } from "../../components/PantoneFinder";
 import { apiText, createDesignRequest } from "./designRequestsApi";
 
@@ -89,8 +90,7 @@ export default function DesignRequestCreateModal({ open, onClose, onCreated, met
         </label>
         <label className="block">
           <span className="field-label">Tenggat</span>
-          <input data-testid="dsr-due-input" type="date" className="field"
-            value={form.due_date} onChange={(e) => set({ due_date: e.target.value })} />
+          <KNDatePicker data-testid="dsr-due-input" value={form.due_date} onChange={(v) => set({ due_date: v })} placeholder="Pilih tenggat" />
         </label>
         <label className="block">
           <span className="field-label">Ditugaskan ke</span>

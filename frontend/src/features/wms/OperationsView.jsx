@@ -25,6 +25,8 @@ export default function OperationsView({
   token,
   user,
   defaultTab,
+  focusDoc,
+  onClearFocus,
 }) {
   const [wmsTab, setWmsTab] = useState(defaultTab || "stok");
   // T6 DIBAYAR (2026-06c): keputusan dari papan di atas harus ikut menyegarkan
@@ -115,7 +117,9 @@ export default function OperationsView({
             <span className="text-[11px] text-[#6B6B73]">Scan barcode di formulir tugas di bawah</span>
           </div>
           <div className="section-body">
-            <InboundScanInterface user={user} />
+            <InboundScanInterface user={user}
+              focusPoId={focusDoc?.focus_type === "purchase_order" ? focusDoc.focus_id : ""}
+              onFocusConsumed={onClearFocus} />
           </div>
         </div>
       )}
@@ -131,7 +135,9 @@ export default function OperationsView({
             <span className="text-[11px] text-[#6B6B73]">Scan barcode di formulir tugas di bawah</span>
           </div>
           <div className="section-body">
-            <OutboundScanInterface user={user} />
+            <OutboundScanInterface user={user}
+              focusTaskId={focusDoc?.focus_type === "wms_task" ? focusDoc.focus_id : ""}
+              onFocusConsumed={onClearFocus} />
           </div>
         </div>
       )}
