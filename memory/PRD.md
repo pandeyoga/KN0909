@@ -371,3 +371,7 @@ tersisa action items minor).
   Kehadiran, Penggajian, KPI, Analitik, Dasbor Penjualan, Dasbor Stok, Pengaturan, Meja Gudang).
 - Singkatan/istilah teknis (POS, CRM, WMS, PO, AP, BOM, R&D, BI, Payroll) dipindah ke judul halaman: PAGE_META ditambah untuk
   orders, purchasing, operations, suppliers, makloons, amendments, costing, reorder, reports, documents, admin, escalations, home.
+
+## 2026-09-03 — Sesi #095: Kolom nilai meja selalu berformat ✅ (self-test Playwright 3 meja)
+- DeskQueueCard: `value_kind` money → `formatCurrency` (Rp, dipaksa Number); qty → angka + satuan; count → kosong per baris & ringkasan "n dokumen"
+  (sebelumnya count dirender "Rp 0"). Baris outbound Meja Gudang kini membawa `unit` (yard) sehingga tampil "40 yard".

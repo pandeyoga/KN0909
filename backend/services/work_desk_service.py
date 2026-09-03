@@ -610,7 +610,8 @@ async def warehouse_admin_desk(actor: Dict[str, Any], scope: Dict[str, Any],
                                               f"diambil {float(t.get('picked_qty') or 0):g}/{float(t.get('quantity') or 0):g} {t.get('unit') or ''}".strip()] if x),
               value=float(t.get("quantity") or 0),
               age_days=_age_days(t.get("created_at")), badge=t.get("status", ""),
-              action="Buka WMS", action_kind="open", extra={"order_id": t.get("order_id")}) for t in tasks],
+              action="Buka WMS", action_kind="open",
+              extra={"order_id": t.get("order_id"), "unit": t.get("unit") or "yard"}) for t in tasks],
         action_label="Buka WMS", owner="warehouse_admin", value_kind="qty", value_label="Qty"))
 
     # 3 — PO menunggu penerimaan barang

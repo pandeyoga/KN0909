@@ -38,9 +38,12 @@ export default function DeskQueueCard({
   const visible = rows.slice(0, PREVIEW_ROWS);
   const oldest = ageTone(queue?.oldest_age_days);
 
+  // Ringkasan: qty → angka + satuan; count → jumlah dokumen; selain itu SELALU rupiah.
   const totalText = isQty
     ? `${formatQty(queue?.total_value)} ${rows[0]?.unit || ""}`.trim()
-    : formatCurrency(queue?.total_value);
+    : queue?.value_kind === "count"
+      ? `${rows.length} dokumen`
+      : formatCurrency(Number(queue?.total_value) || 0);
 
   return (
     <section className="section-card self-start" data-testid={`${testPrefix}-queue-${queue?.id}`}>
@@ -152,9 +155,12 @@ export default function DeskQueueCard({
 
 function QueueRow({ row, queue, isQty, busy, onAction, testPrefix }) {
   const age = ageTone(row.age_days);
+  // Kolom nilai: qty → angka + satuan; count → kosong (tidak bermakna per baris); money → rupiah.
   const value = isQty
     ? `${formatQty(row.value)} ${row.unit || ""}`.trim()
-    : formatCurrency(row.value);
+    : queue?.value_kind === "count"
+      ? ""
+      : formatCurrency(Number(row.value) || 0);
 
   return (
     <div data-testid={`${testPrefix}-row-${row.row_key || row.ref_id}`}
