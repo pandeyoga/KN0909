@@ -176,9 +176,9 @@ export const NAV_STRUCTURE = [
   {
     type:    "group",
     groupId: "gudang",
-    label:   "Gudang",
+    label:   "Gudang & Logistik",
     icon:    Warehouse,
-    roles:   ["admin", "warehouse", "manager", "sales"],
+    roles:   ["admin", "warehouse", "manager", "sales", "driver", "sales_admin", "warehouse_admin", "md"],
     items: [
       // FASE E-8 (E8.3 · SD3) — `sales` DICABUT dari menu ini. Bukan pengetatan
       // baru: `/api/wms/tasks` memang sudah 403 untuk sales, jadi menunya adalah
@@ -192,6 +192,8 @@ export const NAV_STRUCTURE = [
       { id: "wms-locations",      label: "Lokasi & Penempatan Rak",     icon: MapPin,    roles: ["admin", "warehouse", "manager"] },
       { id: "md-warehouses",      label: "Gudang (Master)",      icon: Warehouse, roles: ["admin", "warehouse", "manager"] },
       { id: "cs-stock-analytics", label: "Analitik Stok",      icon: TrendingUp, roles: ["admin", "manager"] },
+      // Pengiriman (ekspedisi / armada sendiri, foto muat & POD). Sopir hanya melihat item ini.
+      { id: "logistics",          label: "Logistik & Pengiriman", icon: Truck, roles: ["admin", "manager", "warehouse", "driver", "sales", "sales_admin", "warehouse_admin"], view: "logistics" },
     ],
   },
 
@@ -322,14 +324,5 @@ export const NAV_STRUCTURE = [
     icon:  AlertTriangle,
     roles: ["admin", "warehouse", "manager"],
     view:  "escalations",
-  },
-  // ── LOGISTIK (FB-02) — pengiriman: ekspedisi / armada sendiri, foto muat & POD, posisi.
-  {
-    type:  "standalone",
-    id:    "logistics",
-    label: "Logistik",
-    icon:  Truck,
-    roles: ["admin", "manager", "warehouse", "driver", "sales", "sales_admin"],   // sales/admin sales: hanya-lihat
-    view:  "logistics",
   },
 ];

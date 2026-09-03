@@ -1,3 +1,4 @@
+import { withZones } from "../config/navigationConfig";
 import { useState, useEffect } from "react";
 import { ChevronDown, ChevronRight, Clock, Layers3, LogOut, Menu, RefreshCw, Search, Sparkles, Star, X } from "lucide-react";
 import { roleLabel } from "../config/roles";
@@ -169,7 +170,15 @@ export function Sidebar({ groups = [], activeNavId, activeView, onSelect, user, 
             </div>
           )}
 
-          {groups.map((entry) => {
+          {withZones(groups).map((entry) => {
+            if (entry.type === "zone") {
+              return (
+                <p key={entry.id} data-testid={`nav-${entry.id}`}
+                   className="sidebar-zone mt-3 mb-1 px-3 text-[9.5px] font-bold uppercase tracking-[0.12em] text-[#9A9BA3] first:mt-0">
+                  {entry.label}
+                </p>
+              );
+            }
             if (entry.type === "standalone") {
               const Icon = entry.icon;
               const isActive = activeNavId === entry.id || activeView === entry.view;

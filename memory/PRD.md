@@ -352,3 +352,14 @@ tersisa action items minor).
   pytest test_iter301_rbac_pricing_uom.py (23+1 skip), test_iter302_approval_rbac.py (16).
 - **Usulan IA lanjutan (menunggu keputusan pemilik):** zona sidebar KERJA SAYA / MODUL / ALAT / AKUN; lebur Beranda+Pusat Persetujuan ke Meja
   per peran; Logistik ke bawah Gudang & Logistik; penamaan menu 1–2 kata; alamat dokumen `?doc=`.
+
+## 2026-09-03 — Sesi #093: Zona Sidebar · Logistik ke Gudang · Alamat Dokumen ?doc= ✅
+- Sidebar 4 zona (`NAV_ZONES`/`zoneOf`/`withZones` di navigationConfig.js; render `nav-zone-*` di CoreWidgets): Kerja Saya (Beranda,
+  Pusat Persetujuan, Meja-meja, Eskalasi) · Modul · Alat (Analytics, BI, Pusat Dokumen/Cetak, Pengaturan, Segera Hadir) · Akun (Profil).
+- Logistik = item `logistics` di grup "Gudang & Logistik" (roles grup ditambah driver/sales/sales_admin/warehouse_admin/md); standalone dihapus.
+- Alamat dokumen: `GET /api/documents/resolve?number=` (14 jenis, cocok tanpa awalan PT, tersaring izin modul peran) →
+  `useViewDeepLink` (?doc=) → `docLinkTarget` (workDeskApi) → openDocument/openLogistics; toast bila tak ditemukan; URL dibersihkan.
+  `utils/docLink.js` (docLink/waShareLink/copyDocLink); tombol `so-compact-copy-link` & `so-compact-share-wa` di panel ringkas SO.
+  `useLogisticsDeepLink` meneruskan `search` (bug lama: baris shipment di meja tidak menyaring Logistik).
+- Bukti: iteration_303 (BE 100%, FE 5/6) → iteration_304 (100/100); pytest test_iter303_doc_resolve.py 12/12.
+- Backlog: tombol salin/WA juga di panel PO, SJ, DSR; nomor dokumen di WhatsApp otomatis jadi tautan (butuh domain publik).

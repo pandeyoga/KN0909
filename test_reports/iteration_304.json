@@ -1,0 +1,22 @@
+{
+  "summary": "RETEST ITER-303 (butir gagal) + perbaikan lanjutan alamat dokumen ?doc=. HASIL: LULUS SEMUA (backend 12/12, frontend 6/6 skenario yang dapat diuji).\n\nBACKEND (pytest -n0 /app/backend/tests/test_iter303_doc_resolve.py → 12 passed): GET /api/documents/resolve kini menyaring jenis dokumen per izin MODUL peran. driver@ SO-0007 → 404 (pesan 'tidak ditemukan'), driver@ PO-00015 → 404, driver@ SJ-00001 → 200 {ref_type: shipment, number: SJ-00001, tanpa _id}; admin@ ketiganya 200 dengan ref_type benar (sales_order/purchase_order/shipment). Regresi resolver tetap: SO-0007→so_007/ent_ksc, PO-00015 & KSC/PO-00015→'KSC/PO-00015', 'so-0007' case-insensitive, XX-999→404 Indonesia, tanpa token→401, number='S'→422, SJ-00003→shipment.\n\nFRONTEND E2E (Playwright, admin@ scope ent_ksc): (1) /?doc=SJ-00001 → layar Logistik, logistics-search terisi 'SJ-00001', tabel TEPAT 1 baris KSC/LG-00007 (SJ-00001), URL jadi ?view=logistics. (2) /?doc=DSR-00002 → dsr-detail-modal terbuka berisi KSC/DSR-00002. (3) /?doc=KSC%2FLG-00011 → Logistik + logistics-detail-modal KSC/LG-00011 terbuka. (4) /?doc=SO-0007 → Pesanan tersaring '\"SO-0007\"' + 8 elemen so-compact*. (5) /?doc=XX-999 → toast destruktif 'Dokumen XX-999 tidak ditemukan' + detail dari API, tetap di Control Tower (?view=admin-home), URL tanpa doc=. Bug ITER-303 (shipment/design_request salah mendarat di Pesanan) TERKONFIRMASI BERES.\n\nREGRESI Meja Admin Gudang (wh.admin@): aksi baris antrean 'logistik' (wh-desk-action-lgs_*) membuka Logistik + detail KSC/LG-00007. Antrean 'Surat Jalan belum diangkut logistik' berjumlah 0 baris pada data demo saat ini → jalur create_delivery tidak dapat diuji lewat layar (SKIP, bukan gagal).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter303_doc_resolve.py",
+    "/app/test_reports/pytest/iter304_resolve.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "docLinkTarget() sudah menjadi satu peta bersama (DOC_TARGET → ROLE_DESK_TARGET → ROW_TARGET) dan mengembalikan null untuk jenis tak dikenal — bagus. Saran kecil: tambahkan unit/pytest yang menegaskan SETIAP entri DOC_LOOKUP backend (14 jenis) punya tujuan di docLinkTarget, agar penambahan ref_type baru di backend tidak lolos tanpa layar tujuan (saat ini pengaman hanya toast runtime).",
+    "_may_view() di routers/documents.py memakai logika ternary bersarang yang sulit dibaca (`True if acts is None and mod not in {...} else bool(...)`); pecah menjadi if-else eksplisit + konstanta STRICT_MODULES agar niat 'modul sensitif wajib punya izin view' terlihat jelas."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter303_doc_resolve.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "Tidak ada. Hanya baca data demo (SJ-00001, DSR-00002, KSC/LG-00011, SO-0007, PO-00015, XX-999).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": false,
+  "test_credentials": "demo12345 — admin@, wh.admin@, driver@ (@kainnusantara.id)",
+  "context_for_next_testing_agent": "Alamat dokumen ?doc= sudah LULUS untuk sales_order, purchase_order, shipment (search Logistik), logistics_delivery (detail terbuka), design_request, dan jalur nomor tak dikenal (toast destruktif). Belum diuji lewat layar: md_sample, purchase_requisition, inspection, wms_task, internal_request, sales_return, customer, ar_receipt (tab Selisih), tax_invoice — pemetaannya ada di DOC_TARGET/ROLE_DESK_TARGET (workDeskApi.js) tapi belum diverifikasi E2E. Catatan Playwright: toast Radix menutup sendiri ~5s → polling setiap 500ms sejak navigasi, JANGAN tunggu 7s. logistics-detail-modal render 'Memuat…' dulu → tunggu selector 'logistics-detail-status' sebelum membaca teks. Antrean wh-desk 'sj_belum_diangkut' kosong di data demo sekarang.",
+  "rca_of_the_issue": "Tidak ada isu terbuka. Perbaikan ITER-304 terbukti: (a) useViewDeepLink memakai docLinkTarget() alih-alih rowLink() default 'sales_admin', dan meneruskan link.logistics ke openLogistics; (b) useLogisticsDeepLink meneruskan field `search` sehingga LogisticsView.focusDelivery.search mengisi kotak cari; (c) resolver backend menyaring DOC_LOOKUP lewat _may_view() berdasarkan permission_matrix peran."
+}

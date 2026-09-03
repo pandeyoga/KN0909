@@ -197,6 +197,19 @@ const WH_DESK_TARGET = {
   purchase_order: { view: "operations", nav_id: "wms-operations", focus_type: "purchase_order", tab: "inbound" },
 };
 
+/** Tautan untuk ALAMAT DOKUMEN (?doc=NOMOR) — mencakup semua jenis di resolver backend. */
+const DOC_TARGET = {
+  ar_receipt:  { view: "payment-plans", nav_id: "payment-plans", focus_type: "ar_receipt", tab: "selisih" },
+  tax_invoice: { view: "tax-invoices",  nav_id: "tax-hub",       focus_type: "tax_invoice" },
+};
+export function docLinkTarget(doc) {
+  const t = DOC_TARGET[doc?.ref_type] || ROLE_DESK_TARGET[doc?.ref_type] || ROW_TARGET[doc?.ref_type];
+  if (!t) return null;   // jenis belum punya layar — pemanggil menampilkan pesan, bukan melompat sembarangan
+  const link = { view: t.view, nav_id: t.nav_id, focus_type: t.focus_type || doc.ref_type, focus_id: doc.ref_id, number: doc.number || "", tab: t.tab };
+  if (doc.ref_type === "shipment" || doc.ref_type === "logistics_delivery") link.logistics = doc.ref_type === "shipment" ? { search: doc.number } : { deliveryId: doc.ref_id };
+  return link;
+}
+
 export function rowLink(row, queueId = "", desk = "sales_admin") {
   if (desk === "md" || desk === "warehouse_admin") {
     const t = (desk === "warehouse_admin" && WH_DESK_TARGET[row?.ref_type])

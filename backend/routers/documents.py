@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from pymongo import ReturnDocument
 from db import db
-from dependencies import require_permission, audit
+from dependencies import require_permission, audit, current_user
 from core_utils import new_id, now_iso, safe_doc
 from schemas import BarcodeGenerate, DocumentGenerate, GenericPatch, TemplatePayload
 from services.inventory_service import render_order_html
@@ -303,3 +303,61 @@ async def generate_barcode(payload: BarcodeGenerate, request: Request) -> Dict[s
                     {"label_size": payload.label_size})
         return {"label_html": label_html, "target_type": payload.target_type, "target_id": payload.target_id}
     raise HTTPException(status_code=400, detail="target_type tidak valid")
+
+
+# ─── ALAMAT DOKUMEN (S#093) — `?doc=SO-0007` bisa dibagikan (WA/chat) dan dibuka satu klik ───
+# Nomor dokumen dipetakan ke (ref_type, ref_id) — layar tujuan yang memegang izin baca.
+DOC_LOOKUP = [
+    ("sales_order",          "sales_orders",          "number"),
+    ("purchase_order",       "purchase_orders",       "po_number"),
+    ("shipment",             "shipments",             "shipment_no"),
+    ("logistics_delivery",   "logistics_deliveries",  "number"),
+    ("sales_return",         "sales_returns",         "number"),
+    ("design_request",       "design_requests",       "number"),
+    ("purchase_requisition", "purchase_requisitions", "number"),
+    ("ar_receipt",           "ar_receipts",           "number"),
+    ("inspection",           "inspections",           "number"),
+    ("internal_request",     "internal_requests",     "number"),
+    ("tax_invoice",          "tax_invoices",          "number"),
+    ("wms_task",             "wms_tasks",             "task_no"),
+    ("md_sample",            "md_samples",            "number"),
+    ("customer",             "customers",             "code"),
+]
+
+
+@router.get("/documents/resolve")
+async def resolve_document_number(request: Request, number: str = Query(..., min_length=2, max_length=64)) -> Dict[str, Any]:
+    """Cari dokumen berdasarkan NOMOR (persis, tanpa case; boleh tanpa awalan PT, mis. 'SO-00131'
+    cocok dengan 'KSC/SO-00131'). Hanya dokumen dalam cakupan badan usaha pengguna."""
+    user = await current_user(request)
+    ctx = await entity_ctx(request)
+    allowed = set(ctx.allowed_entity_ids or [])
+    # Izin modul: jenis dokumen yang modulnya tidak boleh DILIHAT peran ini tidak ikut dicari
+    # (sopir tidak bisa mengonfirmasi keberadaan SO lewat resolver). Modul yang tidak dikenal
+    # matriks dianggap boleh — layar tujuan tetap memegang pemeriksaan izin sesungguhnya.
+    from dependencies import permission_matrix
+    matrix = (await permission_matrix()).get(user.get("role"), {})
+    MODULE_OF = {"sales_order": "order", "purchase_order": "purchase_order", "shipment": "logistics",
+                 "logistics_delivery": "logistics", "sales_return": "sales_return", "design_request": "design_request",
+                 "purchase_requisition": "purchase_requisition", "ar_receipt": "ar_receipt", "inspection": "inspection",
+                 "internal_request": "internal_request", "tax_invoice": "tax_invoice", "wms_task": "wms",
+                 "md_sample": "md_sample", "customer": "customer"}
+    def _may_view(ref_type: str) -> bool:
+        mod = MODULE_OF.get(ref_type, "")
+        if not mod or user.get("role") == "admin":
+            return True
+        acts = matrix.get(mod)
+        return True if acts is None and mod not in {"order", "purchase_order", "logistics"} else bool(acts and ("view" in acts or "*" in acts))
+    num = number.strip()
+    import re as _re
+    rx = {"$regex": f"^(?:[A-Z0-9]+/)?{_re.escape(num)}$", "$options": "i"}
+    for ref_type, coll, field in DOC_LOOKUP:
+        if not _may_view(ref_type):
+            continue
+        rows = await db[coll].find({field: rx}, {"_id": 0, "id": 1, field: 1, "entity_id": 1}).to_list(5)
+        rows = [r for r in rows if not allowed or not r.get("entity_id") or r.get("entity_id") in allowed | {"all"}]
+        if rows:
+            r = rows[0]
+            return {"ref_type": ref_type, "ref_id": r["id"], "number": r.get(field, num),
+                    "entity_id": r.get("entity_id", "")}
+    raise HTTPException(status_code=404, detail=f"Dokumen '{num}' tidak ditemukan atau di luar cakupan Anda.")

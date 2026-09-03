@@ -4,8 +4,10 @@
  * seluruh detail + tombol aksi lifecycle dibuka lewat "Lihat detail & aksi"
  * (pop-up berisi `OrderDetailPanel` yang sama — satu sumber tampilan & aksi).
  */
+import { toast } from "@/hooks/use-toast";
+import { copyDocLink, waShareLink } from "../../utils/docLink";
 import { useState } from "react";
-import { Maximize2, Wand2, XCircle } from "lucide-react";
+import { Link2, Maximize2, Share2, Wand2, XCircle } from "lucide-react";
 import { formatCurrency } from "../../utils/formatters";
 import { StagePill, SubStatusChips } from "../../components/SoStatusBadges";
 import PaymentBadge from "../../components/PaymentBadge";
@@ -33,7 +35,15 @@ export default function SOCompactPanel({ order, onClose, onOpenFull }) {
             <SubStatusChips order={order} testIdPrefix="so-compact-substatus" />
           </div>
         </div>
-        <button className="icon-button" onClick={onClose} data-testid="so-compact-close"><XCircle size={14} /></button>
+        <div className="flex items-center gap-1">
+          <button type="button" className="icon-button" title="Salin tautan dokumen (?doc=)" data-testid="so-compact-copy-link"
+            onClick={async () => { const ok = await copyDocLink(order.number); toast({ title: ok ? `Tautan ${order.number} disalin` : "Gagal menyalin tautan", description: ok ? "Tempel di WhatsApp/chat — penerima langsung dibawa ke dokumen ini." : "", variant: ok ? undefined : "destructive" }); }}>
+            <Link2 size={14} />
+          </button>
+          <a className="icon-button" title="Bagikan lewat WhatsApp" data-testid="so-compact-share-wa"
+            href={waShareLink(order.number, "Pesanan")} target="_blank" rel="noreferrer"><Share2 size={14} /></a>
+          <button className="icon-button" onClick={onClose} data-testid="so-compact-close"><XCircle size={14} /></button>
+        </div>
       </div>
 
       <div className="section-body space-y-2.5">

@@ -58,6 +58,39 @@ function withHubView(item, role) {
 }
 
 // ─── BUILD GROUPED NAVIGATION — filter per role; comingSoon → grup "Segera Hadir" ──
+// ── ZONA SIDEBAR (IA) ──────────────────────────────────────────────────────────
+// Prinsip: MEJA = tempat bekerja (antrean), MODUL = tempat mencari/mengelola dokumen,
+// ALAT = utilitas lintas modul, AKUN = diri sendiri. Tiap entri NAV_STRUCTURE dipetakan
+// ke satu zona; yang tidak terdaftar dianggap MODUL.
+export const NAV_ZONES = [
+  { id: "kerja", label: "Kerja Saya" },
+  { id: "modul", label: "Modul" },
+  { id: "alat",  label: "Alat" },
+  { id: "akun",  label: "Akun" },
+];
+const ZONE_OF = {
+  home: "kerja", "approval-inbox": "kerja", "sales-admin-desk": "kerja", "finance-desk": "kerja",
+  "md-desk": "kerja", "warehouse-admin-desk": "kerja", escalations: "kerja",
+  analytics: "alat", "cs-bi-sales": "alat", "cs-bi-stock": "alat", "document-center": "alat",
+  documents: "alat", "settings-hub": "alat", "segera-hadir": "alat",
+  "hr-my-profile": "akun",
+};
+export function zoneOf(entry) {
+  return ZONE_OF[entry.groupId || entry.id] || "modul";
+}
+
+/** Sisipkan pemisah zona (type:"zone") di depan entri pertama tiap zona; urutan zona tetap. */
+export function withZones(groups) {
+  const out = [];
+  for (const z of NAV_ZONES) {
+    const members = groups.filter((g) => zoneOf(g) === z.id);
+    if (!members.length) continue;
+    out.push({ type: "zone", id: `zone-${z.id}`, label: z.label });
+    out.push(...members);
+  }
+  return out;
+}
+
 export function buildNavGroups(role, opts = {}) {
   const showComingSoon = opts.showComingSoon !== false;
   // FASE G-0 — `ui.coming_soon_collapsed` DULU setting mati (0 consumer). Sekarang

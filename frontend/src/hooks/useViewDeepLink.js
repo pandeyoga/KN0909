@@ -25,10 +25,16 @@
  */
 import { useEffect, useRef } from "react";
 import { resolveDeepLinkTarget } from "../config/navigationConfig";
+import axios, { API } from "../services/apiClient";
+import { docLinkTarget } from "../features/sales_admin/workDeskApi";
+import { openLogistics } from "../features/logistics/logisticsDeepLink";
+import { toast } from "@/hooks/use-toast";
 
 const ENTITY_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
 
-export default function useViewDeepLink({ role, ready, activeView, onNavigate, onPickEntity }) {
+export default function useViewDeepLink({ role, ready, activeView, onNavigate, onPickEntity, onOpenDoc }) {
+  const docRef = useRef(onOpenDoc);
+  docRef.current = onOpenDoc;
   const consumed = useRef(false);
   const navRef = useRef(onNavigate);
   const entRef = useRef(onPickEntity);
@@ -49,6 +55,34 @@ export default function useViewDeepLink({ role, ready, activeView, onNavigate, o
     const ent = params.get("entity");
     if (ent && ENTITY_ID_RE.test(ent)) entRef.current?.(ent);
 
+    // Alamat dokumen: ?doc=SO-0007 → cari nomornya → buka layar tujuan tersaring + detail terbuka.
+    const docNo = params.get("doc");
+    if (docNo && /^[A-Za-z0-9/_.-]{2,64}$/.test(docNo)) {
+      axios.get(`${API}/documents/resolve`, { params: { number: docNo } })
+        .then((r) => {
+          const d = r.data || {};
+          if (d.entity_id && d.entity_id !== "all") entRef.current?.(d.entity_id);
+          const link = docLinkTarget(d);
+          if (!link) {
+            toast({ title: `Layar untuk ${d.number} belum tersedia`, description: `Jenis dokumen: ${d.ref_type}.` });
+            return;
+          }
+          if (link.logistics) openLogistics(link.logistics);
+          docRef.current?.(link);
+        })
+        .catch((e) => {
+          toast({ title: `Dokumen ${docNo} tidak ditemukan`, variant: "destructive",
+                  description: e?.response?.data?.detail || "Periksa nomornya atau cakupan badan usaha Anda." });
+        })
+        .finally(() => {
+          try {
+            const url = new URL(window.location.href);
+            url.searchParams.delete("doc");
+            window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+          } catch (_) { /* noop */ }
+        });
+      return;
+    }
     const wanted = params.get("view");
     if (!wanted) return;
     const target = resolveDeepLinkTarget(wanted, role);

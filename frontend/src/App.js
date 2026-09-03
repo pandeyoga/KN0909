@@ -263,6 +263,7 @@ function App() {
     activeView,
     onNavigate: handleNavSelect,
     onPickEntity: onSelectEntity,
+    onOpenDoc: openDocument,
   });
 
   const navGroups = buildNavGroups(user?.role, {
