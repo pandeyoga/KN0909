@@ -1,0 +1,55 @@
+{
+  "summary": "Iterasi 298 — verifikasi penuh KEB-PDPT (A) + lompat balik ke PO (B). BACKEND: dibuat suite E2E HTTP baru test_iter298_kebpdpt_e2e.py (15 kasus) yang menjalankan alur nyata lewat API publik: buat SO baru (KSC/SO-00131/132, cust_butik_bali, prod_endek_bali 20 yard, grand_total Rp 6.216.000) → verify → confirm → kwitansi AR 30% (Rp 1.864.800) SEBELUM kirim → pick+dispatch → kwitansi sisa SETELAH kirim → void kwitansi uang muka. SEMUA 15 LULUS. Bukti: (1) sebelum kirim TIDAK ada JE sales_order/sales_cogs (juga tidak muncul di GET /api/gl/journal?source=sales_order); (2) JE kas kwitansi = Dr 1-1100 1.864.800 / Cr 2-1400 1.864.800, TIDAK menyentuh 1-1200; (3) journey → revenue_recognized=false, advance_unrecognized=1.864.800; (4) payments[0].gl_bucket='advance'; (5) saat dispatch (status shipped) lahir JE sales_order (Dr 1-1200 6.216.000 / Cr 4-1000 5.600.000 / Cr 2-1200 616.000), sales_cogs (Dr 5-1000 3.864.000 / Cr 1-1300), dan advance_reclass (Dr 2-1400 / Cr 1-1200 1.864.800); journey → revenue_recognized=true, advance_unrecognized=0; (6) idempotent — POST /api/gl/sync + journey berulang tidak menggandakan (hitung JE per source_id tetap 1 untuk sales_order/sales_cogs/advance_reclass); (7) kwitansi SETELAH kirim → Dr 1-1100 / Cr 1-1200 (tanpa 2-1400) dan payment barunya tanpa gl_bucket; (8) void kwitansi uang muka → JE advance_reclass_reversal (Dr 1-1200 / Cr 2-1400 1.864.800, source_id='{order_id}:{receipt_id}') + cash_transaction_void; saldo netto 2-1400 untuk pesanan itu = 0,00; (9) Meja Finance (finance@) → queue 'uang_muka_belum_kirim' ada, totals memuat advance_liability & advance_recognized_legacy, baris SO uji berbadge 'kewajiban' dengan value = uang muka, SO-0005/SO-0007 berbadge 'diakui (historis)', dan pesanan hilang dari antrean setelah dikirim; (10) trial-balance ent_ksc tetap seimbang (debit=credit, selisih < Rp 1 hanya pembulatan float). Regresi test_iter297_revenue_policy.py 3/3 lulus. FRONTEND: (A) finance@ Meja Finance → fin-desk-metric-advance tampil 'UANG MUKA (KEWAJIBAN) Rp 1.398.600', kartu antrean 'Uang muka pesanan belum dikirim' (count 3) dengan badge kewajiban + Rp 1.398.600 pada baris SO uji dan 'diakui (historis)' pada SO-0005/SO-0007; klik 'Buka' → layar Pesanan Penjualan dengan KSC/SO-00133 terfokus. admin@ → Pesanan & Retur → so-compact-advance-note tampil ('Uang muka Rp 1.398.600 tercatat sebagai kewajiban — pendapatan diakui saat dikirim.'), tab Perjalanan Pesanan → journey-money + journey-advance-note ('… tertahan sebagai kewajiban (2-1400 Uang Muka Pelanggan) …'); pada pesanan yang SUDAH dikirim (KSC/SO-00010) kedua catatan TIDAK tampil (0/0). Tanpa console error. (B) wh.admin@ → Gudang → Operasi Gudang → wms-tab-inbound → inbound-task-wms_30756eb3c164 → tombol inbound-back-to-po-wms_30756eb3c164 berlabel 'Ke PO KSC/PO-00012' → klik → pindah ke Pembelian → Pesanan Pembelian (PO) dengan baris KSC/PO-00012 tersorot dan po-compact-panel terbuka (nomor/supplier/progress terima 200/400 50% sama); receive-goods-button ('Terima Barang di Gudang') membawa kembali ke tab Barang Masuk dengan tugas yang sama — bolak-balik mulus.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "GET /api/finance/desk (queue uang_muka_belum_kirim)",
+        "issue": "total_value antrean (Rp 41.969.100) mencampur dua satuan makna: baris 'kewajiban' memakai uang muka (paid_total) sedangkan baris historis memakai grand_total pesanan (advance_total=0). Angka 'NILAI' di kartu jadi tidak bisa dibandingkan dengan metrik 'Uang Muka (Kewajiban)' (Rp 1.398.600). Pertimbangkan memisah subtotal atau memberi label per-badge."
+      },
+      {
+        "endpoint": "GET /api/suppliers (peran wh.admin / warehouse-admin)",
+        "issue": "Dipanggil saat layar PO dibuka oleh Admin Gudang dan dijawab 403 → 1 console error per kunjungan. Tidak ada dampak fungsional (panel PO tetap tampil); gate fetch ini dengan izin."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "FinanceDesk / DeskQueueCard",
+        "issue": "data-testid baris antrean TIDAK unik antar-antrean: semua kartu di Meja Finance memakai testPrefix 'fin-desk', sehingga satu pesanan yang muncul di dua antrean menghasilkan dua elemen `fin-desk-row-{ref_id}` / `fin-desk-action-{ref_id}` yang identik. Saat pengujian, `fin-desk-action-so_xxx`.first mengklik tombol antrean LAIN ('Terbitkan' Faktur Pajak) dan MEMICU MUTASI tak diinginkan (Faktur Pajak KSC/FKT-00003 terbit). Sarankan sisipkan id antrean ke testid (mis. `fin-desk-{queueId}-row-{refId}`).",
+        "selector": "[data-testid=\"fin-desk-row-{ref_id}\"], [data-testid=\"fin-desk-action-{ref_id}\"]",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter298_kebpdpt_e2e.py",
+    "/app/backend/tests/seed_iter298_frontend.py",
+    "/app/test_reports/pytest/iter298_results.xml"
+  ],
+  "action_items": [
+    "Buat data-testid baris/aksi antrean Meja Finance unik per antrean (lihat ui_bugs) — risiko klik-silang yang MEMICU aksi salah, bukan hanya masalah uji.",
+    "Opsional: perjelas/pisahkan 'NILAI' antrean uang_muka_belum_kirim antara baris kewajiban (uang muka) dan baris historis (grand total).",
+    "Opsional: hentikan fetch /api/suppliers untuk peran warehouse-admin (403 noise).",
+    "Suite regresi test_fb02_logistics.py sekarang 5 GAGAL karena id/nomor seed yang di-hardcode sudah tidak ada di DB (KSC/LG-00002 hilang — deliveries yang ada kini KSC/LG-00007..00011; design_gallery id 'dsgn_cf2ccad1866f' tidak ada, gallery sekarang dsgn_290f6900e14c/3fc289e0fe17/4726ba740480/ff51a6332f05). BUKAN regresi KEB-PDPT (iterasi 289 masih hijau); butuh re-seed atau lookup dinamis di berkas uji itu. Tidak saya ubah karena menyangkut niat data seed."
+  ],
+  "critical_code_review_comments": [
+    "gl_service.post_advance_reclass_reversal memakai source_id komposit '{order_id}:{receipt_id}' sedangkan advance_reclass memakai order_id polos — tidak salah, tapi TIDAK terdokumentasi di docstring dan membuat query/laporan per-pesanan mudah salah (filter {'source_id': order_id} melewatkan pembalik). Sarankan tambahkan field `order_id` eksplisit pada JE atau catat konvensi ini di docstring/README GL.",
+    "ar_receipt_service.void_receipt membungkus post_advance_reclass_reversal dalam `except Exception: pass` — kegagalan pembalik reklas akan diam-diam meninggalkan 2-1400 nyangkut tanpa jejak. Minimal log warning/ audit agar bisa dideteksi.",
+    "order_advance_unrecognized() menghitung ulang order_revenue_posted() per pemanggilan (query journal_entries). Di finance_desk yang mengiterasi banyak pesanan ini jadi N+1 query; pertimbangkan batch lookup source_id."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter298_kebpdpt_e2e.py",
+    "/app/backend/tests/seed_iter298_frontend.py"
+  ],
+  "success_rate": {"backend": "100% (18/18: 15 E2E baru + 3 regresi iter297)", "frontend": "100% (semua asersi A & B lulus)"},
+  "seed_data_creation": "Semua data uji SUDAH DIBERSIHKAN. Backend E2E membuat & menghapus otomatis (fixture module): SO KSC/SO-00131 & KSC/SO-00132 + kwitansi KSC/AR-00010..00013 + JE/kas/wms_tasks/shipments terkait. Seed frontend KSC/SO-00133 + KSC/AR-00014 dihapus lewat `python backend/tests/seed_iter298_frontend.py --purge`. Efek samping yang TIDAK bisa dibalik: nomor urut terpakai (SO-00131..133, AR-00010..14, FKT-00003) — hanya lubang penomoran, tidak ada dokumen sisa. Verifikasi akhir: trial-balance ent_ksc seimbang, finance desk queue kembali count=2 (SO-0005, SO-0007), advance_liability=0.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "demo12345 untuk admin@/finance@/wh.admin@kainnusantara.id",
+  "context_for_next_testing_agent": "test_iter298_kebpdpt_e2e.py adalah suite E2E MUTATING yang membuat SO + kwitansi baru setiap kali dijalankan dan membersihkannya sendiri (tanda `_test_kebpdpt_e2e`); jalankan dengan -n0. Untuk uji layar KEB-PDPT, jalankan `python backend/tests/seed_iter298_frontend.py` (mencetak order id/nomor), lalu `--purge`. PERINGATAN: di Meja Finance JANGAN pakai `[data-testid=\"fin-desk-action-{refId}\"]`.first tanpa membatasi ke kartu antreannya — testid-nya ganda antar-antrean dan klik salah bisa MENERBITKAN Faktur Pajak. Selalu scope: page.locator('[data-testid=\"fin-desk-queue-uang_muka_belum_kirim\"]').locator(...). Navigasi admin: nav-group-penjualan → nav-sales-orders (bukan nav-orders); gudang: nav-group-gudang → nav-wms-operations → wms-tab-inbound. test_fb02_logistics.py punya 5 kegagalan seed-drift yang sudah ada sebelum iterasi ini.",
+  "rca_of_the_issue": "Tidak ada cacat fungsional pada KEB-PDPT maupun lompat-balik-ke-PO. Satu-satunya temuan berdampak: DeskQueueCard menurunkan data-testid baris hanya dari `testPrefix` + `row.ref_id`, sedangkan Meja Finance merender BANYAK antrean dengan testPrefix yang sama; satu pesanan yang muncul di >1 antrean menghasilkan testid duplikat sehingga otomasi (dan pembaca layar/otomasi internal) dapat memicu tombol aksi antrean yang salah — terbukti saat pengujian dengan terbitnya Faktur Pajak KSC/FKT-00003 secara tidak sengaja. Perbaikan: sertakan queue.id dalam testid baris/aksi. Kegagalan test_fb02_logistics.py berakar pada id & nomor dokumen seed yang di-hardcode (KSC/LG-00002, dsgn_cf2ccad1866f) yang sudah tergantikan oleh re-seed/mutasi iterasi berikutnya — masalah data uji, bukan aplikasi."
+}

@@ -18,6 +18,8 @@ export default function SOCompactPanel({ order, onClose, onOpenFull }) {
   const its = order.items || [];
   const qty = its.reduce((s, it) => s + Number(it.qty ?? it.quantity ?? 0), 0);
   const units = [...new Set(its.map((it) => it.unit).filter(Boolean))];
+  const advanceHeld = ["shipped", "partially_shipped", "done"].includes(order.status) ? 0
+    : (order.payments || []).filter((p) => p.gl_bucket === "advance").reduce((s, p) => s + Number(p.amount || 0), 0);
 
   return (
     <div className="section-card self-start" data-testid="so-compact-panel">
@@ -67,6 +69,11 @@ export default function SOCompactPanel({ order, onClose, onOpenFull }) {
           <p data-testid="so-compact-paid-detail" className="text-[10.5px] text-[#6B6B73]">
             Sudah dibayar <span className="font-semibold text-[#1B7F4B]">{formatCurrency(order.paid_total)}</span>
             {" "}dari {formatCurrency(order.grand_total != null ? order.grand_total : order.total_amount)}
+          </p>
+        )}
+        {advanceHeld > 0 && (
+          <p data-testid="so-compact-advance-note" className="rounded-md border border-[#CFE0FF] bg-[#EFF4FF] px-2.5 py-1.5 text-[10.5px] text-[#0B3D91]">
+            Uang muka <span className="font-semibold">{formatCurrency(advanceHeld)}</span> tercatat sebagai kewajiban — pendapatan diakui saat dikirim.
           </p>
         )}
         {order.has_backorder && (

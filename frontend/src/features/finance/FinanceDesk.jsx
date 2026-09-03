@@ -107,7 +107,7 @@ export default function FinanceDesk({ currentUser, selectedEntity = "all", onOpe
           kewenangan Anda, terbitkan denda, dan pantau jatuh tempo.
         </p>
 
-        <section data-testid="fin-desk-metrics" className="grid gap-3 p-3 sm:grid-cols-3">
+        <section data-testid="fin-desk-metrics" className="grid gap-3 p-3 sm:grid-cols-4">
           <Metric icon={Inbox} label="Perlu Ditindak" value={openItems}
                   tone="rgba(255,149,0,.16)" testId="fin-desk-metric-open" />
           <Metric icon={Coins} label="Nilai Antrean" value={formatCurrency(totalMoney)}
@@ -115,6 +115,9 @@ export default function FinanceDesk({ currentUser, selectedEntity = "all", onOpe
           <Metric icon={ShieldAlert} label="Umur Tertua"
                   value={oldest > 0 ? `${oldest} hari` : "hari ini"}
                   tone="rgba(255,59,48,.14)" testId="fin-desk-metric-oldest" />
+          <Metric icon={Coins} label="Uang Muka (Kewajiban)"
+                  value={formatCurrency(desk?.totals?.advance_liability || 0)}
+                  tone="rgba(0,88,204,.14)" testId="fin-desk-metric-advance" />
         </section>
 
         {(desk?.not_my_desk || []).length > 0 && (
@@ -145,7 +148,7 @@ export default function FinanceDesk({ currentUser, selectedEntity = "all", onOpe
         <div className="grid gap-3 xl:grid-cols-2">
           {queues.map((q) => (
             <DeskQueueCard key={q.id} queue={q} busyRef={busyRef} loading={loading}
-                           testPrefix="fin-desk" onAction={handleAction} />
+                           testPrefix="fin-desk" rowTestPrefix={`fin-desk-${q.id}`} onAction={handleAction} />
           ))}
         </div>
       )}

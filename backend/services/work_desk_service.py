@@ -391,11 +391,48 @@ async def finance_desk(actor: Dict[str, Any], scope: Dict[str, Any],
         "PO belum lunas yang sudah lewat / ≤7 hari menuju jatuh tempo bayar (termin kontrak/supplier).",
         hutang_rows, action_label="Bayar", owner="finance"))
 
+    # 7 — KEB-PDPT: uang muka pesanan yang BELUM dikirim. Kebijakan: kas ini kewajiban
+    # (2-1400) sampai barang keluar. Pesanan historis yang pendapatannya sudah diakui
+    # sebelum kebijakan berlaku ditandai "diakui (historis)" — putuskan per kasus.
+    from services import gl_service as _gl
+    belum_kirim = await db.sales_orders.find(
+        _q(scope, {"status": {"$nin": list(_gl.REVENUE_STATUSES | set(_gl.DEAD_STATUSES))},
+                   "paid_total": {"$gt": 0}}),
+        {"_id": 0, "id": 1, "number": 1, "customer_name": 1, "paid_total": 1, "payments": 1,
+         "grand_total": 1, "total_amount": 1, "status": 1, "created_at": 1}
+    ).sort("created_at", 1).to_list(300)
+    diakui_ids = {j["source_id"] async for j in db.journal_entries.find(
+        {"source_type": "sales_order", "status": {"$ne": "void"},
+         "source_id": {"$in": [o["id"] for o in belum_kirim]}}, {"_id": 0, "source_id": 1})}
+    um_rows = []
+    for o in belum_kirim:
+        diakui = o["id"] in diakui_ids
+        um_rows.append(_row(
+            ref_type="sales_order", ref_id=o["id"], number=o.get("number", "—"),
+            title=o.get("customer_name", "—"),
+            subtitle=(("PENDAPATAN SUDAH DIAKUI sebelum kirim (historis) · "
+                       if diakui else "tertahan di 2-1400 Uang Muka Pelanggan · ")
+                      + f"status {o.get('status', '')}"),
+            value=o.get("paid_total") or 0, age_days=_age_days(o.get("created_at")),
+            badge="diakui (historis)" if diakui else "kewajiban",
+            action="Buka", action_kind="open",
+            extra={"revenue_recognized": diakui,
+                   "advance_total": _gl.order_advance_total(o)}))
+    queues.append(_queue(
+        "uang_muka_belum_kirim", "Uang muka pesanan belum dikirim",
+        "Kas sudah masuk, barang belum keluar: kewajiban sampai dikirim. Lencana merah = "
+        "pendapatan historis yang diakui sebelum kebijakan baru.",
+        um_rows, action_label="Buka", owner="finance"))
+
     return {"desk": "finance", "desk_label": "Meja Finance",
             "generated_at": now_iso(), "entity_ids": entity_ids,
             "queues": queues,
             "totals": {"open_items": sum(q["count"] for q in queues),
-                       "ap_overdue": sum(1 for r in hutang_rows if r.get("overdue"))},
+                       "ap_overdue": sum(1 for r in hutang_rows if r.get("overdue")),
+                       "advance_liability": round(sum(r["value"] for r in um_rows
+                                                      if not r.get("revenue_recognized")), 2),
+                       "advance_recognized_legacy": sum(1 for r in um_rows
+                                                        if r.get("revenue_recognized"))},
             "not_my_desk": ["Membuat / mengonfirmasi pesanan",
                             "Keputusan pemenuhan (ambil dari PT lain · reorder)",
                             "Sisi hutang lainnya: tagihan supplier · kontrabon · landed cost"]}

@@ -26,7 +26,7 @@ import SeeAllModal, { SeeAllFooter } from "../../components/SeeAllModal";
 const PREVIEW_ROWS = 5;
 
 export default function DeskQueueCard({
-  queue, onAction, busyRef = "", testPrefix = "desk", defaultOpen, loading = false,
+  queue, onAction, busyRef = "", testPrefix = "desk", rowTestPrefix, defaultOpen, loading = false,
 }) {
   const [open, setOpen] = useState(
     defaultOpen === undefined ? (queue?.count || 0) > 0 : defaultOpen);
@@ -120,7 +120,7 @@ export default function DeskQueueCard({
                 <QueueRow key={`${row.ref_type}-${row.ref_id}-${row.number || i}`}
                           row={row} queue={queue}
                           isQty={isQty} busy={busyRef === row.ref_id}
-                          testPrefix={testPrefix}
+                          testPrefix={rowTestPrefix || testPrefix}
                           onAction={() => onAction?.(row, queue)} />
               ))}
             </div>

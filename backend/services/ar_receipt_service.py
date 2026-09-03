@@ -557,6 +557,20 @@ async def void_receipt(receipt_id: str, actor: Dict[str, Any], reason: str = "")
         o = await db.sales_orders.find_one({"id": oid}, {"_id": 0})
         if not o:
             continue
+        # KEB-PDPT — bila uang muka kwitansi ini sudah direklas ke Piutang (pesanan sudah
+        # dikirim), porsinya dikembalikan dulu supaya jurnal void kas menutup dengan benar.
+        _adv = round(sum(float(p.get("amount") or 0) for p in (o.get("payments") or [])
+                         if p.get("receipt_id") == receipt_id
+                         and p.get("gl_bucket") == "advance"), 2)
+        if _adv > EPS:
+            try:
+                from services import gl_service as _gl
+                await _gl.post_advance_reclass_reversal(o, receipt_id, _adv,
+                                                        label=f"void {r.get('number', '')}")
+            except Exception as exc:  # noqa: BLE001 — kwitansi tetap di-void; jejak untuk audit
+                import logging
+                logging.getLogger("ar_receipt").error(
+                    "Pembalik reklas uang muka %s untuk order %s gagal: %s", receipt_id, oid, exc)
         payments = [p for p in (o.get("payments") or []) if p.get("receipt_id") != receipt_id]
         gt = order_grand_total(o)
         paid = round(sum(float(p.get("amount", 0) or 0) for p in payments), 2)

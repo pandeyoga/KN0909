@@ -27,6 +27,7 @@ export default function OperationsView({
   defaultTab,
   focusDoc,
   onClearFocus,
+  onOpenDocument,
 }) {
   const [wmsTab, setWmsTab] = useState(defaultTab || "stok");
   // T6 DIBAYAR (2026-06c): keputusan dari papan di atas harus ikut menyegarkan
@@ -119,7 +120,8 @@ export default function OperationsView({
           <div className="section-body">
             <InboundScanInterface user={user}
               focusPoId={focusDoc?.focus_type === "purchase_order" ? focusDoc.focus_id : ""}
-              onFocusConsumed={onClearFocus} />
+              onFocusConsumed={onClearFocus}
+              onOpenPO={onOpenDocument ? (poId) => onOpenDocument({ view: "purchasing", nav_id: "purchase-orders", focus_type: "purchase_order", focus_id: poId }) : undefined} />
           </div>
         </div>
       )}

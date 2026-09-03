@@ -292,3 +292,18 @@ tersisa action items minor).
   clear ke trigger → popover terbuka lalu tertutup di klik berikutnya). Kolom Tenggat di blok Tugaskan 140→190px.
 - Bukti: `test_reports/iteration_296.json` FE 7/7 alur lulus; bug minor clear KNDatePicker diperbaiki & diverifikasi Playwright.
 - Catatan state demo: KSC/DSR-00001 kini ditugaskan ke Sari Melati (efek uji); KSC/DSR-00005 dibatalkan (data uji).
+
+## 2026-09-03 — Sesi #089: KEBIJAKAN PENDAPATAN (KEB-PDPT) · Lompat balik ke PO ✅
+- **Kebijakan (disetujui pemilik, tahap 1):** pendapatan & HPP HANYA saat dikirim (`REVENUE_STATUSES`); pembayaran tidak memicu.
+  Kwitansi untuk pesanan belum dikirim → `Dr Kas / Cr 2-1400 Uang Muka Pelanggan`, payments[].gl_bucket="advance".
+  Saat kirim → JE sales_order + sales_cogs + **`advance_reclass`** (Dr 2-1400 / Cr 1-1200). Void kwitansi uang muka setelah reklas →
+  `advance_reclass_reversal` (source_id `{order_id}:{receipt_id}`). Alokasi deposit (G-3) ke pesanan belum dikirim → tetap 2-1400.
+  Historis dibiarkan (prospektif) — tampil di Meja Finance antrean `uang_muka_belum_kirim` badge "diakui (historis)".
+  Helper: `gl_service.order_revenue_posted / order_advance_total / tag_advance_payment / order_advance_unrecognized / post_advance_reclass*`.
+- UI: Meja Finance metrik `fin-desk-metric-advance` + antrean baru (row testid kini `fin-desk-{queueId}-row-{refId}` agar unik);
+  journey `revenue_recognized`/`advance_unrecognized` → `journey-advance-note`; `so-compact-advance-note`.
+- PO ↔ Gudang bolak-balik: `inbound-back-to-po-{taskId}` di panel Scan Receive → detail PO; `receive-goods-button` kembali ke Barang Masuk.
+- `warehouse_admin` mendapat `supplier.view` (hilangkan 403 saat layar PO memuat pemasok).
+- Bukti: `test_reports/iteration_298.json` (BE 18/18, FE 100%), pytest `test_iter297_revenue_policy.py` (layanan) &
+  `test_iter298_kebpdpt_e2e.py` (E2E HTTP, mutating + self-clean). Efek: lubang penomoran SO-00131..133, AR-00010..14, FKT-00003 (terbit tak sengaja saat uji).
+- **Tahap 2 (backlog):** pro-rata pendapatan untuk `partially_shipped` (per surat jalan). `test_fb02_logistics.py` 5 gagal karena seed drift (bukan regresi).

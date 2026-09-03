@@ -5,7 +5,7 @@
  * batas guardrail setelah penambahan input **satuan supplier**. State tetap dikelola
  * parent lewat props — komponen ini murni presentasi + delegasi aksi.
  */
-import { AlertTriangle, Camera, CameraOff, CheckCircle, TrendingUp, X } from "lucide-react";
+import { AlertTriangle, Camera, CameraOff, CheckCircle, FileText, TrendingUp, X } from "lucide-react";
 import InboundScanForm from "../InboundScanForm";
 import ReceiveTrailHistory from "./ReceiveTrailHistory";
 import DocRefsPanel from "../../documents/trace/DocRefsPanel";
@@ -34,7 +34,7 @@ export function TaskBadge({ status }) {
 export default function InboundTaskPanel({
   task, scanData, setScanData, uom,
   cameraActive, scanValue, onStartCamera, onStopCamera,
-  onClose, onScanReceive, onComplete, onEscalate, submitting,
+  onClose, onScanReceive, onComplete, onEscalate, submitting, onOpenPO,
 }) {
   const blocked = uom?.preview?.level === "block";
   const canSubmit = !submitting && Number(scanData.doc_qty) > 0 && !blocked;
@@ -45,10 +45,20 @@ export default function InboundTaskPanel({
           <span className="text-[11px] font-bold uppercase tracking-wide text-[#6B6B73]">Scan Receive</span>
           <TaskBadge status={task.status} />
         </div>
-        <button onClick={onClose} data-testid="inbound-panel-close"
-          className="text-[#6B6B73] hover:text-black" aria-label="Tutup panel">
-          <X size={14} />
-        </button>
+        <div className="flex items-center gap-2">
+          {onOpenPO && task.po_id && (
+            <button type="button" data-testid={`inbound-back-to-po-${task.id}`}
+              onClick={() => onOpenPO(task.po_id)}
+              title={`Kembali ke detail ${task.po_number || "PO"}`}
+              className="inline-flex items-center gap-1 rounded-md border border-[#CFE0FF] bg-white px-2 py-0.5 text-[10.5px] font-semibold text-[#0058CC] hover:bg-[#EFF4FF]">
+              <FileText size={11} /> Ke PO {task.po_number || ""}
+            </button>
+          )}
+          <button onClick={onClose} data-testid="inbound-panel-close"
+            className="text-[#6B6B73] hover:text-black" aria-label="Tutup panel">
+            <X size={14} />
+          </button>
+        </div>
       </div>
 
       <div className="space-y-3 p-3">

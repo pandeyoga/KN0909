@@ -24,7 +24,7 @@ function MiniBar({ pct, status }) {
 const EMPTY_SCAN = { doc_uom: "", doc_qty: "", batch: "", lot: "", dye_lot: "",
                      grade: "A", roll_id: "", bin_id: "" };
 
-export default function InboundScanInterface({ user, focusPoId = "", onFocusConsumed }) {
+export default function InboundScanInterface({ user, focusPoId = "", onFocusConsumed, onOpenPO }) {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetched, setFetched] = useState(false);
@@ -368,6 +368,7 @@ export default function InboundScanInterface({ user, focusPoId = "", onFocusCons
             onComplete={openComplete}
             onEscalate={() => { setEscalateError(""); setShowEscalateModal(true); }}
             submitting={submitting}
+            onOpenPO={onOpenPO}
           />
         ) : (
           <div className="bg-white border border-dashed border-[#E5E5EA] rounded-xl flex items-center justify-center">

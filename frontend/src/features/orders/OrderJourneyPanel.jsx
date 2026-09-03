@@ -111,6 +111,13 @@ export default function OrderJourneyPanel({ orderId, orderNumber }) {
             <Money label="Sisa Tagihan" value={data.outstanding}
                    tone={data.outstanding > 0 ? "#C0392B" : "#1B7F4B"} testId="journey-outstanding" />
           </div>
+          {data.advance_unrecognized > 0 && (
+            <p data-testid="journey-advance-note"
+               className="mx-3 mb-3 rounded-lg border border-[#CFE0FF] bg-[#EFF4FF] px-3 py-2 text-[11px] text-[#0B3D91]">
+              <span className="font-semibold">Uang muka {formatCurrency(data.advance_unrecognized)}</span> tertahan sebagai
+              kewajiban (2-1400 Uang Muka Pelanggan) — pendapatan diakui saat barang dikirim.
+            </p>
+          )}
 
           {/* SUMBER PEMENUHAN — kalimat yang bisa dibacakan ke pelanggan (US12) */}
           {(ful.sentence || (ful.shortages || []).length > 0) && (

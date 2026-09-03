@@ -131,3 +131,8 @@ Pendukung: 3 retur jual (ber-garis waktu milestone), 5 order makloon, **7 alasan
 |---|---|---|---|---|
 | MD / Merchandiser | `md@kainnusantara.id` | Rina Merchandiser | **Meja MD** (`md-desk`) | ent_ksc + ent_kanda; desain, sample/labdip, PR bahan, produk & harga; TANPA uang/gudang |
 | Admin Gudang | `wh.admin@kainnusantara.id` | Hendra Kepala Gudang | **Meja Admin Gudang** (`warehouse-admin-desk`) | ent_ksc + ent_kanda; semua wewenang gudang + tugaskan SPK, setujui opname/transfer, logistik manage |
+
+## Catatan uji Meja Finance (S#089)
+- Baris/aksi antrean Meja Finance ber-testid `fin-desk-{queueId}-row-{refId}` / `fin-desk-{queueId}-action-{refId}` (unik per antrean).
+  Selalu scope ke `fin-desk-queue-{queueId}` — klik `action` antrean lain bisa MENERBITKAN Faktur Pajak.
+- Seed layar KEB-PDPT: `python backend/tests/seed_iter298_frontend.py` lalu `--purge`.

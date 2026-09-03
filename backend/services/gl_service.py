@@ -704,30 +704,94 @@ async def any_posting_for(source_id: str) -> bool:
 
 async def post_order_revenue_and_cogs(order_id: str) -> Dict[str, Any]:
     """F-01 — posting pendapatan + HPP pada PERISTIWA bisnis (dispatch / kwitansi AR),
-    bukan menunggu backfill saat restart. Idempotent (source_type sales_order/sales_cogs)."""
+    bukan menunggu backfill saat restart. Idempotent (source_type sales_order/sales_cogs).
+    KEB-PDPT — uang muka yang tertahan di 2-1400 direklas ke Piutang saat pendapatan lahir."""
     fresh = await db.sales_orders.find_one({"id": order_id}, {"_id": 0})
     if not fresh:
-        return {"revenue": None, "cogs": None}
+        return {"revenue": None, "cogs": None, "advance_reclass": None}
     rev = await post_sales_order(fresh)
     cogs = await post_order_cogs(fresh)
-    return {"revenue": rev, "cogs": cogs}
+    reclass = await post_advance_reclass(fresh)
+    return {"revenue": rev, "cogs": cogs, "advance_reclass": reclass}
 
 
-# ─── Gelombang 1 F-2 — basis pengakuan pendapatan ────────────────────────────
-# Pendapatan HANYA diakui saat barang terkirim (shipped+) ATAU invoice terbayar.
-# Order reserved/confirmed yang belum dikirim & belum dibayar TIDAK berjurnal.
+# ─── KEB-PDPT — kebijakan pengakuan pendapatan (Sesi #089) ───────────────────
+# Pendapatan & HPP HANYA diakui saat barang DIKIRIM (shipped/partially_shipped/done).
+# Pembayaran (uang muka/DP) TIDAK memicu pengakuan: kas yang masuk untuk pesanan yang
+# belum dikirim dibukukan Cr 2-1400 Uang Muka Pelanggan (kewajiban) dan direklas ke
+# Piutang saat pengiriman. Jurnal historis yang pernah diakui karena pembayaran
+# dibiarkan (prospektif); daftarnya muncul di Meja Finance.
 REVENUE_STATUSES = {"shipped", "partially_shipped", "done"}
+ADVANCE_BUCKET = "advance"
 
 
 def _revenue_eligible(order: Dict[str, Any]) -> bool:
-    if order.get("status") in REVENUE_STATUSES:
-        return True
-    if order.get("payment_status") in ("paid", "paid_partial"):
-        return True
-    if float(order.get("paid_total", 0) or 0) > EPS:
-        return True
-    paid = sum(float(p.get("amount", 0) or 0) for p in (order.get("payments") or []))
-    return paid > EPS
+    return order.get("status") in REVENUE_STATUSES
+
+
+async def order_revenue_posted(order_id: str) -> bool:
+    return await _already_posted("sales_order", order_id)
+
+
+def order_advance_total(order: Dict[str, Any]) -> float:
+    """Σ pembayaran ber-`gl_bucket=advance` (kas yang masih tertahan di 2-1400)."""
+    return round(sum(float(p.get("amount") or 0) for p in (order.get("payments") or [])
+                     if p.get("gl_bucket") == ADVANCE_BUCKET), 2)
+
+
+async def tag_advance_payment(order_id: str, receipt_id: str) -> None:
+    """Tandai pembayaran (payments[].receipt_id) sebagai uang muka yang belum diakui."""
+    await db.sales_orders.update_one(
+        {"id": order_id, "payments.receipt_id": receipt_id},
+        {"$set": {"payments.$.gl_bucket": ADVANCE_BUCKET}})
+
+
+async def order_advance_unrecognized(order: Dict[str, Any]) -> float:
+    """Uang muka yang MASIH kewajiban: ada bucket advance dan pendapatannya belum lahir."""
+    adv = order_advance_total(order)
+    if adv <= EPS or await order_revenue_posted(order.get("id", "")):
+        return 0.0
+    return adv
+
+
+async def post_advance_reclass(order: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Saat pendapatan lahir: Dr 2-1400 Uang Muka Pelanggan / Cr 1-1200 Piutang sebesar
+    uang muka yang sudah diterima. Idempotent per order (source_type advance_reclass)."""
+    sid = order.get("id")
+    adv = order_advance_total(order)
+    if not sid or adv <= EPS or not await order_revenue_posted(sid):
+        return None
+    if await _already_posted("advance_reclass", sid):
+        return None
+    num = order.get("number", sid)
+    lines = _balanced_pair(ACC_UANG_MUKA_PELANGGAN, ACC_PIUTANG, adv,
+                           f"Reklas uang muka → piutang {num}")
+    return await _insert_entry(
+        lines=lines, description=f"Uang muka {num} diakui sebagai pelunasan piutang",
+        date=await _revenue_date(order), source_type="advance_reclass", source_id=sid,
+        entity_id=order.get("entity_id", ""), created_by="system", source_label=num)
+
+
+async def post_advance_reclass_reversal(order: Dict[str, Any], receipt_id: str, amount: float,
+                                        *, label: str = "") -> Optional[Dict[str, Any]]:
+    """Kwitansi uang muka dibatalkan SETELAH reklas: kembalikan porsinya ke Piutang
+    (Dr 1-1200 / Cr 2-1400) supaya net bersama jurnal void kas = Dr Piutang / Cr Kas.
+    Konvensi source_id = "{order_id}:{receipt_id}" (reklas asalnya ber-source_id order_id);
+    laporan per pesanan harus memakai regex ^{order_id}(:|$) atau source_label."""
+    sid = order.get("id", "")
+    amount = round(float(amount or 0), 2)
+    if not sid or amount <= EPS or not await _already_posted("advance_reclass", sid):
+        return None
+    src = f"{sid}:{receipt_id}"
+    if await _already_posted("advance_reclass_reversal", src):
+        return None
+    num = order.get("number", sid)
+    lines = _balanced_pair(ACC_PIUTANG, ACC_UANG_MUKA_PELANGGAN, amount,
+                           f"Balik reklas uang muka {num} · {label or receipt_id}")
+    return await _insert_entry(
+        lines=lines, description=f"Pembalikan reklas uang muka {num}", date=now_iso(),
+        source_type="advance_reclass_reversal", source_id=src,
+        entity_id=order.get("entity_id", ""), created_by="system", source_label=num)
 
 
 async def _revenue_date(order: Dict[str, Any]) -> str:
@@ -2070,6 +2134,15 @@ async def post_cash_transaction(txn: Dict[str, Any]) -> Optional[Dict[str, Any]]
                 applied = round(float(r.get("applied_total", amount) or 0), 2)
                 used_dep = round(float(r.get("used_deposit", 0) or 0), 2)
                 unapplied = round(float(r.get("unapplied_amount", 0) or 0), 2)
+                # KEB-PDPT — alokasi ke pesanan yang pendapatannya BELUM lahir (belum
+                # dikirim) adalah uang muka → Cr 2-1400, bukan Cr Piutang.
+                advance = 0.0
+                for al in (r.get("allocations") or []):
+                    oid, amt_al = al.get("order_id"), round(float(al.get("applied") or 0), 2)
+                    if oid and amt_al > EPS and not await order_revenue_posted(oid):
+                        advance = round(advance + amt_al, 2)
+                        await tag_advance_payment(oid, r.get("id", ""))
+                applied = round(applied - advance, 2)
                 lines = [{"account_code": cash_acc, "debit": amount, "credit": 0.0,
                           "description": f"{number} · {desc}"}]
                 if used_dep > EPS:
@@ -2078,6 +2151,10 @@ async def post_cash_transaction(txn: Dict[str, Any]) -> Optional[Dict[str, Any]]
                 if applied > EPS:
                     lines.append({"account_code": ACC_PIUTANG, "debit": 0.0, "credit": applied,
                                   "description": f"{number} · pelunasan AR"})
+                if advance > EPS:
+                    lines.append({"account_code": ACC_UANG_MUKA_PELANGGAN, "debit": 0.0,
+                                  "credit": advance,
+                                  "description": f"{number} · uang muka pesanan belum dikirim"})
                 if unapplied > EPS:
                     lines.append({"account_code": ACC_UANG_MUKA_PELANGGAN, "debit": 0.0,
                                   "credit": unapplied, "description": f"{number} · titipan/deposit"})
@@ -2173,6 +2250,10 @@ async def backfill_journals(entity_id: Optional[str] = None) -> Dict[str, Any]:
     for t in txns:
         if await _guarded("cash_transaction", t.get("id", ""), post_cash_transaction(t)):
             posted_cash += 1
+    # KEB-PDPT — setelah kas (penanda uang muka) terposting: reklas uang muka pesanan
+    # yang sudah berpendapatan ke Piutang.
+    async for o in db.sales_orders.find({**ent_q, "payments.gl_bucket": ADVANCE_BUCKET}, {"_id": 0}):
+        await _guarded("advance_reclass", o.get("id", ""), post_advance_reclass(o))
     # Gelombang 1 F-5 — vendor bills posted/paid yang belum berjurnal.
     # F-03 — tagihan jasa makloon dijurnal `post_subcon_service`, bukan di sini.
     posted_bill = 0

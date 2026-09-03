@@ -506,6 +506,7 @@ async def _allocate_from_deposit(customer_id: str, allocations: List[Dict[str, A
         raise VarianceError(f"Deposit pelanggan tidak cukup (tersedia {_rp(avail)}).")
     rows: List[Dict[str, Any]] = []
     total = 0.0
+    ar_total = 0.0
     for al in allocations or []:
         amt = round(float(al.get("amount") or 0), 2)
         oid = str(al.get("order_id") or "")
@@ -515,9 +516,15 @@ async def _allocate_from_deposit(customer_id: str, allocations: List[Dict[str, A
             oid, amt, decision_id, decision_number, receipt_number, actor)
         rows.append(applied)
         total = round(total + amt, 2)
+        # KEB-PDPT — pesanan tujuan belum dikirim → dananya tetap uang muka (2-1400),
+        # tidak ada perpindahan ke Piutang sampai barang dikirim.
+        if await gl_service.order_revenue_posted(oid):
+            ar_total = round(ar_total + amt, 2)
+        else:
+            await gl_service.tag_advance_payment(oid, decision_id)
     await ars.adjust_deposit(customer_id, -total)
     je = await gl_service.post_variance_reallocation(
-        decision_id=decision_id, entity_id=entity_id, amount=total,
+        decision_id=decision_id, entity_id=entity_id, amount=ar_total,
         label=f"{decision_number} · kelebihan bayar dialihkan", created_by=actor.get("name", ""))
     return {"rows": rows, "total": total, "je_id": (je or {}).get("id", ""),
             "je_number": (je or {}).get("number", "")}
@@ -835,6 +842,7 @@ async def reverse_decision(decision_id: str, reason: str,
             label=f"{d.get('number')} · {reason}", created_by=actor.get("name", "system"))
         undone = {"orders_restored": [r.get("order_number") for r in d.get("orders") or []]}
     elif kind == "allocate":
+        moved_to_ar = 0.0   # KEB-PDPT — hanya porsi yang benar-benar sudah pindah ke Piutang
         for row in d.get("orders") or []:
             oid = row.get("order_id")
             if not oid:
@@ -842,6 +850,15 @@ async def reverse_decision(decision_id: str, reason: str,
             order = await db.sales_orders.find_one({"id": oid}, {"_id": 0})
             if not order:
                 continue
+            for p in (order.get("payments") or []):
+                if p.get("receipt_id") != decision_id:
+                    continue
+                if p.get("gl_bucket") != gl_service.ADVANCE_BUCKET:
+                    moved_to_ar = round(moved_to_ar + float(p.get("amount") or 0), 2)
+                elif await gl_service._already_posted("advance_reclass", oid):
+                    await gl_service.post_advance_reclass_reversal(
+                        order, decision_id, float(p.get("amount") or 0),
+                        label=f"{d.get('number')} · {reason}")
             keep = [p for p in (order.get("payments") or [])
                     if p.get("receipt_id") != decision_id]
             paid = round(sum(float(p.get("amount") or 0) for p in keep), 2)
@@ -858,7 +875,7 @@ async def reverse_decision(decision_id: str, reason: str,
                 pass
         await ars.adjust_deposit(d.get("customer_id", ""), amount)
         rev_je = await gl_service.post_variance_reversal(
-            decision_id=decision_id, entity_id=entity_id, amount=amount,
+            decision_id=decision_id, entity_id=entity_id, amount=moved_to_ar,
             debit_acc=gl_service.ACC_PIUTANG,
             credit_acc=gl_service.ACC_UANG_MUKA_PELANGGAN,
             label=f"{d.get('number')} · {reason}", created_by=actor.get("name", "system"))

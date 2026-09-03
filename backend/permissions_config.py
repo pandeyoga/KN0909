@@ -482,6 +482,7 @@ DEFAULT_PERMISSIONS = {
         "rnd": ["view", "submit"],
         "color": ["view"],
         "makloon": ["view"], "makloon_order": ["view", "issue", "receive", "claim"],
+        "supplier": ["view"],  # S#089 — layar PO memuat daftar pemasok (tanpa ini 403 noise)
         "supplier_contract": ["view"], "supplier_item": ["view"], "process_recipe": ["view"],
         "production": ["view", "create", "release", "complete"],
         "warehouse": ["view", "create", "update"],
