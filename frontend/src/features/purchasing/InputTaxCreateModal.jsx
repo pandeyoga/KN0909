@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import KNDatePicker from "@/components/KNDatePicker";
 import axios, { API } from "../../services/apiClient";
 import { X, Percent } from "lucide-react";
 import { formatCurrency } from "../../utils/formatters";
@@ -89,8 +90,7 @@ export default function InputTaxCreateModal({ open, bills, onClose, onCreated, o
                 className="field tabular-nums" placeholder="010.000-00.00000000" />
             </Field>
             <Field label="Tanggal Faktur Pajak">
-              <input type="date" data-testid="it-faktur-date" value={fakturDate} onChange={(e) => setFakturDate(e.target.value)}
-                className="field" />
+              <KNDatePicker data-testid="it-faktur-date" value={fakturDate} onChange={setFakturDate} />
             </Field>
           </div>
 

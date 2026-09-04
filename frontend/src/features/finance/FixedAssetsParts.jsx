@@ -3,6 +3,7 @@
  * Berisi: AssetStatusPill, FaKpi, AddAssetDialog, ScheduleDialog, DisposeDialog.
  */
 import MoneyInput from "../../components/MoneyInput";
+import KNDatePicker from "@/components/KNDatePicker";
 import { useState } from "react";
 import {
   X, Plus, RefreshCw, PackageMinus, CalendarClock, TrendingUp, TrendingDown,
@@ -76,6 +77,7 @@ export function AddAssetDialog({ meta, entities = [], selectedEntity, busy, onCa
   const salvage = parseFloat(form.salvage_value || 0) || 0;
   const life = parseInt(form.useful_life_months || 0, 10) || 0;
   const monthly = life > 0 && biaya > salvage ? Math.round(((biaya - salvage) / life) * 100) / 100 : 0;
+  const salvageBad = form.salvage_value !== "" && biaya > 0 && salvage >= biaya;
 
   function submit() {
     if (!form.name.trim()) { setLocalErr("Nama aset wajib diisi."); return; }
@@ -130,13 +132,13 @@ export function AddAssetDialog({ meta, entities = [], selectedEntity, busy, onCa
           <div className="grid grid-cols-2 gap-3">
             <label className="grid gap-1">
               <span className="text-[11px] font-semibold text-[#3C3C43]">Harga Perolehan (Rp) *</span>
-              <MoneyInput testId="asset-cost-input" className="field" value={form.acquisition_cost} placeholder="12000000"
+              <MoneyInput testId="asset-cost-input" className="field" value={form.acquisition_cost} placeholder="mis. 12.000.000"
                 onChange={(v) => set("acquisition_cost", v)} />
             </label>
             <label className="grid gap-1">
               <span className="text-[11px] font-semibold text-[#3C3C43]">Tanggal Perolehan</span>
-              <input data-testid="asset-date-input" className="field" type="date" value={form.acquisition_date}
-                onChange={(e) => set("acquisition_date", e.target.value)} />
+              <KNDatePicker data-testid="asset-date-input" value={form.acquisition_date}
+                onChange={(v) => set("acquisition_date", v)} clearable={false} />
             </label>
           </div>
 
@@ -148,7 +150,8 @@ export function AddAssetDialog({ meta, entities = [], selectedEntity, busy, onCa
             </label>
             <label className="grid gap-1">
               <span className="text-[11px] font-semibold text-[#3C3C43]">Nilai Residu (Rp)</span>
-              <MoneyInput testId="asset-salvage-input" className="field" value={form.salvage_value} placeholder="0"
+              <MoneyInput testId="asset-salvage-input" className="field" value={form.salvage_value} placeholder="opsional"
+                invalid={salvageBad} hint={salvageBad ? "Residu harus lebih kecil dari harga perolehan" : undefined}
                 onChange={(v) => set("salvage_value", v)} />
             </label>
           </div>
@@ -181,7 +184,7 @@ export function AddAssetDialog({ meta, entities = [], selectedEntity, busy, onCa
 
         <div className="modal-actions">
           <button data-testid="add-asset-cancel-btn" className="secondary-button" onClick={onCancel}>Batal</button>
-          <button data-testid="add-asset-submit-btn" className="primary-button" disabled={busy} onClick={submit}>
+          <button data-testid="add-asset-submit-btn" className="primary-button" disabled={busy || salvageBad} onClick={submit}>
             {busy ? <RefreshCw size={14} className="animate-spin" /> : <Plus size={14} />} Simpan Aset
           </button>
         </div>
@@ -307,8 +310,7 @@ export function DisposeDialog({ asset, busy, onCancel, onSubmit }) {
           </label>
           <label className="grid gap-1">
             <span className="text-[11px] font-semibold text-[#3C3C43]">Tanggal Pelepasan</span>
-            <input data-testid="dispose-date-input" className="field" type="date" value={date}
-              onChange={(e) => setDate(e.target.value)} />
+            <KNDatePicker data-testid="dispose-date-input" value={date} onChange={setDate} clearable={false} />
           </label>
           <label className="grid gap-1">
             <span className="text-[11px] font-semibold text-[#3C3C43]">Catatan</span>

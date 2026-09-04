@@ -3,6 +3,7 @@
  * Basis tarif BEBAS (D-07) + biaya tambahan + susut standar (D-05) + toleransi (D-09).
  */
 import { useEffect, useMemo, useState } from "react";
+import KNDatePicker from "@/components/KNDatePicker";
 import MoneyInput from "@/components/MoneyInput";
 import { FileText, Plus, Save, Trash2, X } from "lucide-react";
 import axios, { API } from "../../../services/apiClient";
@@ -274,10 +275,10 @@ export default function ContractFormModal({ contract, selectedEntity, onClose, o
               <input data-testid="contract-lead-time" className="field" value={f.lead_time_days} onChange={(e) => set({ lead_time_days: e.target.value })} />
             </Field>
             <Field label="Berlaku dari">
-              <input type="date" data-testid="contract-valid-from" className="field" value={f.valid_from} onChange={(e) => set({ valid_from: e.target.value })} />
+              <KNDatePicker data-testid="contract-valid-from" value={f.valid_from} onChange={(v) => set({ valid_from: v })} />
             </Field>
             <Field label="Berlaku sampai">
-              <input type="date" data-testid="contract-valid-to" className="field" value={f.valid_to} onChange={(e) => set({ valid_to: e.target.value })} />
+              <KNDatePicker data-testid="contract-valid-to" value={f.valid_to} onChange={(v) => set({ valid_to: v })} />
             </Field>
             <div className="md:col-span-4">
               <Field label="Catatan">

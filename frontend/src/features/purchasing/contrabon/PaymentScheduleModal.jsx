@@ -3,6 +3,7 @@
  * Tanggal rencana inilah yang dipakai KPI “jatuh tempo ≤ 7 hari” di layar induk.
  */
 import { useEffect, useMemo, useState } from "react";
+import KNDatePicker from "@/components/KNDatePicker";
 import { X, CalendarCheck } from "lucide-react";
 import axios, { API } from "../../../services/apiClient";
 import ErrorNotice from "../../../components/ErrorNotice";
@@ -78,8 +79,7 @@ export default function PaymentScheduleModal({ cb, onClose, onSaved, onError }) 
             <label className="mb-1 block text-[11px] font-semibold text-[#6B6B73]">
               Tanggal rencana pembayaran (wajib)
             </label>
-            <input data-testid="cb-schedule-date" type="date" className="input-field w-full"
-              value={when} onChange={(e) => setWhen(e.target.value)} />
+            <KNDatePicker data-testid="cb-schedule-date" value={when} onChange={setWhen} clearable={false} />
             <p className="mt-1 text-[10px] text-[#8E8E93]">
               Tanggal ini yang dipakai KPI “jatuh tempo ≤ 7 hari” dan proyeksi arus kas.
             </p>

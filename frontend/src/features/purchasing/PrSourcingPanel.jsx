@@ -7,6 +7,7 @@
  * **Buat Order Makloon** (1 klik → Wizard Makloon ter-prefill dari Resep Proses).
  */
 import { useCallback, useEffect, useState } from "react";
+import KNDatePicker from "@/components/KNDatePicker";
 import { Boxes, RefreshCw, ShoppingCart, TriangleAlert } from "lucide-react";
 import KNSelect from "../../components/KNSelect";
 import { formatQty } from "../../utils/formatters";
@@ -240,8 +241,7 @@ export default function PrSourcingPanel({ pr, suppliers, warehouses, onChanged, 
               </div>
               <div className="grid gap-1.5">
                 <label className="text-[11px] font-bold uppercase text-[#6B6B73]">Estimasi Tanggal Terima</label>
-                <input type="date" className="form-input" value={expDate}
-                  onChange={(e) => setExpDate(e.target.value)} />
+                <KNDatePicker data-testid="pr-sourcing-exp-date" value={expDate} onChange={setExpDate} />
               </div>
               <p className="text-[11px] text-[#6B6B73]">
                 Baris yang akan diproses:{" "}

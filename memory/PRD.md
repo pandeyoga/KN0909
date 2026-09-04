@@ -402,3 +402,14 @@ tersisa action items minor).
 - Belum bisa diuji di data demo: `cb-create-amount-*` (tidak ada tagihan siap), `gen-base-price` (0 template), modal target Sales Force (pemicu tanpa testid).
 - Backlog: tanggal masukan masih pemilih bawaan peramban (mm/dd/yyyy) di form PR/harga/landed/blanket/kontrak/interco/kendaraan → KNDatePicker;
   Aset Tetap validasi residu; `Number()` di submit tidak menerima koma desimal (pakai `parseDecimal` bila perlu).
+
+## 2026-09-04 — Sesi #098: Pemilih tanggal Indonesia (KNDatePicker) di form Pembelian/Harga/Kas Kecil/Aset · KNMonthPicker ✅
+- 34 `type="date"` → `KNDatePicker` (PR, PR detail konversi, sourcing, RFQ buat/penawaran, harga pemasok, landed cost, tagihan pemasok, pajak
+  masukan, blanket & call-off, kontrak mitra, kontrabon (siklus/jatuh tempo/bayar/jadwal), pricelist per PT & per pelanggan, kontrak internal,
+  pinjaman antar-PT, log kendaraan, PD, LPJ, aset tetap perolehan & pelepasan).
+- Komponen baru `components/KNMonthPicker.jsx` (nilai `YYYY-MM`, label "September 2026", testid `-popover/-prev-year/-next-year/-year/-month-MM`)
+  dipakai di periode penyusutan `fa-period-input`. 9 `type="month"` lain (laporan) belum diganti.
+- Aset Tetap: validasi residu langsung (border merah + hint, tombol simpan nonaktif bila residu ≥ harga perolehan).
+- ESC/backdrop dismiss ditambah: SetPriceModal & HistoryModal (PricelistView), SetCustomerPriceModal, ContraBonCreateWizard.
+- Bukti: iteration_309 (semua PASS, 0 error konsol) + self-test ESC berlapis (popover dulu → modal).
+- Tidak teruji di data demo: kontrabon step 2-3, pinjaman antar-PT, call-off, PR convert.

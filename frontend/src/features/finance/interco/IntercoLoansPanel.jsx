@@ -10,6 +10,7 @@
  * kesepakatannya terbaca, bukan supaya angkanya dikarang.
  */
 import MoneyInput from "../../../components/MoneyInput";
+import KNDatePicker from "@/components/KNDatePicker";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Banknote, Plus, RefreshCw, HandCoins, Ban, CheckCircle2 } from "lucide-react";
 import axios, { API } from "../../../services/apiClient";
@@ -274,8 +275,7 @@ function CreateLoanModal({ entities, defaultEntity, onClose, onCreated }) {
             </div>
             <div>
               <label className="mb-1 block text-[11px] font-semibold text-[#4A4B53]">Rencana Kembali</label>
-              <input data-testid="loan-return-date" type="date" className="field"
-                value={returnDate} onChange={(e) => setReturnDate(e.target.value)} />
+              <KNDatePicker data-testid="loan-return-date" value={returnDate} onChange={setReturnDate} />
             </div>
           </div>
           <div>

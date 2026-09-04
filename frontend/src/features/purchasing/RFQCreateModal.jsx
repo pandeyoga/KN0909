@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import KNDatePicker from "@/components/KNDatePicker";
 import axios, { API } from "../../services/apiClient";
 import { X, Plus, Trash2, ClipboardList } from "lucide-react";
 import KNSelect from "../../components/KNSelect";
@@ -137,7 +138,7 @@ export default function RFQCreateModal({ open, selectedEntity, onClose, onCreate
             </div>
           )}
 
-          <Field label="Dibutuhkan Sebelum"><input type="date" data-testid="rfq-needed-date" value={neededBy} onChange={(e) => setNeededBy(e.target.value)} className="field !w-[180px]" /></Field>
+          <Field label="Dibutuhkan Sebelum"><KNDatePicker data-testid="rfq-needed-date" value={neededBy} onChange={setNeededBy} className="!w-[200px]" /></Field>
 
           <div>
             <label className="block text-[11px] font-semibold text-[#4A4B53] mb-1">Undang Supplier <span className="text-red-500">*</span> <span className="text-[#9A9BA3]">({supplierIds.length} dipilih)</span></label>

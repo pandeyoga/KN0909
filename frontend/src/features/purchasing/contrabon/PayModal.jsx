@@ -6,6 +6,7 @@
  * nyata yang ada sebelum fase ini.
  */
 import MoneyInput from "../../../components/MoneyInput";
+import KNDatePicker from "@/components/KNDatePicker";
 import { useEffect, useMemo, useState } from "react";
 import { X, Banknote, Info } from "lucide-react";
 import axios, { API } from "../../../services/apiClient";
@@ -129,8 +130,7 @@ export default function PayModal({ cb, onClose, onPaid, onError }) {
               <label className="mb-1 block text-[11px] font-semibold text-[#6B6B73]">
                 Tanggal pembayaran
               </label>
-              <input data-testid="cb-pay-date" type="date" className="input-field w-full"
-                value={paidAt} onChange={(e) => setPaidAt(e.target.value)} />
+              <KNDatePicker data-testid="cb-pay-date" value={paidAt} onChange={setPaidAt} clearable={false} />
             </div>
           </div>
 

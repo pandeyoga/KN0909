@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import KNDatePicker from "@/components/KNDatePicker";
 import MoneyInput from "@/components/MoneyInput";
 import axios, { API } from "../../services/apiClient";
 import { X, Ship, Plus, Trash2, Layers } from "lucide-react";
@@ -165,10 +166,10 @@ export default function LandedCostCreateModal({ open, pos, selectedEntity, onClo
           </div>
           <div className="grid grid-cols-3 gap-3">
             <Field label="Tanggal Voucher">
-              <input data-testid="lc-voucher-date" type="date" value={voucherDate} onChange={(e) => setVoucherDate(e.target.value)} className="field" />
+              <KNDatePicker data-testid="lc-voucher-date" value={voucherDate} onChange={setVoucherDate} />
             </Field>
             <Field label="Jatuh Tempo">
-              <input data-testid="lc-due-date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="field" />
+              <KNDatePicker data-testid="lc-due-date" value={dueDate} onChange={setDueDate} />
             </Field>
             <Field label="Catatan">
               <input value={notes} onChange={(e) => setNotes(e.target.value)} className="field" placeholder="opsional" />

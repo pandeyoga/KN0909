@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import KNDatePicker from "@/components/KNDatePicker";
 import MoneyInput from "@/components/MoneyInput";
 import { overlayDismiss } from "@/utils/overlayDismiss";
 import { useEscapeClose } from "@/utils/escapeLayers";
@@ -191,12 +192,10 @@ export default function BlanketPOCreateModal({ open, selectedEntity, onClose, on
                 className="field" placeholder="Pilih gudang..." data-testid="blanket-warehouse-select" />
             </Field>
             <Field label="Berlaku Mulai">
-              <input type="date" data-testid="blanket-valid-from" value={validFrom}
-                onChange={(e) => setValidFrom(e.target.value)} className="field" />
+              <KNDatePicker data-testid="blanket-valid-from" value={validFrom} onChange={setValidFrom} />
             </Field>
             <Field label="Berlaku Sampai">
-              <input type="date" data-testid="blanket-valid-until" value={validUntil}
-                onChange={(e) => setValidUntil(e.target.value)} className="field" />
+              <KNDatePicker data-testid="blanket-valid-until" value={validUntil} onChange={setValidUntil} />
               <p className="text-[10px] text-[#9A9BA3] mt-0.5">Kosongkan = tanpa kadaluarsa</p>
             </Field>
           </div>

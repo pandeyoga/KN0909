@@ -1,4 +1,5 @@
 import MoneyInput from "../../components/MoneyInput";
+import KNDatePicker from "@/components/KNDatePicker";
 import { useEffect, useMemo, useState } from "react";
 import axios, { API } from "../../services/apiClient";
 import {
@@ -381,7 +382,7 @@ function CreateForm({ products, warehouses, suppliers, selectedEntity, onCancel,
             </div>
             <div className="grid gap-1.5">
               <label className="text-[11px] font-bold uppercase text-[#6B6B73]">Dibutuhkan Sebelum</label>
-              <input type="date" data-testid="pr-needed-by" className="form-input" value={neededBy} onChange={(e) => setNeededBy(e.target.value)} />
+              <KNDatePicker data-testid="pr-needed-by" value={neededBy} onChange={setNeededBy} />
             </div>
             <div className="grid gap-1.5">
               <label className="text-[11px] font-bold uppercase text-[#6B6B73]">Alasan / Justifikasi</label>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import KNDatePicker from "@/components/KNDatePicker";
 import axios, { API } from "../../services/apiClient";
 import {
   ArrowLeft, CheckCircle2, XCircle, Send, ShoppingCart, AlertTriangle, Ban, Printer, Pencil,
@@ -209,7 +210,7 @@ export default function DetailPanel({ pr, canApprove, suppliers, warehouses, onB
               </div>
               <div className="grid gap-1.5">
                 <label className="text-[11px] font-bold uppercase text-[#6B6B73]">Estimasi Tanggal Terima</label>
-                <input type="date" className="form-input" value={convDate} onChange={(e) => setConvDate(e.target.value)} />
+                <KNDatePicker data-testid="pr-convert-date" value={convDate} onChange={setConvDate} />
               </div>
             </div>
             <div className="modal-actions">

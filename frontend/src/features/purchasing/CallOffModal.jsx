@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import KNDatePicker from "@/components/KNDatePicker";
 import MoneyInput from "@/components/MoneyInput";
 import axios, { API } from "../../services/apiClient";
 import { X, PackagePlus, AlertTriangle } from "lucide-react";
@@ -170,7 +171,7 @@ export default function CallOffModal({ open, blanket, onClose, onCreated, onErro
             </div>
             <div>
               <label className="block text-[11px] font-semibold text-[#4A4B53] mb-1">Perkiraan Tiba</label>
-              <input type="date" data-testid="calloff-eta" value={eta} onChange={(e) => setEta(e.target.value)} className="field" />
+              <KNDatePicker data-testid="calloff-eta" value={eta} onChange={setEta} />
             </div>
           </div>
 

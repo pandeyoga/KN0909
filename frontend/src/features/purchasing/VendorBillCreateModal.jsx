@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import KNDatePicker from "@/components/KNDatePicker";
 import MoneyInput from "@/components/MoneyInput";
 import axios, { API } from "../../services/apiClient";
 import { X, Scale, AlertTriangle, CheckCircle2 } from "lucide-react";
@@ -159,10 +160,10 @@ export default function VendorBillCreateModal({ open, pos, selectedEntity, onClo
           </div>
           <div className="grid grid-cols-3 gap-3">
             <Field label="Tanggal Bill">
-              <input data-testid="vb-bill-date" type="date" value={billDate} onChange={(e) => setBillDate(e.target.value)} className="field" />
+              <KNDatePicker data-testid="vb-bill-date" value={billDate} onChange={setBillDate} />
             </Field>
             <Field label="Jatuh Tempo">
-              <input data-testid="vb-due-date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="field" />
+              <KNDatePicker data-testid="vb-due-date" value={dueDate} onChange={setDueDate} />
             </Field>
             <Field label="Catatan">
               <input value={notes} onChange={(e) => setNotes(e.target.value)} className="field" placeholder="opsional" />

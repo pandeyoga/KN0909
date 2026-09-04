@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import KNDatePicker from "@/components/KNDatePicker";
 import MoneyInput from "@/components/MoneyInput";
 import axios, { API } from "../../services/apiClient";
 import { X, Send, Award, Ban, CheckCircle2, Pencil } from "lucide-react";
@@ -203,7 +204,7 @@ export default function RFQDetailPanel({ rfqId, currentUser, onClose, onChanged 
               </div>
               <div className="grid grid-cols-2 gap-2 mt-2">
                 <input type="number" value={quoteMeta.lead_time_days} onChange={(e) => setQuoteMeta((m) => ({ ...m, lead_time_days: e.target.value }))} className="field" placeholder="Lead time (hari)" />
-                <input type="date" value={quoteMeta.valid_until} onChange={(e) => setQuoteMeta((m) => ({ ...m, valid_until: e.target.value }))} className="field" />
+                <KNDatePicker data-testid="rfq-quote-valid-until" placeholder="Penawaran berlaku s/d" value={quoteMeta.valid_until} onChange={(v) => setQuoteMeta((m) => ({ ...m, valid_until: v }))} />
               </div>
               <div className="flex justify-end gap-2 mt-2">
                 <button onClick={() => setQuoteFor(null)} className="secondary-button">Tutup</button>

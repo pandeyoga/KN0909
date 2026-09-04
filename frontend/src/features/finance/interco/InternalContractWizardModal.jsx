@@ -6,6 +6,7 @@
  * dengan `pricing_mode="fixed_price"` untuk barang itu langsung SIAP DITERBITKAN.
  */
 import { useEffect, useState } from "react";
+import KNDatePicker from "@/components/KNDatePicker";
 import MoneyInput from "@/components/MoneyInput";
 import { X, Handshake } from "lucide-react";
 import axios, { API } from "../../../services/apiClient";
@@ -113,18 +114,10 @@ export default function InternalContractWizardModal({
               />
             </Field>
             <Field label="Berlaku sejak">
-              <input
-                type="date" value={validFrom} onChange={(e) => setValidFrom(e.target.value)}
-                data-testid="interco-contract-valid-from"
-                className="w-full px-3 py-2 text-sm border border-[#E5E5EA] rounded-lg"
-              />
+              <KNDatePicker value={validFrom} onChange={setValidFrom} data-testid="interco-contract-valid-from" clearable={false} />
             </Field>
             <Field label="Berlaku hingga (opsional)">
-              <input
-                type="date" value={validTo} onChange={(e) => setValidTo(e.target.value)}
-                data-testid="interco-contract-valid-to"
-                className="w-full px-3 py-2 text-sm border border-[#E5E5EA] rounded-lg"
-              />
+              <KNDatePicker value={validTo} onChange={setValidTo} data-testid="interco-contract-valid-to" placeholder="Tanpa batas" />
             </Field>
           </div>
 

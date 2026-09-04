@@ -7,6 +7,9 @@
  * keputusan server, jadi peringatan di layar tidak mungkin berbeda.
  */
 import { useCallback, useEffect, useState } from "react";
+import { overlayDismiss } from "@/utils/overlayDismiss";
+import { useEscapeClose } from "@/utils/escapeLayers";
+import KNDatePicker from "@/components/KNDatePicker";
 import MoneyInput from "@/components/MoneyInput";
 import { AlertTriangle, Save, ShieldAlert, Tag, TrendingUp, X } from "lucide-react";
 import axios, { API } from "../../../services/apiClient";
@@ -21,6 +24,7 @@ export default function SetCustomerPriceModal({
   const [validUntil, setValidUntil] = useState("");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
+  useEscapeClose(true, onClose, saving);
   const [floor, setFloor] = useState(null);
   const [checking, setChecking] = useState(false);
 
@@ -67,7 +71,7 @@ export default function SetCustomerPriceModal({
 
   return (
     <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/40 p-4"
-      data-testid="cpl-setprice-modal">
+      data-testid="cpl-setprice-modal" {...overlayDismiss(onClose)}>
       <div className="w-full max-w-lg rounded-xl bg-white shadow-xl">
         <div className="flex items-center gap-2 border-b border-[#EFF0F2] px-4 py-3">
           <Tag size={16} className="text-[#0058CC]" />
@@ -143,15 +147,13 @@ export default function SetCustomerPriceModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-[11px] font-semibold text-[#6B6B73]">Berlaku Mulai</label>
-              <input data-testid="cpl-input-from" type="date" className="field py-2 text-[13px]"
-                value={validFrom} onChange={(e) => setValidFrom(e.target.value)} />
+              <KNDatePicker data-testid="cpl-input-from" value={validFrom} onChange={setValidFrom} />
             </div>
             <div>
               <label className="mb-1 block text-[11px] font-semibold text-[#6B6B73]">
                 Berlaku Sampai <span className="font-normal text-[#9A9BA3]">(opsional)</span>
               </label>
-              <input data-testid="cpl-input-until" type="date" className="field py-2 text-[13px]"
-                value={validUntil} onChange={(e) => setValidUntil(e.target.value)} />
+              <KNDatePicker data-testid="cpl-input-until" value={validUntil} onChange={setValidUntil} />
             </div>
           </div>
           <div>

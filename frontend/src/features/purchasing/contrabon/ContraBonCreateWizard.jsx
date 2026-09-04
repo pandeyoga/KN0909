@@ -8,6 +8,8 @@
  * dipegang kontrabon lain (INV-CB-01).
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEscapeClose } from "@/utils/escapeLayers";
+import KNDatePicker from "@/components/KNDatePicker";
 import MoneyInput from "@/components/MoneyInput";
 import { X, Plus, ChevronRight, ChevronLeft, Info, AlertTriangle, PackageSearch } from "lucide-react";
 import axios, { API } from "../../../services/apiClient";
@@ -41,6 +43,7 @@ export default function ContraBonCreateWizard({ suppliers, presetSupplierId, sel
   const [submitNow, setSubmitNow] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  useEscapeClose(true, onClose, saving);
   const [err, setErr] = useState("");
 
   const supplierOptions = useMemo(
@@ -366,15 +369,13 @@ export default function ContraBonCreateWizard({ suppliers, presetSupplierId, sel
                   <label className="mb-1 block text-[11px] font-semibold text-[#6B6B73]">
                     Tanggal tukar faktur
                   </label>
-                  <input data-testid="cb-create-cycle-date" type="date" className="input-field w-full"
-                    value={cycleDate} onChange={(e) => setCycleDate(e.target.value)} />
+                  <KNDatePicker data-testid="cb-create-cycle-date" value={cycleDate} onChange={setCycleDate} clearable={false} />
                 </div>
                 <div>
                   <label className="mb-1 block text-[11px] font-semibold text-[#6B6B73]">
                     Jatuh tempo pembayaran
                   </label>
-                  <input data-testid="cb-create-due-date" type="date" className="input-field w-full"
-                    value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+                  <KNDatePicker data-testid="cb-create-due-date" value={dueDate} onChange={setDueDate} />
                   <p className="mt-1 text-[10px] text-[#8E8E93]">
                     Diusulkan dari termin supplier ({(prep?.suggested || {}).term_days || 0} hari).
                   </p>

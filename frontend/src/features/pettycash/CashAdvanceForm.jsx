@@ -1,4 +1,5 @@
 import MoneyInput from "../../components/MoneyInput";
+import KNDatePicker from "@/components/KNDatePicker";
 import { useMemo, useState } from "react";
 import axios, { API } from "../../services/apiClient";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
@@ -95,13 +96,13 @@ export default function CashAdvanceForm({ record, entities, selectedEntity, onCa
               <input data-testid="ca-kegiatan" className="form-input" value={kegiatan} onChange={(e) => setKegiatan(e.target.value)} placeholder="mis. Operasional pameran" />
             </Field>
             <Field label="Tanggal Pengajuan">
-              <input type="date" data-testid="ca-tanggal" className="form-input" value={tanggal} onChange={(e) => setTanggal(e.target.value)} />
+              <KNDatePicker data-testid="ca-tanggal" value={tanggal} onChange={setTanggal} clearable={false} />
             </Field>
             <Field label="Periode Dari">
-              <input type="date" data-testid="ca-period-from" className="form-input" value={periodFrom} onChange={(e) => setPeriodFrom(e.target.value)} />
+              <KNDatePicker data-testid="ca-period-from" value={periodFrom} onChange={setPeriodFrom} />
             </Field>
             <Field label="Periode Sampai">
-              <input type="date" data-testid="ca-period-to" className="form-input" value={periodTo} onChange={(e) => setPeriodTo(e.target.value)} />
+              <KNDatePicker data-testid="ca-period-to" value={periodTo} onChange={setPeriodTo} />
             </Field>
           </div>
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import KNDatePicker from "@/components/KNDatePicker";
 import MoneyInput from "@/components/MoneyInput";
 import axios, { API } from "../../services/apiClient";
 import { Plus, Pencil, Power, Tag, X, RefreshCw, AlertTriangle } from "lucide-react";
@@ -189,13 +190,13 @@ export default function SupplierPriceList({ supplierId, canManage }) {
             </div>
             <div>
               <label className="block text-[10.5px] font-semibold text-[#6B6B73] mb-1">Berlaku Dari</label>
-              <input data-testid="price-validfrom-input" type="date" value={form.valid_from}
-                onChange={(e) => setForm({ ...form, valid_from: e.target.value })} className="field" />
+              <KNDatePicker data-testid="price-validfrom-input" value={form.valid_from}
+                onChange={(v) => setForm({ ...form, valid_from: v })} />
             </div>
             <div>
               <label className="block text-[10.5px] font-semibold text-[#6B6B73] mb-1">Berlaku Sampai</label>
-              <input data-testid="price-validuntil-input" type="date" value={form.valid_until}
-                onChange={(e) => setForm({ ...form, valid_until: e.target.value })} className="field" />
+              <KNDatePicker data-testid="price-validuntil-input" value={form.valid_until}
+                onChange={(v) => setForm({ ...form, valid_until: v })} />
             </div>
           </div>
       </FormModal>

@@ -20,6 +20,9 @@
  * "Harga per Pelanggan".
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { overlayDismiss } from "@/utils/overlayDismiss";
+import { useEscapeClose } from "@/utils/escapeLayers";
+import KNDatePicker from "@/components/KNDatePicker";
 import MoneyInput from "@/components/MoneyInput";
 import {
   Tag, RefreshCw, Search, Plus, History, X, Download, Upload, Save,
@@ -373,6 +376,7 @@ function SetPriceModal({ row, entityId, entityName, onClose, onSaved, onError })
   const [validUntil, setValidUntil] = useState("");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
+  useEscapeClose(true, onClose, saving);
   const [localError, setLocalError] = useState("");
 
   const numeric = parseFloat(price);
@@ -397,7 +401,7 @@ function SetPriceModal({ row, entityId, entityName, onClose, onSaved, onError })
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" data-testid="pl-setprice-modal">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" data-testid="pl-setprice-modal" {...overlayDismiss(onClose)}>
       <div className="w-full max-w-md rounded-xl bg-white shadow-xl">
         <div className="flex items-center gap-2 border-b border-[#EFF0F2] px-4 py-3">
           <Tag size={16} className="text-[#6B219A]" />
@@ -436,15 +440,13 @@ function SetPriceModal({ row, entityId, entityName, onClose, onSaved, onError })
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-[11px] font-semibold text-[#6B6B73]">Berlaku mulai</label>
-              <input data-testid="pl-input-from" type="date" className="field py-2 text-[13px]"
-                value={validFrom} onChange={(e) => setValidFrom(e.target.value)} />
+              <KNDatePicker data-testid="pl-input-from" value={validFrom} onChange={setValidFrom} />
             </div>
             <div>
               <label className="mb-1 block text-[11px] font-semibold text-[#6B6B73]">
                 Berlaku sampai <span className="font-normal text-[#9A9BA3]">(opsional)</span>
               </label>
-              <input data-testid="pl-input-until" type="date" className="field py-2 text-[13px]"
-                value={validUntil} onChange={(e) => setValidUntil(e.target.value)} />
+              <KNDatePicker data-testid="pl-input-until" value={validUntil} onChange={setValidUntil} />
             </div>
           </div>
           <div>
@@ -474,6 +476,7 @@ function SetPriceModal({ row, entityId, entityName, onClose, onSaved, onError })
 function HistoryModal({ row, entityId, entities, canManage, onClose, onChanged }) {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
+  useEscapeClose(true, onClose, false);
   const [err, setErr] = useState("");
 
   const load = useCallback(async () => {

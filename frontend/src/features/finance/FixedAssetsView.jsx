@@ -5,6 +5,7 @@
  * Disposal: gain/loss = proceeds − nilai buku (append-only; aset → status disposed).
  */
 import MoneyInput from "../../components/MoneyInput";
+import KNMonthPicker from "@/components/KNMonthPicker";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   RefreshCw, Building2, Plus, PlayCircle, CalendarClock, PackageMinus,
@@ -212,9 +213,8 @@ export default function FixedAssetsView({ selectedEntity, entities = [] }) {
             </div>
           </div>
           <label className="grid gap-1">
-            <span className="text-[10px] font-bold uppercase tracking-wide text-[#8E8E93]">Periode (YYYY-MM)</span>
-            <input data-testid="fa-period-input" className="field w-[130px] text-[12px]" type="month"
-              value={period} onChange={(e) => setPeriod(e.target.value)} />
+            <span className="text-[10px] font-bold uppercase tracking-wide text-[#8E8E93]">Periode</span>
+            <KNMonthPicker data-testid="fa-period-input" className="w-[170px] text-[12px]" value={period} onChange={setPeriod} />
           </label>
           <button data-testid="run-depreciation-btn" className="primary-button" disabled={busy === "run"}
             onClick={runDepreciation}>
