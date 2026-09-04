@@ -6,6 +6,7 @@
  * Setiap aksi menampilkan kalimat "apa yang akan terjadi" + dokumen turunan yang lahir,
  * supaya petugas tahu akibatnya SEBELUM menekan tombol.
  */
+import MoneyInput from "../../../components/MoneyInput";
 import { useEffect, useMemo, useState } from "react";
 import { X, Wand2, FileCheck2, AlertTriangle } from "lucide-react";
 import axios, { API } from "../../../services/apiClient";
@@ -272,9 +273,7 @@ export default function CasePlaybookWizard({ caseData, reasons, entities, custom
                 <label className="mb-1 block text-[11px] font-semibold text-[#6B6B73]">
                   Nominal (Rp)
                 </label>
-                <input data-testid="case-field-amount" type="number" min={0}
-                  className="input-field w-full" value={amount}
-                  onChange={(e) => setAmount(e.target.value)} />
+                <MoneyInput testId="case-field-amount" className="input-field w-full" value={amount} onChange={(v) => setAmount(v)} />
               </div>
             )}
           </div>

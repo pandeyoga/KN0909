@@ -1,3 +1,4 @@
+import MoneyInput from "../../components/MoneyInput";
 import { useMemo, useState } from "react";
 import axios, { API } from "../../services/apiClient";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
@@ -114,7 +115,7 @@ export default function CashAdvanceForm({ record, entities, selectedEntity, onCa
                 <input data-testid={`ca-line-desc-${i}`} className="form-input" value={l.description} onChange={(e) => updLine(i, "description", e.target.value)} placeholder="Uraian item / biaya" />
                 <input type="number" data-testid={`ca-line-qty-${i}`} className="form-input text-right" value={l.qty} onChange={(e) => updLine(i, "qty", e.target.value)} placeholder="0" />
                 <KNSelect data-testid={`ca-line-satuan-${i}`} className="form-input" value={l.satuan} onValueChange={(v) => updLine(i, "satuan", v)} options={SATUAN_OPTIONS} />
-                <input type="number" data-testid={`ca-line-price-${i}`} className="form-input text-right" value={l.unit_price} onChange={(e) => updLine(i, "unit_price", e.target.value)} placeholder="0" />
+                <MoneyInput testId={`ca-line-price-${i} className="form-input text-right" value={l.unit_price} placeholder="0" onChange={(v) => updLine(i, "unit_price", v)} />
                 <span className="text-[12px] tabular-nums text-right font-semibold">{formatCurrency((Number(l.qty) || 0) * (Number(l.unit_price) || 0))}</span>
                 <button className="icon-button text-red-500" onClick={() => rmLine(i)} aria-label="Hapus baris"><Trash2 size={14} /></button>
               </div>

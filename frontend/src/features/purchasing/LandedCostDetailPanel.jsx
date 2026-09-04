@@ -1,3 +1,4 @@
+import MoneyInput from "../../components/MoneyInput";
 import { useState } from "react";
 import axios, { API } from "../../services/apiClient";
 import { X, CheckCircle2, Wallet, Send, XCircle, Ban, Layers } from "lucide-react";
@@ -147,7 +148,7 @@ export default function LandedCostDetailPanel({ voucher, canApprove, currentUser
             <div className="rounded-md border border-[#EFF0F2] p-3 space-y-2.5" data-testid="lc-pay-panel">
               <div className="grid grid-cols-3 gap-2.5">
                 <Field label="Nominal Bayar">
-                  <input data-testid="lc-pay-amount" type="number" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} className="field" placeholder={`maks ${fin.outstanding}`} />
+                  <MoneyInput testId="lc-pay-amount" className="field" value={payAmount} onChange={(v) => setPayAmount(v)} />
                 </Field>
                 <Field label="Sumber Kas">
                   <KNSelect data-testid="lc-pay-cashtype" value={cashType} onValueChange={setCashType} className="field"

@@ -2,6 +2,7 @@
  * SupplierItemFormModal (FASE E) — buat/ubah satu Barang Supplier.
  * Menerjemahkan KODE & NAMA versi supplier ↔ SKU KN + konversi satuan (E-03).
  */
+import MoneyInput from "../../../components/MoneyInput";
 import { useEffect, useMemo, useState } from "react";
 import { Save, X } from "lucide-react";
 import KNSelect from "../../../components/KNSelect";
@@ -155,8 +156,7 @@ export default function SupplierItemFormModal({
           </div>
           <div className="grid gap-1.5">
             <label className="text-[11px] font-bold uppercase text-[#6B6B73]">Harga Terakhir (per satuan supplier)</label>
-            <input type="number" data-testid="supplier-item-price" className="form-input"
-              value={form.last_price} onChange={(e) => set("last_price", e.target.value)} />
+            <MoneyInput testId="supplier-item-price" className="form-input" value={form.last_price} onChange={(v) => set("last_price", v)} />
           </div>
           <div className="grid gap-1.5">
             <label className="text-[11px] font-bold uppercase text-[#6B6B73]">MOQ</label>

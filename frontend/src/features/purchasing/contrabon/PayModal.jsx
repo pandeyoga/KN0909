@@ -5,6 +5,7 @@
  * subledger hutang (`vendor_bills`) dan buku besar akhirnya rekonsiliasi — celah
  * nyata yang ada sebelum fase ini.
  */
+import MoneyInput from "../../../components/MoneyInput";
 import { useEffect, useMemo, useState } from "react";
 import { X, Banknote, Info } from "lucide-react";
 import axios, { API } from "../../../services/apiClient";
@@ -119,9 +120,7 @@ export default function PayModal({ cb, onClose, onPaid, onError }) {
               <label className="mb-1 block text-[11px] font-semibold text-[#6B6B73]">
                 Nominal dibayar (Rp)
               </label>
-              <input data-testid="cb-pay-amount" type="number" min={0} step={1000}
-                className="input-field w-full" value={amount}
-                onChange={(e) => setAmount(e.target.value)} />
+              <MoneyInput testId="cb-pay-amount" className="input-field w-full" value={amount} onChange={(v) => setAmount(v)} />
               <p className="mt-1 text-[10px] text-[#8E8E93]">
                 Kosongkan untuk melunasi seluruh sisa bersih. Pembayaran sebagian diizinkan.
               </p>

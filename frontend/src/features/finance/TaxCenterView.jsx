@@ -8,6 +8,7 @@
  *    hanya mengantar ke kartu setting yang tepat.
  * Sumber: GET /api/tax/summary · POST/DELETE /api/tax/pph-records.
  */
+import MoneyInput from "../../components/MoneyInput";
 import { useCallback, useEffect, useState } from "react";
 import {
   Receipt, ShieldCheck, Wallet, TrendingUp, TrendingDown, RefreshCw, Plus,
@@ -380,7 +381,7 @@ function PphRecordModal({ item, entityId, period, onClose, onSaved }) {
           <p className="text-[11px] text-[#6B6B73]">Periode <b>{fmtPeriod(period)}</b> · Tarif <b>{item.rate}%</b>. PPh dihitung otomatis = DPP × tarif.</p>
           <label className="grid gap-1">
             <span className="text-[11px] font-semibold text-[#3C3C43]">Dasar Pengenaan Pajak (DPP)</span>
-            <input data-testid="tax-pph-modal-dpp" type="number" min="0" className="field" placeholder="mis. 10000000" value={dpp} onChange={(e) => setDpp(e.target.value)} />
+            <MoneyInput testId="tax-pph-modal-dpp" className="field" value={dpp} placeholder="mis. 10000000" onChange={(v) => setDpp(v)} />
           </label>
           <label className="grid gap-1">
             <span className="text-[11px] font-semibold text-[#3C3C43]">Keterangan (opsional)</span>

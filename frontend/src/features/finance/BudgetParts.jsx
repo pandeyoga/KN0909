@@ -114,9 +114,7 @@ export function BudgetTable({ rows, editId, editAmount, setEditAmount, onEdit, o
               </td>
               <td className="px-3 py-2 text-right tabular-nums text-[#6B219A] font-semibold">
                 {editId === r.id ? (
-                  <input type="number" data-testid={`budget-edit-input-${r.key}`}
-                    className="field py-1 text-[11px] w-28 text-right" value={editAmount}
-                    onChange={(e) => setEditAmount(e.target.value)} />
+                  <MoneyInput testId={`budget-edit-input-${r.key}`} className="field py-1 text-[11px] w-28 text-right" value={editAmount} onChange={(v) => setEditAmount(v)} />
                 ) : formatCurrency(r.budget)}
               </td>
               <td className="px-3 py-2 text-right tabular-nums text-[#C77700]"

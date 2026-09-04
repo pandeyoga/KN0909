@@ -6,6 +6,7 @@
  * bisa diubah, ditambah, dan dihapus. Validasi Σ ditampilkan LIVE supaya user tahu
  * sebelum menyimpan, bukan setelah ditolak server.
  */
+import MoneyInput from "../../../components/MoneyInput";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Loader2, Plus, Trash2, Wand2 } from "lucide-react";
 import KNSelect from "../../../components/KNSelect";
@@ -169,9 +170,7 @@ export default function PaymentPlanBuilder({
                     data-testid={`ppb-due-${i}`} onChange={(e) => patch(i, "due_date", e.target.value)} />
                 </td>
                 <td className="px-1 py-1 text-right">
-                  <input type="number" className="field !py-0.5 !w-[130px] text-right tabular-nums"
-                    value={l.amount} data-testid={`ppb-amount-${i}`}
-                    onChange={(e) => patch(i, "amount", e.target.value)} />
+                  <MoneyInput testId={`ppb-amount-${i} className="field !py-0.5 !w-[130px] text-right tabular-nums" value={l.amount} onChange={(v) => patch(i, "amount", v)} />
                 </td>
                 <td className="px-1 py-1">
                   <div className="flex items-center gap-1">

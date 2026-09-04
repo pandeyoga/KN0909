@@ -4,6 +4,7 @@
  * GL: Dr 6-6000 Beban Penyusutan / Cr 1-2900 Akumulasi Penyusutan.
  * Disposal: gain/loss = proceeds − nilai buku (append-only; aset → status disposed).
  */
+import MoneyInput from "../../components/MoneyInput";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   RefreshCw, Building2, Plus, PlayCircle, CalendarClock, PackageMinus,
@@ -391,9 +392,7 @@ export default function FixedAssetsView({ selectedEntity, entities = [] }) {
                 <label className="mb-1 block text-[11px] font-semibold text-[#4A4B53]">
                   Harga Pindah <span className="font-normal text-[#9A9BA3]">(kosong = nilai buku)</span>
                 </label>
-                <input data-testid="asset-transfer-price" type="number" className="field"
-                  value={trPrice} onChange={(e) => setTrPrice(e.target.value)}
-                  placeholder={String(transferFor.book_value)} />
+                <MoneyInput testId="asset-transfer-price" className="field" value={trPrice} onChange={(v) => setTrPrice(v)} />
               </div>
               <div>
                 <label className="mb-1 block text-[11px] font-semibold text-[#4A4B53]">Alasan Pindah *</label>

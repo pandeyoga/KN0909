@@ -1,3 +1,4 @@
+import MoneyInput from "../../components/MoneyInput";
 import { useEffect, useMemo, useState } from "react";
 import axios, { API } from "../../services/apiClient";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
@@ -109,7 +110,7 @@ export default function SettlementForm({ categories, preselectPd, selectedEntity
                 <input type="date" data-testid={`stl-line-date-${i}`} className="form-input" value={l.date} onChange={(e) => updLine(i, "date", e.target.value)} />
                 <input data-testid={`stl-line-desc-${i}`} className="form-input" value={l.description} onChange={(e) => updLine(i, "description", e.target.value)} placeholder="Uraian pengeluaran" />
                 <KNSelect data-testid={`stl-line-cat-${i}`} className="form-input" value={l.category} onValueChange={(v) => updLine(i, "category", v)} options={catOptions} />
-                <input type="number" data-testid={`stl-line-amount-${i}`} className="form-input text-right" value={l.amount} onChange={(e) => updLine(i, "amount", e.target.value)} placeholder="0" />
+                <MoneyInput testId={`stl-line-amount-${i} className="form-input text-right" value={l.amount} placeholder="0" onChange={(v) => updLine(i, "amount", v)} />
                 <button className="icon-button text-red-500" onClick={() => rmLine(i)} aria-label="Hapus"><Trash2 size={14} /></button>
               </div>
             ))}

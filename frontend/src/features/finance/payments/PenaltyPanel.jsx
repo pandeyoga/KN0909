@@ -6,6 +6,7 @@
  * **Ubah Nominal** · **Catat Pembayaran** — dua yang di tengah WAJIB memilih label
  * alasan, sehingga tidak ada denda yang hilang diam-diam.
  */
+import MoneyInput from "../../../components/MoneyInput";
 import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, BadgeDollarSign, Ban, Loader2, PencilLine, Receipt, Send } from "lucide-react";
 import KNSelect from "../../../components/KNSelect";
@@ -143,8 +144,7 @@ export default function PenaltyPanel({ rows = [], currentUser, entityId = "", on
               {dialog.kind !== "waive" && (
                 <div className="grid gap-1">
                   <label className="kicker">Nominal</label>
-                  <input type="number" className="field tabular-nums" value={amount}
-                    data-testid="penalty-dialog-amount" onChange={(e) => setAmount(e.target.value)} />
+                  <MoneyInput testId="penalty-dialog-amount" className="field tabular-nums" value={amount} onChange={(v) => setAmount(v)} />
                 </div>
               )}
               {dialog.kind !== "pay" && (

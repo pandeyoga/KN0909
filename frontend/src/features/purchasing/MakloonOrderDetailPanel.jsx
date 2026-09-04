@@ -2,6 +2,7 @@
  * MakloonOrderDetailPanel (M3) — detail order makloon + aksi lifecycle.
  * Issue bahan → WIP-at-vendor, Terima hasil (roll + LOT manual), costing, timeline, cancel.
  */
+import MoneyInput from "../../components/MoneyInput";
 import { useCallback, useEffect, useState } from "react";
 import axios, { API } from "../../services/apiClient";
 import {
@@ -497,9 +498,9 @@ function ReceiveModal({ step, warehouses, defaultWh, mkoNumber, busy, onClose, o
             <FieldR label={`Qty Output (${step.output_unit || "unit"})`}><input data-testid="mko-recv-output-qty" type="number" className="field" value={outQty} onChange={(e) => setOutQty(e.target.value)} disabled={usingDoc} /></FieldR>
             <FieldR label={`Qty Barang Sisa (${step.input_unit || "unit"})`}><input data-testid="mko-recv-byproduct-qty" type="number" className="field" value={byQty} onChange={(e) => setByQty(e.target.value)} /></FieldR>
             <FieldR label="Gudang Terima"><KNSelect data-testid="mko-recv-warehouse" className="field" value={wh} onValueChange={setWh} options={whOpts} /></FieldR>
-            <FieldR label="Ongkos Jasa (kosong = dari kontrak)"><input data-testid="mko-recv-tariff" type="number" className="field" value={tariff} onChange={(e) => setTariff(e.target.value)} placeholder="otomatis" /></FieldR>
+            <FieldR label="Ongkos Jasa (kosong = dari kontrak)"><MoneyInput testId="mko-recv-tariff" className="field" value={tariff} placeholder="otomatis" onChange={(v) => setTariff(v)} /></FieldR>
             <FieldR label="Bahan Pembantu (Rp)"><input data-testid="mko-recv-aux" type="number" className="field" value={aux} onChange={(e) => setAux(e.target.value)} /></FieldR>
-            <FieldR label="PPN (Rp)"><input data-testid="mko-recv-ppn" type="number" className="field" value={ppn} onChange={(e) => setPpn(e.target.value)} /></FieldR>
+            <FieldR label="PPN (Rp)"><MoneyInput testId="mko-recv-ppn" className="field" value={ppn} onChange={(v) => setPpn(v)} /></FieldR>
             <FieldR label="Jumlah warna (screen)"><input data-testid="mko-recv-colors" type="number" className="field" value={colors} onChange={(e) => setColors(e.target.value)} /></FieldR>
             <FieldR label="Jumlah repeat"><input data-testid="mko-recv-repeats" type="number" className="field" value={repeats} onChange={(e) => setRepeats(e.target.value)} /></FieldR>
             <FieldR label="No. Faktur Makloon"><input data-testid="mko-recv-invoice" className="field" value={invNo} onChange={(e) => setInvNo(e.target.value)} placeholder="mis. INV-MKL-001" /></FieldR>
@@ -602,16 +603,14 @@ function RecordServiceModal({ step, mkoNumber, busy, onClose, onConfirm }) {
           </div>
           <div className="grid grid-cols-3 gap-3">
             <FieldR label="Ongkos Jasa (kosong = dari kontrak/basis)">
-              <input data-testid="mko-service-tariff" type="number" className="field" value={tariff}
-                onChange={(e) => setTariff(e.target.value)} placeholder="otomatis" />
+              <MoneyInput testId="mko-service-tariff" className="field" value={tariff} placeholder="otomatis" onChange={(v) => setTariff(v)} />
             </FieldR>
             <FieldR label="Biaya Lain (Rp)">
               <input data-testid="mko-service-aux" type="number" className="field" value={aux}
                 onChange={(e) => setAux(e.target.value)} />
             </FieldR>
             <FieldR label="PPN (Rp)">
-              <input data-testid="mko-service-ppn" type="number" className="field" value={ppn}
-                onChange={(e) => setPpn(e.target.value)} />
+              <MoneyInput testId="mko-service-ppn" className="field" value={ppn} onChange={(v) => setPpn(v)} />
             </FieldR>
             <FieldR label="Jumlah warna (kasa per warna)">
               <input data-testid="mko-service-colors" type="number" className="field" value={colors}

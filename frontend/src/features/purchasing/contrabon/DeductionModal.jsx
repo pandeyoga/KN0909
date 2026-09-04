@@ -7,6 +7,7 @@
  * sengaja TIDAK ada di daftar — nilainya sudah menempel di faktur (Fase D) dan
  * backend menolaknya dengan alasan.
  */
+import MoneyInput from "../../../components/MoneyInput";
 import { useEffect, useMemo, useState } from "react";
 import { X, Scissors, Info } from "lucide-react";
 import axios, { API } from "../../../services/apiClient";
@@ -184,10 +185,7 @@ export default function DeductionModal({ cb, meta, onClose, onSaved, onError }) 
               <label className="mb-1 block text-[11px] font-semibold text-[#6B6B73]">
                 Nominal potongan (Rp)
               </label>
-              <input data-testid="cb-deduction-amount" type="number" min={0} step={1000}
-                className="input-field w-full" value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder={spec?.needs_ref ? "Kosongkan = seluruh sisa dokumen" : "0"} />
+              <MoneyInput testId="cb-deduction-amount" className="input-field w-full" value={amount} onChange={(v) => setAmount(v)} />
             </div>
             <div>
               <label className="mb-1 block text-[11px] font-semibold text-[#6B6B73]">

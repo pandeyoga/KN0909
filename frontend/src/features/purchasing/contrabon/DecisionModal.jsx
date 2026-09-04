@@ -6,6 +6,7 @@
  * bisa diverifikasi. Tindakan & label alasan datang dari backend (`meta`) supaya
  * layar tidak pernah menawarkan keputusan yang tidak ada mesinnya.
  */
+import MoneyInput from "../../../components/MoneyInput";
 import { useMemo, useState } from "react";
 import { X, Scale, Info } from "lucide-react";
 import axios, { API } from "../../../services/apiClient";
@@ -105,9 +106,7 @@ export default function DecisionModal({ cb, exception, meta, onClose, onSaved, o
               <label className="mb-1 block text-[11px] font-semibold text-[#6B6B73]">
                 Nominal {action === "deduct" ? "yang dipotong" : "selisih"} (Rp)
               </label>
-              <input data-testid="cb-decision-amount" type="number" min={0} step={1000}
-                className="input-field w-full" value={amount} disabled={action === "dispute"}
-                onChange={(e) => setAmount(e.target.value)} />
+              <MoneyInput testId="cb-decision-amount" className="input-field w-full" value={amount} disabled={action === "dispute"} onChange={(v) => setAmount(v)} />
               {action === "deduct" && (
                 <p className="mt-1 text-[10px] text-[#B26A00]">
                   Sistem otomatis membuat potongan “Selisih 3-way match” berikut jurnalnya.

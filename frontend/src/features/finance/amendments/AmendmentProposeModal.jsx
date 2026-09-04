@@ -22,6 +22,7 @@
  * 3. Setelah terkirim, layar menyatakan dengan jelas apakah koreksi langsung
  *    diterapkan atau menunggu persetujuan siapa — bukan sekadar "tersimpan".
  */
+import MoneyInput from "../../../components/MoneyInput";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle, CheckCircle2, ExternalLink, FileEdit, Link2, Loader2, Plus,
@@ -313,9 +314,7 @@ export default function AmendmentProposeModal({ order, currentUser, onClose, onD
                   <input data-testid={`amd-item-qty-${r.product_id}`} type="number" min="0" step="any" value={r.quantity}
                     onChange={(e) => setField(i, "quantity", nonNeg(e.target.value))}
                     className="field !py-1 !px-1.5 text-[11px] tabular-nums" />
-                  <input data-testid={`amd-item-price-${r.product_id}`} type="number" min="0" step="any" value={r.price}
-                    onChange={(e) => setField(i, "price", nonNeg(e.target.value))}
-                    className="field !py-1 !px-1.5 text-[11px] tabular-nums" />
+                  <MoneyInput testId={`amd-item-price-${r.product_id} className="field !py-1 !px-1.5 text-[11px] tabular-nums" value={r.price} onChange={(v) => setField(i, "price", nonNeg(v))} />
                   <input data-testid={`amd-item-disc-${r.product_id}`} type="number" min="0" max="100" step="any" value={r.discount_percent}
                     onChange={(e) => setField(i, "discount_percent", clampPct(e.target.value))}
                     className="field !py-1 !px-1.5 text-[11px] tabular-nums" />

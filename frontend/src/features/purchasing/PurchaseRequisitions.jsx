@@ -1,3 +1,4 @@
+import MoneyInput from "../../components/MoneyInput";
 import { useEffect, useMemo, useState } from "react";
 import axios, { API } from "../../services/apiClient";
 import {
@@ -329,7 +330,7 @@ function CreateForm({ products, warehouses, suppliers, selectedEntity, onCancel,
                   <input type="number" min="0" data-testid={`pr-rolls-${i}`} className="form-input text-right"
                     placeholder="Roll" title="Jumlah roll (gulungan) yang diminta — boleh dikosongkan"
                     value={l.qty_rolls ?? ""} onChange={(e) => updLine(i, "qty_rolls", e.target.value)} />
-                  <input type="number" data-testid={`pr-price-${i}`} className="form-input text-right" value={l.est_price} onChange={(e) => updLine(i, "est_price", e.target.value)} />
+                  <MoneyInput testId={`pr-price-${i} className="form-input text-right" value={l.est_price} onChange={(v) => updLine(i, "est_price", v)} />
                   <span className="text-[12px] tabular-nums text-right font-semibold">{formatCurrency((Number(l.est_price) || 0) * (Number(l.quantity) || 0))}</span>
                   <button className="icon-button text-red-500" onClick={() => rmLine(i)}><Trash2 size={14} /></button>
                 </div>

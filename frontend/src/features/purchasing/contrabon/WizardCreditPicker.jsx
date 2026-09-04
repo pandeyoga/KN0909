@@ -6,6 +6,7 @@
  * supplier yang belum terpakai. Nota/uang muka yang sudah dipotong di kontrabon lain tidak
  * pernah muncul di sini — penjaganya tetap backend (INV-CB-04), layar hanya menawarkan.
  */
+import MoneyInput from "../../../components/MoneyInput";
 import { formatCurrency } from "../../../utils/formatters";
 import { fmtDate } from "./contraBonApi";
 
@@ -47,13 +48,7 @@ export default function WizardCreditPicker({ credits, picked, amounts, onToggleP
           </label>
           <div className="flex shrink-0 items-center gap-2">
             <span className="text-[10.5px] text-[#8E8E93] tabular-nums">sisa {formatCurrency(c.amount)}</span>
-            <input type="number" min={0} step={1000}
-              data-testid={`cb-create-cred-amount-${c.ref_id}`}
-              className="input-field w-[130px] text-right"
-              disabled={!picked[c.ref_id]}
-              placeholder={String(Math.round(Number(c.amount || 0)))}
-              value={amounts[c.ref_id] ?? ""}
-              onChange={(e) => onChangeAmount(c.ref_id, e.target.value)} />
+            <MoneyInput testId={`cb-create-cred-amount-${c.ref_id} className="input-field w-[130px] text-right" value={amounts[c.ref_id] ?? ""} placeholder={String(Math.round(Number(c.amount || 0)))} disabled={!picked[c.ref_id]} onChange={(v) => onChangeAmount(c.ref_id, v)} />
           </div>
         </div>
       ))}
