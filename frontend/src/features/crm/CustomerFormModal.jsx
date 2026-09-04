@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import axios, { API } from "../../services/apiClient";
 import { X, UserPlus, Edit3 } from "lucide-react";
 import KNSelect from "../../components/KNSelect";
@@ -162,7 +163,7 @@ export default function CustomerFormModal({ open, editTarget, currentUser, sales
               </Field>
             )}
             <Field label="Limit Kredit (Rp)">
-              <input type="number" data-testid="customer-credit-limit" value={f.credit_limit} onChange={(e) => set("credit_limit", e.target.value)} className="field" placeholder="0 = tanpa limit" />
+              <MoneyInput testId="customer-credit-limit" value={f.credit_limit} onChange={(v) => set("credit_limit", v)} className="field" placeholder="0 = tanpa limit" />
             </Field>
             {isEdit && (
               <Field label="Status">

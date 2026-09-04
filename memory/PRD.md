@@ -386,3 +386,19 @@ tersisa action items minor).
 - Label tombol form produk di-Indonesiakan; DetailDrawer menutup dengan Esc.
 - Bukti: iteration_305 (temuan) → iteration_306 (BE 100%, FE 100%); pytest test_iter305_hpp_money.py, test_iter306_hpp_redaction_bootstrap.py.
 - Backlog kecil: Aset Tetap tanggal perolehan/periode → KNDatePicker; validasi residu < perolehan; 39 input `type=number` nominal lain → MoneyInput bertahap.
+
+
+## 2026-09-04 — Sesi #097: MoneyInput di SEMUA isian nominal (sapu bersih) · perbaikan build ✅
+- Build FE rusak dari sesi lalu (6 file `testId={\`…${x}` tanpa penutup) → diperbaiki. **Catatan operasional**: preview = bundel statis
+  (`static_server.js`), TIDAK ada hot reload — setiap ubah `frontend/src` wajib `bash /app/scripts/rebuild_frontend.sh` (~3 mnt).
+- ~55 file kini memakai `MoneyInput` (Pembelian: PR, RFQ, retur, tagihan, landed cost, blanket/call-off, plafon, makloon **wizard live**
+  `wizard-material-price/wizard-rate-n/wizard-aux-amount`, kontrak, kontrabon; Kas Kecil: PD, LPJ, log kendaraan; Keuangan: pajak, aset,
+  anggaran, kasus, rencana bayar, penalti, amandemen, kontrak internal; CRM: limit kredit, lead, target, AR receipt FIFO+manual, rate insentif,
+  skema; SDM: gaji + tunjangan; Sales: pricelist, harga pelanggan, template varian, harga khusus POS/SO; R&D: decide/round/spec; Admin PO amend;
+  Pengaturan dampak harga). Testid skema insentif diganti `scheme-target-*` (dulu duplikat dengan Sales Force).
+- Bug ikutan: `InternalContractWizardModal` KNSelect `onChange`→`onValueChange` (form dulu tak bisa dipakai). ESC/backdrop dismiss ditambah di
+  tax-pph-modal, ar-receipt-modal, contract-form-modal, blanket-create-modal (`useEscapeClose` + `overlayDismiss`).
+- Bukti: iteration_307 (14 field + 2 bug) → iteration_308 (13/13 PASS, FIX1/2/4 PASS) + self-test Playwright AR manual alloc & ESC.
+- Belum bisa diuji di data demo: `cb-create-amount-*` (tidak ada tagihan siap), `gen-base-price` (0 template), modal target Sales Force (pemicu tanpa testid).
+- Backlog: tanggal masukan masih pemilih bawaan peramban (mm/dd/yyyy) di form PR/harga/landed/blanket/kontrak/interco/kendaraan → KNDatePicker;
+  Aset Tetap validasi residu; `Number()` di submit tidak menerima koma desimal (pakai `parseDecimal` bila perlu).

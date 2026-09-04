@@ -16,6 +16,7 @@
  *     (Issue/Terima Hasil vs Catat Jasa), jadi ia disebut sebelum disimpan.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import { ArrowRight, Calculator, FileText, Info, Layers, Trash2, TriangleAlert, Wand2 } from "lucide-react";
 import MakloonSelect from "../../../components/MakloonSelect";
 import ProductSelect from "../../../components/ProductSelect";
@@ -300,8 +301,8 @@ export default function MakloonStepEditor({
                   options={[{ value: "", label: "— ikut kontrak —" }, ...basisOptions]} />
               </Field>
               <Field label="Tarif (Rp per basis)">
-                <input data-testid={`wizard-rate-${index + 1}`} className="field" value={step.tariff_rate ?? ""}
-                  onChange={(e) => set({ tariff_rate: e.target.value })} />
+                <MoneyInput testId={`wizard-rate-${index + 1}`} className="field" value={step.tariff_rate ?? ""}
+                  onChange={(v) => set({ tariff_rate: v })} />
               </Field>
               <Field label="PPI (basis pick)">
                 <input data-testid={`wizard-ppi-${index + 1}`} className="field" value={step.ppi ?? ""}
@@ -401,8 +402,8 @@ function AuxFeeEditor({ index, fees, onChange }) {
             onChange={(e) => upd(i, "label", e.target.value)} data-testid={`wizard-aux-label-${index + 1}-${i}`} />
           <KNSelect className="field !py-1.5 text-[11.5px]" value={f.basis} onValueChange={(v) => upd(i, "basis", v)}
             options={AUX_BASIS_OPTIONS} />
-          <input className="field !py-1.5 text-[11.5px]" placeholder="Rp" value={f.amount}
-            onChange={(e) => upd(i, "amount", e.target.value)} data-testid={`wizard-aux-amount-${index + 1}-${i}`} />
+          <MoneyInput className="field !py-1.5 text-[11.5px]" placeholder="0" value={f.amount}
+            onChange={(v) => upd(i, "amount", v)} testId={`wizard-aux-amount-${index + 1}-${i}`} />
           <button type="button" className="icon-button text-red-400" onClick={() => onChange(fees.filter((_, x) => x !== i))}>
             <Trash2 size={13} />
           </button>

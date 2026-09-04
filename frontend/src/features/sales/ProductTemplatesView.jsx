@@ -5,6 +5,7 @@
  * Akses: admin manage; manager/sales view. Sumber: /api/product-templates/*.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import {
   Layers3, Plus, RefreshCw, Search, X, Trash2, Pencil, Wand2, Link2, Save,
   CheckCircle2, AlertTriangle, Package, Palette,
@@ -453,7 +454,7 @@ function GenerateModal({ template, onClose, onDone, onError }) {
           </div>
         ))}
         <div className="grid grid-cols-2 gap-3 pt-2">
-          <Field label="Harga Dasar Varian"><input data-testid="gen-base-price" type="number" className="field py-2 text-[13px]" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} /></Field>
+          <Field label="Harga Dasar Varian"><MoneyInput testId="gen-base-price" className="field py-2 text-[13px]" value={basePrice} onChange={(v) => setBasePrice(v)} /></Field>
           <div className="flex items-end">
             <div className="rounded-md bg-[#FBF8FE] border border-[#E5D4F4] px-3 py-2 w-full text-center">
               <span className="text-[10px] text-[#9A9BA3] block">Akan dibuat</span>

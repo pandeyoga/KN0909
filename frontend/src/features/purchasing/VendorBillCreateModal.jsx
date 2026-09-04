@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import axios, { API } from "../../services/apiClient";
 import { X, Scale, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { formatCurrency, formatQty } from "../../utils/formatters";
@@ -193,8 +194,8 @@ export default function VendorBillCreateModal({ open, pos, selectedEntity, onClo
                     <input data-testid={`vb-item-billed-${i}`} type="number" value={r.billed_qty}
                       onChange={(e) => updateItem(i, { billed_qty: e.target.value })}
                       className="field !py-1 text-right" placeholder="0" disabled={!r.include} />
-                    <input data-testid={`vb-item-price-${i}`} type="number" value={r.price}
-                      onChange={(e) => updateItem(i, { price: e.target.value })}
+                    <MoneyInput testId={`vb-item-price-${i}`} value={r.price}
+                      onChange={(v) => updateItem(i, { price: v })}
                       className="field !py-1 text-right" placeholder="harga" disabled={!r.include} />
                     <div className="flex flex-col gap-0.5">
                       <MatchBadge status={r.include && r.billed > 0 ? r.status : "ok"} />

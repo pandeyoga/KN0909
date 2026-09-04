@@ -499,7 +499,7 @@ function ReceiveModal({ step, warehouses, defaultWh, mkoNumber, busy, onClose, o
             <FieldR label={`Qty Barang Sisa (${step.input_unit || "unit"})`}><input data-testid="mko-recv-byproduct-qty" type="number" className="field" value={byQty} onChange={(e) => setByQty(e.target.value)} /></FieldR>
             <FieldR label="Gudang Terima"><KNSelect data-testid="mko-recv-warehouse" className="field" value={wh} onValueChange={setWh} options={whOpts} /></FieldR>
             <FieldR label="Ongkos Jasa (kosong = dari kontrak)"><MoneyInput testId="mko-recv-tariff" className="field" value={tariff} placeholder="otomatis" onChange={(v) => setTariff(v)} /></FieldR>
-            <FieldR label="Bahan Pembantu (Rp)"><input data-testid="mko-recv-aux" type="number" className="field" value={aux} onChange={(e) => setAux(e.target.value)} /></FieldR>
+            <FieldR label="Bahan Pembantu (Rp)"><MoneyInput testId="mko-recv-aux" className="field" value={aux} onChange={(v) => setAux(v)} /></FieldR>
             <FieldR label="PPN (Rp)"><MoneyInput testId="mko-recv-ppn" className="field" value={ppn} onChange={(v) => setPpn(v)} /></FieldR>
             <FieldR label="Jumlah warna (screen)"><input data-testid="mko-recv-colors" type="number" className="field" value={colors} onChange={(e) => setColors(e.target.value)} /></FieldR>
             <FieldR label="Jumlah repeat"><input data-testid="mko-recv-repeats" type="number" className="field" value={repeats} onChange={(e) => setRepeats(e.target.value)} /></FieldR>
@@ -606,8 +606,8 @@ function RecordServiceModal({ step, mkoNumber, busy, onClose, onConfirm }) {
               <MoneyInput testId="mko-service-tariff" className="field" value={tariff} placeholder="otomatis" onChange={(v) => setTariff(v)} />
             </FieldR>
             <FieldR label="Biaya Lain (Rp)">
-              <input data-testid="mko-service-aux" type="number" className="field" value={aux}
-                onChange={(e) => setAux(e.target.value)} />
+              <MoneyInput testId="mko-service-aux" className="field" value={aux}
+                onChange={(v) => setAux(v)} />
             </FieldR>
             <FieldR label="PPN (Rp)">
               <MoneyInput testId="mko-service-ppn" className="field" value={ppn} onChange={(v) => setPpn(v)} />

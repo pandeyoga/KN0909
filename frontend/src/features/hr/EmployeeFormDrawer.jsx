@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import axios, { API } from "../../services/apiClient";
 import { Plus, Trash2, Save } from "lucide-react";
 import KNSelect from "../../components/KNSelect";
@@ -226,7 +227,7 @@ export function EmployeeFormDrawer({ open, onClose, onSaved, editEmployee, depar
                 <input data-testid="employee-bank-name-acc-input" value={form.bank_acc_name} onChange={(e) => set("bank_acc_name", e.target.value)} className="field" placeholder="Nama pemilik rekening" />
               </Field>
               <Field label="Gaji Pokok (Rp)">
-                <input data-testid="employee-salary-input" type="number" value={form.base_salary} onChange={(e) => set("base_salary", e.target.value)} className="field tabular-nums" placeholder="5000000" />
+                <MoneyInput testId="employee-salary-input" value={form.base_salary} onChange={(v) => set("base_salary", v)} className="field tabular-nums" placeholder="5000000" />
               </Field>
             </div>
             <div className="space-y-2">
@@ -237,7 +238,7 @@ export function EmployeeFormDrawer({ open, onClose, onSaved, editEmployee, depar
               {(form.allowances || []).map((a, i) => (
                 <div key={i} className="grid grid-cols-[1.4fr_1fr_36px] gap-2 items-center" data-testid={`allowance-row-${i}`}>
                   <input data-testid={`allowance-name-${i}`} value={a.name} onChange={(e) => updAllowance(i, "name", e.target.value)} className="field" placeholder="Tunjangan transport" />
-                  <input data-testid={`allowance-amount-${i}`} type="number" value={a.amount} onChange={(e) => updAllowance(i, "amount", e.target.value)} className="field tabular-nums" placeholder="0" />
+                  <MoneyInput testId={`allowance-amount-${i}`} value={a.amount} onChange={(v) => updAllowance(i, "amount", v)} className="field tabular-nums" placeholder="0" />
                   <button type="button" data-testid={`allowance-del-${i}`} onClick={() => delAllowance(i)} className="icon-button text-red-400 hover:text-red-600"><Trash2 size={13} /></button>
                 </div>
               ))}

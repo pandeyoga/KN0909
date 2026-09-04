@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import axios, { API } from "../../services/apiClient";
 import { X, Ship, Plus, Trash2, Layers } from "lucide-react";
 import { formatCurrency, formatQty } from "../../utils/formatters";
@@ -188,7 +189,7 @@ export default function LandedCostCreateModal({ open, pos, selectedEntity, onClo
                 <div key={i} data-testid={`lc-line-${i}`} className="grid grid-cols-[150px_1fr_140px_36px] gap-1 items-center px-2.5 py-1.5 border-b border-[#EFF0F2] last:border-0">
                   <KNSelect data-testid={`lc-line-category-${i}`} value={l.category} onValueChange={(v) => updateLine(i, { category: v })} className="field !py-1" options={CATEGORY_OPTIONS} />
                   <input data-testid={`lc-line-desc-${i}`} value={l.description} onChange={(e) => updateLine(i, { description: e.target.value })} className="field !py-1" placeholder="keterangan" />
-                  <input data-testid={`lc-line-amount-${i}`} type="number" value={l.amount} onChange={(e) => updateLine(i, { amount: e.target.value })} className="field !py-1 text-right" placeholder="0" />
+                  <MoneyInput testId={`lc-line-amount-${i}`} value={l.amount} onChange={(v) => updateLine(i, { amount: v })} className="field !py-1 text-right" placeholder="0" />
                   <button data-testid={`lc-line-remove-${i}`} onClick={() => removeLine(i)} className="icon-button !w-7 !h-7" title="Hapus"><Trash2 size={13} className="text-red-500" /></button>
                 </div>
               ))}

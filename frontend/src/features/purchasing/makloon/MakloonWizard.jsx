@@ -6,6 +6,7 @@
  * Rantai DIPAKSA sistem: bahan langkah N+1 = hasil langkah N (tidak bisa diketik bebas).
  */
 import { useEffect, useMemo, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import { ArrowLeft, ArrowRight, Boxes, Check, Plus, Save, TriangleAlert, X } from "lucide-react";
 import axios, { API } from "../../../services/apiClient";
 import KNSelect from "../../../components/KNSelect";
@@ -367,8 +368,8 @@ export default function MakloonWizard({ selectedEntity, onClose, onSaved, onErro
                       options={supOpts} />
                   </Field>
                   <Field label="Harga Beli Bahan (Rp/unit)">
-                    <input data-testid="wizard-material-price" className="field" value={head.material_price}
-                      onChange={(e) => setHead((p) => ({ ...p, material_price: e.target.value }))} />
+                    <MoneyInput testId="wizard-material-price" className="field" value={head.material_price}
+                      onChange={(v) => setHead((p) => ({ ...p, material_price: v }))} />
                   </Field>
                 </>
               )}

@@ -20,6 +20,7 @@
  * "Harga per Pelanggan".
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import {
   Tag, RefreshCw, Search, Plus, History, X, Download, Upload, Save,
   CheckCircle2, AlertTriangle, Building2, RotateCcw, CalendarClock, ArrowUp, ArrowDown,
@@ -418,8 +419,8 @@ function SetPriceModal({ row, entityId, entityName, onClose, onSaved, onError })
             <label className="mb-1 block text-[11px] font-semibold text-[#6B6B73]">
               Harga jual {entityName} (per {row.base_unit})
             </label>
-            <input data-testid="pl-input-price" type="number" className="field py-2 text-[13px]"
-              placeholder="Mis. 195000" value={price} onChange={(e) => setPrice(e.target.value)} autoFocus />
+            <MoneyInput testId="pl-input-price" className="field py-2 text-[13px]"
+              placeholder="Mis. 195000" value={price} onChange={(v) => setPrice(v)} autoFocus />
             {Number.isFinite(numeric) && numeric > 0 && (
               <p data-testid="pl-price-diff" className="mt-1 text-[10.5px] text-[#6B6B73]">
                 {diff === 0 ? "Sama dengan harga global."

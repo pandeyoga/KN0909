@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
+import { overlayDismiss } from "@/utils/overlayDismiss";
+import { useEscapeClose } from "@/utils/escapeLayers";
 import axios, { API } from "../../services/apiClient";
 import { X, Plus, Trash2, FileStack } from "lucide-react";
 import { formatCurrency } from "../../utils/formatters";
@@ -31,6 +34,7 @@ export default function BlanketPOCreateModal({ open, selectedEntity, onClose, on
   const [suppliers, setSuppliers] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [busy, setBusy] = useState(false);
+  useEscapeClose(open, onClose, busy);
 
   useEffect(() => {
     if (!open) { reset(); return; }
@@ -152,7 +156,7 @@ export default function BlanketPOCreateModal({ open, selectedEntity, onClose, on
   if (!open) return null;
 
   return (
-    <div className="modal-overlay" data-testid="blanket-create-modal" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="modal-overlay" data-testid="blanket-create-modal" {...overlayDismiss(onClose)}>
       <div className="modal-card" style={{ maxWidth: 760, width: "95vw", maxHeight: "92vh", overflowY: "auto" }}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#EFF0F2] sticky top-0 bg-white z-10">
           <div className="flex items-center gap-2"><FileStack size={16} className="text-[#0058CC]" /><h2 className="text-[14px] font-bold">Buat Kontrak Blanket / Contract PO</h2></div>
@@ -210,8 +214,8 @@ export default function BlanketPOCreateModal({ open, selectedEntity, onClose, on
                     options={productOptions} className="field" placeholder="Produk..." data-testid={`blanket-item-product-${i}`} />
                   <input type="number" value={r.contract_qty} onChange={(e) => setRow(i, { contract_qty: e.target.value })}
                     className="field" placeholder="Qty" data-testid={`blanket-item-qty-${i}`} />
-                  <input type="number" value={r.contract_price} onChange={(e) => setRow(i, { contract_price: e.target.value })}
-                    className="field" placeholder="Harga" data-testid={`blanket-item-price-${i}`} />
+                  <MoneyInput value={r.contract_price} onChange={(v) => setRow(i, { contract_price: v })}
+                    className="field" placeholder="Harga" testId={`blanket-item-price-${i}`} />
                   <KNSelect value={r.unit} onValueChange={(v) => setRow(i, { unit: v })}
                     options={unitOptionsFor(r)} className="field" placeholder="unit"
                     disabled={!r.product_id} data-testid={`blanket-item-unit-${i}`} />
@@ -228,8 +232,8 @@ export default function BlanketPOCreateModal({ open, selectedEntity, onClose, on
           {/* Plafon nilai + ringkasan */}
           <div className="grid grid-cols-2 gap-3">
             <Field label="Plafon Nilai Kontrak (Rp)">
-              <input type="number" data-testid="blanket-value-cap" value={valueCap}
-                onChange={(e) => setValueCap(e.target.value)} className="field" placeholder="0 = otomatis Σ qty×harga" />
+              <MoneyInput testId="blanket-value-cap" value={valueCap}
+                onChange={(v) => setValueCap(v)} className="field" placeholder="0 = otomatis Σ qty×harga" />
             </Field>
             <div className="rounded-md border border-[#EFF0F2] bg-[#FAFBFC] p-2.5 text-[11.5px]" data-testid="blanket-summary">
               <div className="flex justify-between"><span className="text-[#6B6B73]">Σ qty × harga</span><span className="tabular-nums">{formatCurrency(computedTotal)}</span></div>

@@ -4,6 +4,7 @@
  * Sumber: /api/crm/leads(/board), /api/crm/pipeline-stats. Gaya ikut CRM existing.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import {
   Plus, RefreshCw, Target, TrendingUp, Trophy, Percent, Wallet, Pencil, Trash2,
   UserPlus, X, MessageSquare, Phone, Mail, Instagram, Globe, Users,
@@ -240,7 +241,7 @@ function LeadModal({ mode, lead, salesUsers, selectedEntity, onClose, onSaved, s
             <Field label="Stage"><KNSelect data-testid="lead-form-stage" className="field" value={form.stage} onValueChange={(v) => set("stage", v)} options={STAGE_OPTS} /></Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Estimasi Nilai (Rp)"><input data-testid="lead-form-value" type="number" className="field tabular-nums" value={form.est_value} onChange={(e) => set("est_value", e.target.value)} /></Field>
+            <Field label="Estimasi Nilai (Rp)"><MoneyInput testId="lead-form-value" className="field tabular-nums" value={form.est_value} onChange={(v) => set("est_value", v)} /></Field>
             <Field label="Pemilik (Sales)"><KNSelect data-testid="lead-form-owner" className="field" value={form.owner_id} onValueChange={(v) => set("owner_id", v)} options={ownerOpts} /></Field>
           </div>
           <Field label="Catatan"><textarea data-testid="lead-form-notes" className="field min-h-[64px]" value={form.notes} onChange={(e) => set("notes", e.target.value)} /></Field>

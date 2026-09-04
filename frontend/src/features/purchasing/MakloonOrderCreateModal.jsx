@@ -14,6 +14,7 @@
  *      GSM, dan bila diisi (atau datang dari resep) alasannya ikut diisi & bisa disunting.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import { Boxes, X, Save, Calculator, ArrowRight, GitBranch, Layers } from "lucide-react";
 import axios, { API } from "../../services/apiClient";
 import KNSelect from "../../components/KNSelect";
@@ -218,7 +219,7 @@ export default function MakloonOrderCreateModal({ selectedEntity, initialMode, l
           {f.mode === "buy_process" && (
             <div className="grid grid-cols-2 gap-3 rounded-lg border border-[#EFD9A8] bg-[#FFFBEF] p-3">
               <Field label="Supplier Bahan" req><KNSelect data-testid="mko-supplier" className="field" value={f.supplier_id} onValueChange={(v) => setF((p) => ({ ...p, supplier_id: v }))} options={supOpts} /></Field>
-              <Field label="Harga Bahan / unit (Rp)"><input data-testid="mko-material-price" type="number" className="field" value={f.material_price} onChange={set("material_price")} placeholder="mis. 51500" /></Field>
+              <Field label="Harga Bahan / unit (Rp)"><MoneyInput testId="mko-material-price" className="field" value={f.material_price} onChange={(v) => set("material_price")({ target: { value: v } })} placeholder="mis. 51500" /></Field>
             </div>
           )}
 
@@ -298,7 +299,7 @@ export default function MakloonOrderCreateModal({ selectedEntity, initialMode, l
             </Field>
             <Field label="Waste (%)"><input data-testid="mko-waste" type="number" step="0.1" className="field" value={f.waste_pct} onChange={set("waste_pct")} disabled={noTransform} /></Field>
             <Field label="Sisa (%)"><input data-testid="mko-byproduct" type="number" step="0.1" className="field" value={f.byproduct_pct} onChange={set("byproduct_pct")} disabled={noTransform} /></Field>
-            <Field label="Tarif/unit (Rp)"><input data-testid="mko-tariff" type="number" className="field" value={f.tariff} onChange={set("tariff")} /></Field>
+            <Field label="Tarif/unit (Rp)"><MoneyInput testId="mko-tariff" className="field" value={f.tariff} onChange={(v) => set("tariff")({ target: { value: v } })} /></Field>
           </div>
           {parseFloat(f.yield_factor) > 0 && (
             <Field label="Alasan override yield (wajib — bisa diaudit)" req>

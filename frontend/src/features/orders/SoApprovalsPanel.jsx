@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import {
   ShieldCheck, CreditCard, Tag, CheckCircle2, XCircle, Paperclip,
   Plus, Send, AlertTriangle, Loader2, FileCheck2,
@@ -202,7 +203,7 @@ export default function SoApprovalsPanel({ order, user, onRefresh }) {
               <KNSelect data-testid="so-appr-sp-item" className="field !py-1.5 !text-[11px]" value={String(spItem)}
                 onValueChange={(v) => setSpItem(v)}
                 options={items.map((it, i) => ({ value: String(i), label: `${it.product_name || it.name} · ${formatCurrency(it.price)}/unit` }))} />
-              <input data-testid="so-appr-sp-price" type="number" min="0" value={spPrice} onChange={(e) => setSpPrice(e.target.value)}
+              <MoneyInput testId="so-appr-sp-price" value={spPrice} onChange={(v) => setSpPrice(v)}
                 placeholder="Harga khusus per unit (Rp)" className="w-full rounded-md border border-[#E5E5EA] bg-white px-2 py-1.5 text-[11px]" />
               <textarea data-testid="so-appr-sp-reason" rows={2} value={spReason} onChange={(e) => setSpReason(e.target.value)}
                 placeholder="Alasan (wajib): nego pelanggan, kompetitor, dll." className="w-full rounded-md border border-[#E5E5EA] bg-white px-2 py-1.5 text-[11px]" />

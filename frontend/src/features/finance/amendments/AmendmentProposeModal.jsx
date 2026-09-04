@@ -314,7 +314,7 @@ export default function AmendmentProposeModal({ order, currentUser, onClose, onD
                   <input data-testid={`amd-item-qty-${r.product_id}`} type="number" min="0" step="any" value={r.quantity}
                     onChange={(e) => setField(i, "quantity", nonNeg(e.target.value))}
                     className="field !py-1 !px-1.5 text-[11px] tabular-nums" />
-                  <MoneyInput testId={`amd-item-price-${r.product_id} className="field !py-1 !px-1.5 text-[11px] tabular-nums" value={r.price} onChange={(v) => setField(i, "price", nonNeg(v))} />
+                  <MoneyInput testId={`amd-item-price-${r.product_id}`} className="field !py-1 !px-1.5 text-[11px] tabular-nums" value={r.price} onChange={(v) => setField(i, "price", nonNeg(v))} />
                   <input data-testid={`amd-item-disc-${r.product_id}`} type="number" min="0" max="100" step="any" value={r.discount_percent}
                     onChange={(e) => setField(i, "discount_percent", clampPct(e.target.value))}
                     className="field !py-1 !px-1.5 text-[11px] tabular-nums" />

@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import axios, { API } from "../../services/apiClient";
 import { Target, Award, Plus, Trash2, Save, Info, SlidersHorizontal } from "lucide-react";
-import { formatCurrency } from "../../utils/formatters";
 import KNSelect from "../../components/KNSelect";
 import ErrorNotice from "../../components/ErrorNotice";
 import { currentPeriod } from "./crmUtils";
+import MoneyInput from "@/components/MoneyInput";
 
 /**
  * IncentiveSchemeEditor (KN_17 §6.1/§6.2) — editor Target sales per periode +
@@ -205,14 +205,12 @@ export default function IncentiveSchemeEditor({ currentUser, selectedEntity }) {
                   ]}
                 />
               </div>
-              <NumberField label="Target Penjualan (Rp)" testId="target-sales-amount"
+              <MoneyField label="Target Penjualan (Rp)" testId="scheme-target-sales-amount"
                 value={target.target_sales_amount}
-                onChange={(v) => setTarget((t) => ({ ...t, target_sales_amount: v }))}
-                hint={formatCurrency(target.target_sales_amount)} />
-              <NumberField label="Target Pencairan (Rp)" testId="target-collection-amount"
+                onChange={(v) => setTarget((t) => ({ ...t, target_sales_amount: v }))} />
+              <MoneyField label="Target Pencairan (Rp)" testId="scheme-target-collection-amount"
                 value={target.target_collection_amount}
-                onChange={(v) => setTarget((t) => ({ ...t, target_collection_amount: v }))}
-                hint={formatCurrency(target.target_collection_amount)} />
+                onChange={(v) => setTarget((t) => ({ ...t, target_collection_amount: v }))} />
               <NumberField label="Target Pelanggan Baru" testId="target-new-customers"
                 value={target.target_new_customers}
                 onChange={(v) => setTarget((t) => ({ ...t, target_new_customers: v }))} />
@@ -304,6 +302,15 @@ export default function IncentiveSchemeEditor({ currentUser, selectedEntity }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function MoneyField({ label, value, onChange, testId }) {
+  return (
+    <div>
+      <label className="block text-[11px] font-semibold mb-1">{label}</label>
+      <MoneyInput testId={testId} className="field" value={value} onChange={onChange} />
     </div>
   );
 }

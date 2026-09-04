@@ -4,6 +4,7 @@
  * Menampilkan permintaan sample turunannya supaya rantai R&D terlihat utuh.
  */
 import { useCallback, useEffect, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import { CheckCircle2, FlaskConical, Rocket, Send, X, XCircle } from "lucide-react";
 import { overlayDismiss } from "@/utils/overlayDismiss";
 import { formatCurrency, formatQty } from "../../utils/formatters";
@@ -159,8 +160,8 @@ export default function SpecDetailPanel({ specId, currentUser, types = [], onClo
                 </label>
                 <label className="block">
                   <span className="mb-1 block text-[10.5px] font-semibold text-[#6B6B73]">Harga jual (Rp)</span>
-                  <input className="field" data-testid="spec-approve-price" value={price}
-                    onChange={(e) => setPrice(e.target.value)} />
+                  <MoneyInput className="field" testId="spec-approve-price" value={price}
+                    onChange={(v) => setPrice(v)} />
                 </label>
               </div>
             </div>

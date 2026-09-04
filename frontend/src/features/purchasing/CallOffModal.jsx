@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import axios, { API } from "../../services/apiClient";
 import { X, PackagePlus, AlertTriangle } from "lucide-react";
 import { formatCurrency, formatQty } from "../../utils/formatters";
@@ -132,8 +133,8 @@ export default function CallOffModal({ open, blanket, onClose, onCreated, onErro
                     <span className={`text-[11px] text-right tabular-nums ${rem <= 0 ? "text-[#B45309]" : "text-[#6B6B73]"}`}>{formatQty(rem)} {it.unit}</span>
                     <input type="number" value={r.qty ?? ""} onChange={(e) => setRow(it.product_id, { qty: e.target.value })}
                       className={`field ${over ? "!border-[#B45309]" : ""}`} placeholder="0" data-testid={`calloff-qty-${it.product_id}`} />
-                    <input type="number" value={r.price ?? it.contract_price} onChange={(e) => setRow(it.product_id, { price: e.target.value })}
-                      className="field" placeholder={`${it.contract_price}`} data-testid={`calloff-price-${it.product_id}`} />
+                    <MoneyInput value={r.price ?? it.contract_price} onChange={(v) => setRow(it.product_id, { price: v })}
+                      className="field" placeholder={`${it.contract_price}`} testId={`calloff-price-${it.product_id}`} />
                   </div>
                 );
               })}

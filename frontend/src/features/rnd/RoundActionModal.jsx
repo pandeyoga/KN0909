@@ -13,6 +13,7 @@
  * pernah ditampilkan (atau sebaliknya).
  */
 import { useMemo, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import { Save, X } from "lucide-react";
 import KNSelect from "../../components/KNSelect";
 import { overlayDismiss } from "@/utils/overlayDismiss";
@@ -119,8 +120,8 @@ export default function RoundActionModal({ mode, round, types, measurements,
                     );
                   })}
                   <Field label="Biaya sample (Rp)">
-                    <input className="field" data-testid="round-cost-input" value={cost}
-                      onChange={(e) => setCost(e.target.value)} placeholder="150000" />
+                    <MoneyInput className="field" testId="round-cost-input" value={cost}
+                      onChange={(v) => setCost(v)} placeholder="150000" />
                   </Field>
                 </div>
               )}

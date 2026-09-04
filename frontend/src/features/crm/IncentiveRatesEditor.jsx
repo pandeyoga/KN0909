@@ -8,6 +8,7 @@
  * Manage rate: admin/manager.
  */
 import { useCallback, useEffect, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import { Save, Trash2, Pencil, RefreshCw, Percent, XCircle } from "lucide-react";
 import axios, { API } from "../../services/apiClient";
 import KNSelect from "../../components/KNSelect";
@@ -168,7 +169,7 @@ export default function IncentiveRatesEditor() {
               <KNSelect data-testid="rate-category-input" className="field" value={form.category} onValueChange={(v) => setForm({ ...form, category: v })} options={catOptions} placeholder="Pilih kategori" />
             </L>
             <div className="grid grid-cols-2 gap-2">
-              <L label="Rate (Rp/unit)"><input data-testid="rate-per-unit-input" type="number" className="field" value={form.per_unit_amount} onChange={(e) => setForm({ ...form, per_unit_amount: e.target.value })} /></L>
+              <L label="Rate (Rp/unit)"><MoneyInput testId="rate-per-unit-input" className="field" value={form.per_unit_amount} onChange={(v) => setForm({ ...form, per_unit_amount: v })} /></L>
               <L label="Unit"><KNSelect data-testid="rate-unit-input" className="field" value={form.incentive_unit} onValueChange={(v) => setForm({ ...form, incentive_unit: v })} options={unitOpts} /></L>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -178,7 +179,7 @@ export default function IncentiveRatesEditor() {
             <L label="Mekanik diskon"><KNSelect data-testid="rate-mechanic-input" className="field" value={form.discount_mechanic} onValueChange={(v) => setForm({ ...form, discount_mechanic: v })} options={MECHANICS} /></L>
             <div className="grid grid-cols-2 gap-2">
               <L label="Faktor (tier)"><input data-testid="rate-factor-input" type="number" step="0.1" className="field" value={form.discount_factor} onChange={(e) => setForm({ ...form, discount_factor: e.target.value })} /></L>
-              <L label="Potong Rp/unit"><input data-testid="rate-potong-input" type="number" className="field" value={form.discount_potong_rp} onChange={(e) => setForm({ ...form, discount_potong_rp: e.target.value })} /></L>
+              <L label="Potong Rp/unit"><MoneyInput testId="rate-potong-input" className="field" value={form.discount_potong_rp} onChange={(v) => setForm({ ...form, discount_potong_rp: v })} /></L>
             </div>
             <L label="Margin cap (%)"><input data-testid="rate-margin-cap-input" type="number" className="field" value={form.margin_cap_pct} onChange={(e) => setForm({ ...form, margin_cap_pct: e.target.value })} /></L>
             {formError && <p className="text-[12px] font-semibold text-[#D14343]" data-testid="rate-form-error">{formError}</p>}

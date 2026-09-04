@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import axios, { API } from "../../services/apiClient";
 import { X, Send, Award, Ban, CheckCircle2, Pencil } from "lucide-react";
 import { formatCurrency } from "../../utils/formatters";
@@ -194,8 +195,8 @@ export default function RFQDetailPanel({ rfqId, currentUser, onClose, onChanged 
                 {(rfq.items || []).map((it) => (
                   <div key={it.line_id} className="grid grid-cols-[1fr_140px] items-center gap-2">
                     <span className="text-[11.5px]">{it.sku} × {it.quantity} {it.unit}</span>
-                    <input type="number" data-testid={`rfq-quote-price-${it.line_id}`} value={quoteLines[it.line_id] || ""}
-                      onChange={(e) => setQuoteLines((q) => ({ ...q, [it.line_id]: e.target.value }))}
+                    <MoneyInput testId={`rfq-quote-price-${it.line_id}`} value={quoteLines[it.line_id] || ""}
+                      onChange={(v) => setQuoteLines((q) => ({ ...q, [it.line_id]: v }))}
                       className="field text-right" placeholder="Harga/unit" />
                   </div>
                 ))}

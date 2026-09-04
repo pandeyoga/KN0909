@@ -48,7 +48,7 @@ export default function WizardCreditPicker({ credits, picked, amounts, onToggleP
           </label>
           <div className="flex shrink-0 items-center gap-2">
             <span className="text-[10.5px] text-[#8E8E93] tabular-nums">sisa {formatCurrency(c.amount)}</span>
-            <MoneyInput testId={`cb-create-cred-amount-${c.ref_id} className="input-field w-[130px] text-right" value={amounts[c.ref_id] ?? ""} placeholder={String(Math.round(Number(c.amount || 0)))} disabled={!picked[c.ref_id]} onChange={(v) => onChangeAmount(c.ref_id, v)} />
+            <MoneyInput testId={`cb-create-cred-amount-${c.ref_id}`} className="input-field w-[130px] text-right" value={amounts[c.ref_id] ?? ""} placeholder={String(Math.round(Number(c.amount || 0)))} disabled={!picked[c.ref_id]} onChange={(v) => onChangeAmount(c.ref_id, v)} />
           </div>
         </div>
       ))}

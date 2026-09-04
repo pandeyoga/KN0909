@@ -13,6 +13,7 @@
  *   5. setelah dijalankan, sistem MEMBUKTIKAN dokumen tak tercentang tidak berubah
  */
 import { useEffect, useMemo, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import {
   Search, ListChecks, AlertTriangle, ShieldCheck, FileWarning, Check, RefreshCw,
 } from "lucide-react";
@@ -120,9 +121,9 @@ export default function ImpactPicker({ selectedEntity, canApply }) {
         </label>
         <label className="cfg-impact-field">
           <span>Harga yang benar</span>
-          <input className="form-input" type="number" min="1" value={newPrice}
-            onChange={(e) => { setNewPrice(e.target.value); setPlan(null); setResult(null); }}
-            placeholder="mis. 120000" data-testid="cfg-impact-new-price" />
+          <MoneyInput className="form-input" value={newPrice}
+            onChange={(v) => { setNewPrice(v); setPlan(null); setResult(null); }}
+            placeholder="mis. 120000" testId="cfg-impact-new-price" />
         </label>
         <button className="btn-primary" disabled={!productId || !Number(newPrice) || busy}
           onClick={loadPlan} data-testid="cfg-impact-check">

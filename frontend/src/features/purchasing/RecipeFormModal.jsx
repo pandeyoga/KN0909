@@ -1,4 +1,5 @@
 import { useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import { GitBranch, X, Save, Calculator, ArrowRight } from "lucide-react";
 import axios, { API } from "../../services/apiClient";
 import KNSelect from "../../components/KNSelect";
@@ -115,9 +116,9 @@ export default function RecipeFormModal({ editTarget, makloons = [], selectedEnt
               <ProductSelect triggerTestId="recipe-byproduct-product" value={f.byproduct_product_id} valueName={f.byproduct_name}
                 onSelect={(p) => setF({ ...f, byproduct_product_id: p.id, byproduct_name: `${p.name} (${p.sku})` })} label="Pilih produk sisa…" />
             </Field>
-            <Field label="Tarif Jasa Default (Rp)"><input data-testid="recipe-tariff" type="number" className="field" value={f.default_tariff} onChange={set("default_tariff")} /></Field>
+            <Field label="Tarif Jasa Default (Rp)"><MoneyInput testId="recipe-tariff" className="field" value={f.default_tariff} onChange={(v) => set("default_tariff")({ target: { value: v } })} /></Field>
             <Field label="Basis Tarif"><KNSelect data-testid="recipe-tariff-unit" className="field" value={f.tariff_unit} onValueChange={(v) => setF({ ...f, tariff_unit: v })} options={TARIFF_UNITS} /></Field>
-            <Field label="Biaya Bahan Pembantu (Rp)"><input data-testid="recipe-aux" type="number" className="field" value={f.aux_cost_default} onChange={set("aux_cost_default")} /></Field>
+            <Field label="Biaya Bahan Pembantu (Rp)"><MoneyInput testId="recipe-aux" className="field" value={f.aux_cost_default} onChange={(v) => set("aux_cost_default")({ target: { value: v } })} /></Field>
           </div>
 
           <Field label="Formula Forecast (opsional)">

@@ -8,6 +8,7 @@
  * dipegang kontrabon lain (INV-CB-01).
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import { X, Plus, ChevronRight, ChevronLeft, Info, AlertTriangle, PackageSearch } from "lucide-react";
 import axios, { API } from "../../../services/apiClient";
 import ErrorNotice from "../../../components/ErrorNotice";
@@ -299,14 +300,14 @@ export default function ContraBonCreateWizard({ suppliers, presetSupplierId, sel
                               )}
                             </td>
                             <td className="px-3 py-2 text-right">
-                              <input type="number" min={0} step={1000}
-                                data-testid={`cb-create-amount-${b.bill_id}`}
+                              <MoneyInput
+                                testId={`cb-create-amount-${b.bill_id}`}
                                 className="input-field w-[140px] text-right"
                                 disabled={!picked[b.bill_id]}
                                 placeholder={String(Math.round(Number(b.outstanding || 0)))}
                                 value={amounts[b.bill_id] ?? ""}
-                                onChange={(e) => setAmounts((a) => ({
-                                  ...a, [b.bill_id]: e.target.value,
+                                onChange={(v) => setAmounts((a) => ({
+                                  ...a, [b.bill_id]: v,
                                 }))} />
                             </td>
                           </tr>

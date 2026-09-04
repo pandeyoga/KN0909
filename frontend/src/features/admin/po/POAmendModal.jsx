@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import { XCircle, Plus, AlertTriangle, FileEdit, Trash2, Lock } from "lucide-react";
 import { formatCurrency } from "../../../utils/formatters";
 import KNSelect from "../../../components/KNSelect";
@@ -230,9 +231,9 @@ export default function POAmendModal({
                     onChange={(e) => updateItem(i, { quantity: parseFloat(e.target.value) || 0 })} className="field !py-1 !px-1.5 text-[11px] disabled:bg-gray-100 disabled:text-gray-500" />
                   <KNSelect data-testid={`po-amend-item-unit-${i}`} value={it.unit} disabled={locked} onValueChange={(v) => updateItem(i, { unit: v })}
                     className="field !py-1 !px-1.5 text-[11px]" options={unitOptionsFor(prod, it.unit)} />
-                  <input data-testid={`po-amend-item-price-${i}`} type="number" min="0" value={it.price} disabled={locked}
+                  <MoneyInput testId={`po-amend-item-price-${i}`} value={it.price} disabled={locked}
                     title={locked ? "Sudah diterima — baris terkunci dari revisi" : undefined}
-                    onChange={(e) => updateItem(i, { price: parseFloat(e.target.value) || 0 })} className="field !py-1 !px-1.5 text-[11px] disabled:bg-gray-100 disabled:text-gray-500" />
+                    onChange={(v) => updateItem(i, { price: v })} className="field !py-1 !px-1.5 text-[11px] disabled:bg-gray-100 disabled:text-gray-500" />
                   <input data-testid={`po-amend-item-disc-${i}`} type="number" min="0" max="100" value={it.discount_percent} disabled={locked}
                     title={locked ? "Sudah diterima — baris terkunci dari revisi" : undefined}
                     onChange={(e) => updateItem(i, { discount_percent: parseFloat(e.target.value) || 0 })} className="field !py-1 !px-1.5 text-[11px] disabled:bg-gray-100 disabled:text-gray-500" />
@@ -260,8 +261,8 @@ export default function POAmendModal({
                 onChange={(e) => setNewItem({ ...newItem, quantity: parseFloat(e.target.value) || 0 })} className="field" />
               <KNSelect data-testid="po-amend-new-unit" value={newItem.unit} onValueChange={(v) => setNewItem({ ...newItem, unit: v })}
                 className="field" options={unitOptionsFor(products.find((p) => p.id === newItem.product_id), newItem.unit)} />
-              <input data-testid="po-amend-new-price" type="number" placeholder="Harga" value={newItem.price || ""}
-                onChange={(e) => setNewItem({ ...newItem, price: parseFloat(e.target.value) || 0 })} className="field" />
+              <MoneyInput testId="po-amend-new-price" placeholder="Harga" value={newItem.price || ""}
+                onChange={(v) => setNewItem({ ...newItem, price: v })} className="field" />
               <input data-testid="po-amend-new-disc" type="number" placeholder="Disc%" min="0" max="100" value={newItem.discount_percent || ""}
                 onChange={(e) => setNewItem({ ...newItem, discount_percent: parseFloat(e.target.value) || 0 })} className="field" />
               <button data-testid="po-amend-add-item" onClick={addItem} className="primary-button !px-3"><Plus size={13} /></button>

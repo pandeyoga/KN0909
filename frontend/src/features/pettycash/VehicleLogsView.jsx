@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import axios, { API } from "../../services/apiClient";
 import {
   Car, Plus, RefreshCw, Trash2, Pencil, Route, Fuel, X,
@@ -242,10 +243,10 @@ function LogFormModal({ form, vehicles, entities, selectedEntity, onClose, onSav
           <F label="Tujuan"><input data-testid="veh-log-tujuan" className="form-input" value={f.tujuan} onChange={(e) => upd("tujuan", e.target.value)} placeholder="mis. Kirim sampel ke pelanggan" /></F>
           <F label="KM Awal"><input type="number" data-testid="veh-log-kmawal" className="form-input text-right" value={f.km_awal} onChange={(e) => upd("km_awal", e.target.value)} /></F>
           <F label="KM Akhir"><input type="number" data-testid="veh-log-kmakhir" className="form-input text-right" value={f.km_akhir} onChange={(e) => upd("km_akhir", e.target.value)} /></F>
-          <F label="BBM (Rp)"><input type="number" data-testid="veh-log-bbm" className="form-input text-right" value={f.bbm} onChange={(e) => upd("bbm", e.target.value)} /></F>
-          <F label="Tol (Rp)"><input type="number" data-testid="veh-log-tol" className="form-input text-right" value={f.tol} onChange={(e) => upd("tol", e.target.value)} /></F>
-          <F label="Parkir (Rp)"><input type="number" data-testid="veh-log-parkir" className="form-input text-right" value={f.parkir} onChange={(e) => upd("parkir", e.target.value)} /></F>
-          <F label="Lain-lain (Rp)"><input type="number" data-testid="veh-log-lain" className="form-input text-right" value={f.lain_lain} onChange={(e) => upd("lain_lain", e.target.value)} /></F>
+          <F label="BBM (Rp)"><MoneyInput testId="veh-log-bbm" className="form-input text-right" value={f.bbm} onChange={(v) => upd("bbm", v)} /></F>
+          <F label="Tol (Rp)"><MoneyInput testId="veh-log-tol" className="form-input text-right" value={f.tol} onChange={(v) => upd("tol", v)} /></F>
+          <F label="Parkir (Rp)"><MoneyInput testId="veh-log-parkir" className="form-input text-right" value={f.parkir} onChange={(v) => upd("parkir", v)} /></F>
+          <F label="Lain-lain (Rp)"><MoneyInput testId="veh-log-lain" className="form-input text-right" value={f.lain_lain} onChange={(v) => upd("lain_lain", v)} /></F>
           <F label="Driver"><input data-testid="veh-log-driver" className="form-input" value={f.driver} onChange={(e) => upd("driver", e.target.value)} /></F>
           <F label="Pemakai"><input data-testid="veh-log-pemakai" className="form-input" value={f.pemakai} onChange={(e) => upd("pemakai", e.target.value)} /></F>
         </div>

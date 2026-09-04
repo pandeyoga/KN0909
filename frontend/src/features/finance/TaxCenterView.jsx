@@ -20,6 +20,7 @@ import axios, { API } from "../../services/apiClient";
 import { formatCurrency } from "../../utils/formatters";
 import ConfigRedirectCard from "../settings/config/ConfigRedirectCard";
 import { overlayDismiss } from "@/utils/overlayDismiss";
+import { useEscapeClose } from "@/utils/escapeLayers";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 function fmtPeriod(p) {
@@ -354,6 +355,7 @@ function PphRecordModal({ item, entityId, period, onClose, onSaved }) {
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
+  useEscapeClose(true, onClose, saving);
   const amount = (parseFloat(dpp) || 0) * (item.rate || 0) / 100;
 
   const save = async () => {

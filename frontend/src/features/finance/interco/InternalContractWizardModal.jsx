@@ -6,6 +6,7 @@
  * dengan `pricing_mode="fixed_price"` untuk barang itu langsung SIAP DITERBITKAN.
  */
 import { useEffect, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import { X, Handshake } from "lucide-react";
 import axios, { API } from "../../../services/apiClient";
 import { KNSelect } from "../../../components/KNSelect";
@@ -95,19 +96,19 @@ export default function InternalContractWizardModal({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="PT Penjual (penerbit kontrak)">
-              <KNSelect value={seller} onChange={setSeller} options={entOptions} data-testid="interco-contract-seller" />
+              <KNSelect value={seller} onValueChange={setSeller} options={entOptions} data-testid="interco-contract-seller" />
             </Field>
             <Field label="PT Pembeli (partner)">
-              <KNSelect value={buyer} onChange={setBuyer} options={entOptions} data-testid="interco-contract-buyer" />
+              <KNSelect value={buyer} onValueChange={setBuyer} options={entOptions} data-testid="interco-contract-buyer" />
             </Field>
             <Field label="Produk">
-              <KNSelect value={productId} onChange={setProductId} options={prodOptions} data-testid="interco-contract-product" />
+              <KNSelect value={productId} onValueChange={setProductId} options={prodOptions} data-testid="interco-contract-product" />
             </Field>
             <Field label="Harga per unit (Rp)">
-              <input
-                type="number" min="0" step="0.01" value={rate}
-                onChange={(e) => setRate(e.target.value)}
-                data-testid="interco-contract-rate"
+              <MoneyInput
+                value={rate}
+                onChange={(v) => setRate(v)}
+                testId="interco-contract-rate"
                 className="w-full px-3 py-2 text-sm border border-[#E5E5EA] rounded-lg focus:outline-none focus:border-[#0058CC]"
               />
             </Field>

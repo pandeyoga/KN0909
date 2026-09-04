@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import { RefreshCw, Settings, Plus, Save, ShieldCheck, UserCog, Check, AlertTriangle, ChevronUp, ChevronDown } from "lucide-react";
 import CategoryManager from "./CategoryManager";
 import IntegrationsPanel from "./IntegrationsPanel";
@@ -287,7 +288,7 @@ export default function AdminView({
           )}
           {tab === "customers" && <div className="grid gap-2">
             {[["name", "Nama customer"], ["pic_name", "PIC"], ["phone", "Phone"], ["city", "Kota"], ["address", "Alamat"], ["npwp", "NPWP"], ["sales_pic", "Sales PIC"]].map(([key, ph]) => <input key={key} data-testid={`admin-customer-${key}-input`} className="field" placeholder={ph} value={customer[key]} onChange={(e) => setCustomer({ ...customer, [key]: e.target.value })} />)}
-            <input data-testid="admin-customer-credit_limit-input" className="field" type="number" placeholder="Batas kredit (Rp)" value={customer.credit_limit} onChange={(e) => setCustomer({ ...customer, credit_limit: Number(e.target.value) })} />
+            <MoneyInput testId="admin-customer-credit_limit-input" className="field" placeholder="Batas kredit" value={customer.credit_limit} onChange={(v) => setCustomer({ ...customer, credit_limit: Number(v) || 0 })} />
             <button data-testid="admin-create-customer-button" className="primary-button" disabled={!canWrite} title={writeBlockHint} onClick={() => onAdminCreate("customers", customer)}><Save size={14} /> Simpan Pelanggan</button>
             {!canWrite && <p data-testid="admin-customer-scope-note" className="text-[10.5px] text-[#8C4A00]">{writeBlockHint}</p>}
           </div>}

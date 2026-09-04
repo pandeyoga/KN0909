@@ -7,6 +7,7 @@
  * keputusan server, jadi peringatan di layar tidak mungkin berbeda.
  */
 import { useCallback, useEffect, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import { AlertTriangle, Save, ShieldAlert, Tag, TrendingUp, X } from "lucide-react";
 import axios, { API } from "../../../services/apiClient";
 import { formatCurrency, formatQty } from "../../../utils/formatters";
@@ -99,8 +100,8 @@ export default function SetCustomerPriceModal({
             <label className="mb-1 block text-[11px] font-semibold text-[#6B6B73]">
               Harga Langganan (per {row.base_unit})
             </label>
-            <input data-testid="cpl-input-price" type="number" className="field py-2 text-[13px]"
-              placeholder="Mis. 165000" value={price} onChange={(e) => setPrice(e.target.value)}
+            <MoneyInput testId="cpl-input-price" className="field py-2 text-[13px]"
+              placeholder="Mis. 165000" value={price} onChange={(v) => setPrice(v)}
               autoFocus />
             {checking && <p className="mt-1 text-[10.5px] text-[#8E8E93]">Memeriksa batas bawah…</p>}
           </div>

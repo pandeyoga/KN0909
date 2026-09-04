@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import axios, { API } from "../../services/apiClient";
 import { Wallet, Plus, ArrowDownCircle, ArrowUpCircle, Ban, X, Building2 } from "lucide-react";
 import { formatCurrency } from "../../utils/formatters";
@@ -198,7 +199,7 @@ export default function CashManagementView({ currentUser, selectedEntity }) {
                   options={[{ value: "out", label: "Keluar (pengeluaran)" }, { value: "in", label: "Masuk (penerimaan)" }]} />
               </Field>
               <Field label="Nominal (Rp)" req>
-                <input data-testid="cash-amount-input" type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="field" placeholder="0" />
+                <MoneyInput testId="cash-amount-input" value={form.amount} onChange={(v) => setForm({ ...form, amount: v })} className="field" placeholder="0" />
               </Field>
               <Field label="Kategori">
                 <KNSelect data-testid="cash-category-select" value={form.category} onValueChange={(v) => setForm({ ...form, category: v })} className="field" options={CATEGORIES} />

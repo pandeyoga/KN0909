@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import axios, { API } from "../../services/apiClient";
 import { TrendingUp, Target, Award, X, BarChart3, ArrowUpRight, ArrowDownRight, Landmark, CheckCircle2 } from "lucide-react";
 import { formatCurrency } from "../../utils/formatters";
@@ -288,9 +289,9 @@ function SetTargetModal({ salesUsers, period, defaultSales, onClose, onDone, onE
           <div className="col-span-2"><label className="block text-[11px] font-semibold mb-1">Periode</label>
             <input type="month" data-testid="target-period" value={per} onChange={(e) => setPer(e.target.value)} className="field" /></div>
           <div><label className="block text-[11px] font-semibold mb-1">Target Penjualan</label>
-            <input type="number" data-testid="target-sales-amount" value={sales} onChange={(e) => setSales(e.target.value)} className="field" placeholder="Rp" /></div>
+            <MoneyInput testId="target-sales-amount" value={sales} onChange={(v) => setSales(v)} className="field" placeholder="0" /></div>
           <div><label className="block text-[11px] font-semibold mb-1">Target Pencairan</label>
-            <input type="number" data-testid="target-collection-amount" value={coll} onChange={(e) => setColl(e.target.value)} className="field" placeholder="Rp" /></div>
+            <MoneyInput testId="target-collection-amount" value={coll} onChange={(v) => setColl(v)} className="field" placeholder="0" /></div>
           <div className="col-span-2"><label className="block text-[11px] font-semibold mb-1">Target Pelanggan Baru</label>
             <input type="number" data-testid="target-new-customers" value={newC} onChange={(e) => setNewC(e.target.value)} className="field" placeholder="0" /></div>
         </div>

@@ -3,6 +3,7 @@
  * Basis tarif BEBAS (D-07) + biaya tambahan + susut standar (D-05) + toleransi (D-09).
  */
 import { useEffect, useMemo, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import { FileText, Plus, Save, Trash2, X } from "lucide-react";
 import axios, { API } from "../../../services/apiClient";
 import KNSelect from "../../../components/KNSelect";
@@ -12,6 +13,7 @@ import {
   AUX_BASIS_OPTIONS, createContract, FALLBACK_BASIS_LABELS, fetchEnum, patchContract, tariffPreview,
 } from "../makloon/makloonApi";
 import { overlayDismiss } from "@/utils/overlayDismiss";
+import { useEscapeClose } from "@/utils/escapeLayers";
 
 const TYPE_OPTS = [
   { value: "makloon", label: "Kontrak Makloon (jasa proses)" },
@@ -28,6 +30,7 @@ export default function ContractFormModal({ contract, selectedEntity, onClose, o
   const [basisOptions, setBasisOptions] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [saving, setSaving] = useState(false);
+  useEscapeClose(true, onClose, saving);
   const [err, setErr] = useState("");
   const [sim, setSim] = useState(null);
   const [simQty, setSimQty] = useState("100");
@@ -198,14 +201,14 @@ export default function ContractFormModal({ contract, selectedEntity, onClose, o
                   onValueChange={(v) => set({ tariff_basis: v })} options={basisOptions} />
               </Field>
               <Field label="Tarif (Rp per basis)">
-                <input data-testid="contract-rate" className="field" value={f.tariff_rate} onChange={(e) => set({ tariff_rate: e.target.value })} />
+                <MoneyInput testId="contract-rate" className="field" value={f.tariff_rate} onChange={(v) => set({ tariff_rate: v })} />
               </Field>
               <Field label="PPI (basis pick)">
                 <input data-testid="contract-ppi" className="field" value={f.ppi} onChange={(e) => set({ ppi: e.target.value })}
                   placeholder="kosong = dari konstruksi produk" />
               </Field>
               <Field label="Tagihan minimum (Rp)">
-                <input data-testid="contract-min-charge" className="field" value={f.min_charge} onChange={(e) => set({ min_charge: e.target.value })} />
+                <MoneyInput testId="contract-min-charge" className="field" value={f.min_charge} onChange={(v) => set({ min_charge: v })} />
               </Field>
               <div className="md:col-span-4">
                 <Field label="Formula custom (opsional — var: qty_base, basis_qty, rate, gsm, lebar, ppi, roll_count, colors, repeats)">

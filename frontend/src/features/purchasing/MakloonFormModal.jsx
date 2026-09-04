@@ -3,6 +3,7 @@
  * POST /makloons | PATCH /makloons/{id} (via {data}).
  */
 import { useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import { Factory, X, Save } from "lucide-react";
 import axios, { API } from "../../services/apiClient";
 import KNSelect from "../../components/KNSelect";
@@ -94,7 +95,7 @@ export default function MakloonFormModal({ open, editTarget, entities = [], term
               <KNSelect data-testid="makloon-capacity-unit" className="field" value={form.capacity_unit} onValueChange={(v) => setForm({ ...form, capacity_unit: v })}
                 options={capacityUnitOptions} />
             </Field>
-            <Field label="Tarif Jasa Default (Rp)"><input data-testid="makloon-tariff-input" type="number" className="field" value={form.default_tariff} onChange={set("default_tariff")} placeholder="mis. 3500" /></Field>
+            <Field label="Tarif Jasa Default (Rp)"><MoneyInput testId="makloon-tariff-input" className="field" value={form.default_tariff} onChange={(v) => set("default_tariff")({ target: { value: v } })} placeholder="mis. 3500" /></Field>
             <Field label="Basis Tarif">
               <KNSelect data-testid="makloon-tariff-unit" className="field" value={form.tariff_unit} onValueChange={(v) => setForm({ ...form, tariff_unit: v })} options={TARIFF_UNITS} />
             </Field>

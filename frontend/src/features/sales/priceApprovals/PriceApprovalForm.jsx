@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import { X, Send } from "lucide-react";
 import { formatCurrency } from "../../../utils/formatters";
 import KNSelect from "../../../components/KNSelect";
@@ -72,12 +73,12 @@ export function PriceApprovalForm({
           {selectedProduct && (
             <span className="text-[10px] font-normal text-[#8E8E93]">Harga normal: {formatCurrency(selectedProduct.price)}</span>
           )}
-          <input
-            data-testid="price-approvals-price"
-            type="number" min="0" className="field tabular-nums"
+          <MoneyInput
+            testId="price-approvals-price"
+            className="field tabular-nums"
             placeholder="cth: 150000"
             value={form.requested_price}
-            onChange={(e) => setForm({ ...form, requested_price: e.target.value })}
+            onChange={(v) => setForm({ ...form, requested_price: v })}
           />
         </label>
         <label className="grid gap-1 text-[11px] font-semibold text-[#6B6B73]">

@@ -4,6 +4,7 @@
  * dampaknya dijelaskan terang-terangan sebelum tombol ditekan.
  */
 import { useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import { Trophy, X } from "lucide-react";
 import KNSelect from "../../components/KNSelect";
 import { overlayDismiss } from "@/utils/overlayDismiss";
@@ -69,8 +70,8 @@ export default function DecideModal({ sample, reasons, onClose, onConfirm, busy 
               </Field>
               <div className="grid gap-2.5 md:grid-cols-2">
                 <Field label="Harga kesepakatan per satuan (Rp) *">
-                  <input className="field" data-testid="decide-price" value={price}
-                    onChange={(e) => setPrice(e.target.value)} placeholder="42500" />
+                  <MoneyInput className="field" testId="decide-price" value={price}
+                    onChange={(v) => setPrice(v)} placeholder="42500" />
                 </Field>
                 <Field label="Kode barang versi supplier">
                   <input className="field" data-testid="decide-supplier-sku" value={supplierSku}

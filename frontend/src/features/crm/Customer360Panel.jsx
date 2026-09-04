@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import axios, { API } from "../../services/apiClient";
 import { ArrowLeft, Edit3, UserCog, ShieldAlert, PhoneCall, MapPin, CreditCard, X } from "lucide-react";
 import { formatCurrency } from "../../utils/formatters";
@@ -275,7 +276,7 @@ function OverrideModal({ customer, onClose, onDone, onError }) {
   return (
     <MiniModal title="Ajukan Override Kredit" icon={<ShieldAlert size={16} className="text-[#B45309]" />} onClose={onClose} testId="override-modal">
       <p className="text-[11px] text-[#6B6B73]">Permohonan akan diteruskan ke Manager/Finance untuk persetujuan (KN_17 §5.2).</p>
-      <input type="number" data-testid="override-amount" value={amount} onChange={(e) => setAmount(e.target.value)} className="field" placeholder="Nilai pesanan yang diminta (Rp)" />
+      <MoneyInput testId="override-amount" value={amount} onChange={(v) => setAmount(v)} className="field" placeholder="Nilai pesanan yang diminta" />
       <textarea data-testid="override-reason" value={reason} onChange={(e) => setReason(e.target.value)} className="field" rows="2" placeholder="Alasan (wajib): mis. PO besar sudah dikonfirmasi" />
       <input data-testid="override-evidence" value={evidence} onChange={(e) => setEvidence(e.target.value)} className="field" placeholder="URL bukti (opsional)" />
       <div className="flex justify-end gap-2 pt-1">

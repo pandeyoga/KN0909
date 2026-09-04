@@ -170,7 +170,7 @@ export default function PaymentPlanBuilder({
                     data-testid={`ppb-due-${i}`} onChange={(e) => patch(i, "due_date", e.target.value)} />
                 </td>
                 <td className="px-1 py-1 text-right">
-                  <MoneyInput testId={`ppb-amount-${i} className="field !py-0.5 !w-[130px] text-right tabular-nums" value={l.amount} onChange={(v) => patch(i, "amount", v)} />
+                  <MoneyInput testId={`ppb-amount-${i}`} className="field !py-0.5 !w-[130px] text-right tabular-nums" value={l.amount} onChange={(v) => patch(i, "amount", v)} />
                 </td>
                 <td className="px-1 py-1">
                   <div className="flex items-center gap-1">

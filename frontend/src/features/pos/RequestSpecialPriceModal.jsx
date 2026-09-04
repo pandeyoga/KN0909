@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import { X, Send, BadgePercent, ShieldCheck } from "lucide-react";
 import axios, { API } from "../../services/apiClient";
 import { formatCurrency } from "../../utils/formatters";
@@ -93,8 +94,8 @@ export default function RequestSpecialPriceModal({
 
           <label className="grid gap-1 text-[11px] font-semibold text-[#6B6B73]">
             Harga Khusus / unit
-            <input data-testid="rsp-price" type="number" min="0" className="field tabular-nums"
-              placeholder="cth: 150000" value={price} onChange={(e) => setPrice(e.target.value)} />
+            <MoneyInput testId="rsp-price" className="field tabular-nums"
+              placeholder="cth: 150000" value={price} onChange={(v) => setPrice(v)} />
             {priceNum > 0 && priceNum < normalPrice && (
               <span className="text-[10px] font-bold text-[#1B7E3B]">Diskon {pct}% dari harga normal</span>
             )}

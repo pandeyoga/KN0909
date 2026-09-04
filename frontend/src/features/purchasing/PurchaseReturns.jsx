@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import axios, { API } from "../../services/apiClient";
 import { RotateCcw, Plus, X, CheckCircle, XCircle, Send, FileText, Layers, Trash2, Search } from "lucide-react";
 import { formatCurrency, formatQty } from "../../utils/formatters";
@@ -367,7 +368,7 @@ export default function PurchaseReturns({ currentUser, selectedEntity }) {
                       <input data-testid={`return-item-qty-${i}`} type="number" value={it.quantity} onChange={(e) => updateItem(i, { quantity: e.target.value })}
                         disabled={picked > 0} title={picked > 0 ? "Qty otomatis dari roll terpilih" : ""}
                         className={`field !py-1 ${picked > 0 ? "opacity-70 cursor-not-allowed" : ""}`} placeholder="0" />
-                      <input type="number" value={it.price} onChange={(e) => updateItem(i, { price: e.target.value })}
+                      <MoneyInput testId={`return-item-price-${i}`} value={it.price} onChange={(v) => updateItem(i, { price: v })}
                         disabled={picked > 0} title={picked > 0 ? "Harga otomatis dari roll terpilih" : ""}
                         className={`field !py-1 ${picked > 0 ? "opacity-70 cursor-not-allowed" : ""}`} placeholder="harga" />
                       <KNSelect value={it.reason} onValueChange={(v) => updateItem(i, { reason: v })} className="field !py-1" options={REASONS} />

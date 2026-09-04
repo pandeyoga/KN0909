@@ -3,6 +3,9 @@
  * POST /api/ar-receipts. Mode Otomatis (FIFO) atau Manual (per order).
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
+import { overlayDismiss } from "@/utils/overlayDismiss";
+import { useEscapeClose } from "@/utils/escapeLayers";
 import { X, Wallet, Scale } from "lucide-react";
 import axios, { API } from "../../services/apiClient";
 import KNSelect from "../../components/KNSelect";
@@ -32,6 +35,7 @@ export default function ARReceiptModal({ customerId, customerName, preselectOrde
   const [notes, setNotes] = useState("");
   const [alloc, setAlloc] = useState({}); // order_id -> amount
   const [busy, setBusy] = useState(false);
+  useEscapeClose(true, onClose, busy);
   const [deposit, setDeposit] = useState(0);
   const [useDeposit, setUseDeposit] = useState(false);
   const [depositAmt, setDepositAmt] = useState("");
@@ -157,7 +161,7 @@ export default function ARReceiptModal({ customerId, customerName, preselectOrde
     : "Transfer/Giro/QRIS → masuk Kas Besar (bank).";
 
   return (
-    <div className="modal-overlay" data-testid="ar-receipt-modal" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="modal-overlay" data-testid="ar-receipt-modal" {...overlayDismiss(onClose)}>
       <div className="modal-card" style={{ maxWidth: 560, width: "94vw" }}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#EFF0F2]">
           <div className="flex items-center gap-2"><Wallet size={16} className="text-[#0058CC]" /><h2 className="text-[14px] font-bold">Catat Pembayaran · {customerName}</h2></div>
@@ -186,9 +190,9 @@ export default function ARReceiptModal({ customerId, customerName, preselectOrde
                 Pakai deposit pelanggan (tersedia {formatCurrency(deposit)})
               </label>
               {useDeposit && (
-                <input data-testid="ar-receipt-deposit-amount" type="number" className="field mt-2 py-1 text-[12px]"
+                <MoneyInput testId="ar-receipt-deposit-amount" className="field mt-2 py-1 text-[12px]"
                   value={depositAmt} placeholder="0"
-                  onChange={(e) => setDepositAmt(String(Math.min(Math.max(Number(e.target.value) || 0, 0), deposit)))} />
+                  onChange={(v) => setDepositAmt(String(Math.min(Math.max(Number(v) || 0, 0), deposit)))} />
               )}
             </div>
           )}
@@ -201,7 +205,7 @@ export default function ARReceiptModal({ customerId, customerName, preselectOrde
           {mode === "auto" ? (
             <div>
               <label className="text-[11px] font-bold uppercase tracking-wide text-[#6B6B73]">Jumlah Diterima</label>
-              <input data-testid="ar-receipt-amount" type="number" className="field" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
+              <MoneyInput testId="ar-receipt-amount" className="field" value={amount} onChange={(v) => setAmount(v)} placeholder="0" />
               <p className="text-[10.5px] text-[#9A9BA3] mt-1">Dialokasikan otomatis ke pesanan terbuka tertua lebih dulu.</p>
             </div>
           ) : null}
@@ -223,9 +227,9 @@ export default function ARReceiptModal({ customerId, customerName, preselectOrde
                       <p className="text-[10px] text-[#6B6B73] tabular-nums">Belum Lunas {formatCurrency(o.outstanding)}</p>
                     </div>
                     {mode === "manual" ? (
-                      <input data-testid={`ar-receipt-alloc-${o.order_id}`} type="number" className="field w-36 py-1 text-[12px]"
+                      <MoneyInput testId={`ar-receipt-alloc-${o.order_id}`} className="field w-36 py-1 text-[12px]"
                         value={alloc[o.order_id] ?? ""} placeholder="0"
-                        onChange={(e) => setAllocFor(o.order_id, e.target.value, o.outstanding)} />
+                        onChange={(v) => setAllocFor(o.order_id, v, o.outstanding)} />
                     ) : (
                       <span className="text-[11px] text-[#9A9BA3] tabular-nums">{formatCurrency(o.outstanding)}</span>
                     )}

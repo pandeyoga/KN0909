@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import MoneyInput from "@/components/MoneyInput";
 import axios, { API } from "../../services/apiClient";
 import { Plus, Pencil, Power, Tag, X, RefreshCw, AlertTriangle } from "lucide-react";
 import KNSelect from "../../components/KNSelect";
@@ -168,8 +169,8 @@ export default function SupplierPriceList({ supplierId, canManage }) {
             </div>
             <div>
               <label className="block text-[10.5px] font-semibold text-[#6B6B73] mb-1">Harga Beli (per unit) <span className="req">*</span></label>
-              <input data-testid="price-amount-input" type="number" value={form.price}
-                onChange={(e) => setForm({ ...form, price: e.target.value })} className="field" placeholder="150000" />
+              <MoneyInput testId="price-amount-input" value={form.price}
+                onChange={(v) => setForm({ ...form, price: v })} className="field" placeholder="150000" />
             </div>
             <div>
               <label className="block text-[10.5px] font-semibold text-[#6B6B73] mb-1">Unit (UOM)</label>
